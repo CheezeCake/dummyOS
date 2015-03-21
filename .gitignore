@@ -1,0 +1,5 @@
+*.o
+*.swp
+dummy_os.bin
+dummy_os.iso
+isodir
