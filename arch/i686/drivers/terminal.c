@@ -3,6 +3,7 @@
 
 #include <kernel/vga.h>
 #include <kernel/terminal.h>
+#include <kernel/libk.h>
 
 #define VGA_MEMORY 0xb8000
 
@@ -34,7 +35,7 @@ void terminal_putchar(char c)
 			break;
 		case '\b':
 			if (terminal_column > 0) {
-				TERMINAL_SETCHAR(terminal[index - 1], ' ', terminal_color);
+				TERMINAL_SETCHAR(terminal[current_index - 1], ' ', terminal_color);
 				--terminal_column;
 			}
 			break;
@@ -54,19 +55,16 @@ void terminal_putchar(char c)
 		++terminal_line;
 	}
 
+	// scrolling
 	if (terminal_line >= TERMINAL_LINES) {
 		terminal_line = TERMINAL_LINES  - 1;
 
-		for (int i = 0; i < TERMINAL_LINES - 1; i++) {
-			for (int j = 0; j < TERMINAL_COLUMNS; j++) {
-				const int index = i * TERMINAL_COLUMNS + j;
-				const int index_next_line = index + TERMINAL_COLUMNS;
-				TERMINAL_SETCHAR(terminal[index],
-						terminal[index_next_line].character,
-						terminal[index_next_line].attribute);
-			}
-		}
+		// copy lines
+		memcpy((struct vga_memory*)terminal,
+				(struct vga_memory*)terminal + TERMINAL_COLUMNS,
+				sizeof(struct vga_memory) * (TERMINAL_LINES - 1) * TERMINAL_COLUMNS);
 
+		// reset last line
 		for (int i = 0; i < TERMINAL_COLUMNS; i++) {
 			const int index  = (TERMINAL_LINES - 1) * TERMINAL_COLUMNS + i;
 			TERMINAL_SETCHAR(terminal[index], ' ', terminal_color);
