@@ -25,7 +25,7 @@ static volatile struct vga_memory* terminal = (volatile struct vga_memory*)VGA_M
 
 void terminal_putchar(char c)
 {
-	const int index = terminal_line * TERMINAL_COLUMNS + terminal_column;
+	const int current_index = terminal_line * TERMINAL_COLUMNS + terminal_column;
 
 	switch (c) {
 		case '\n':
@@ -41,31 +41,35 @@ void terminal_putchar(char c)
 		case '\r':
 			terminal_column = 0;
 			break;
+		case '\t':
+			terminal_column = terminal_column + 8 - (terminal_column % 8);
+			break;
 		default:
-			TERMINAL_SETCHAR(terminal[index], c, terminal_color);
+			TERMINAL_SETCHAR(terminal[current_index], c, terminal_color);
 			++terminal_column;
 	}
 
-	if (terminal_column == TERMINAL_COLUMNS) {
+	if (terminal_column >= TERMINAL_COLUMNS) {
 		terminal_column = 0;
 		++terminal_line;
 	}
 
-	if (terminal_line == TERMINAL_LINES) {
+	if (terminal_line >= TERMINAL_LINES) {
 		terminal_line = TERMINAL_LINES  - 1;
 
 		for (int i = 0; i < TERMINAL_LINES - 1; i++) {
 			for (int j = 0; j < TERMINAL_COLUMNS; j++) {
-				const int idx = i * TERMINAL_COLUMNS + j;
+				const int index = i * TERMINAL_COLUMNS + j;
 				const int index_next_line = index + TERMINAL_COLUMNS;
-				TERMINAL_SETCHAR(terminal[idx], terminal[index_next_line].character,
+				TERMINAL_SETCHAR(terminal[index],
+						terminal[index_next_line].character,
 						terminal[index_next_line].attribute);
 			}
 		}
 
 		for (int i = 0; i < TERMINAL_COLUMNS; i++) {
-			const int idx  = (TERMINAL_LINES - 1) * TERMINAL_COLUMNS + i;
-			TERMINAL_SETCHAR(terminal[idx], ' ', terminal_color);
+			const int index  = (TERMINAL_LINES - 1) * TERMINAL_COLUMNS + i;
+			TERMINAL_SETCHAR(terminal[index], ' ', terminal_color);
 		}
 	}
 }
