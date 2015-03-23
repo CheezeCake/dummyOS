@@ -3,11 +3,19 @@
 char* strlcpy(char* dest, const char* src, size_t size)
 {
 	char* dst = dest;
-	size_t s = size - 1;
-	for ( ; size > 1; ++dest, ++src, --size)
+	const char* src0 = src;
+	size_t s = size;
+
+	for ( ; size > 1 && *src; ++dest, ++src, --size)
 		*dest = *src;
 
-	dest[s] = '\0';
+	if (size == 0 || size == 1) {
+		if (s != 0)
+			*dest = '\0';
 
-	return dst;
+		while (*src)
+			++src;
+	}
+
+	return (src - src0);
 }

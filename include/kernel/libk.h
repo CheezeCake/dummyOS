@@ -14,7 +14,7 @@ char* strncat(char* str, const char* append, size_t count);
 
 char* strcpy(char* dest, const char* src);
 char* strncpy(char* dest, const char* src, size_t size);
-char* strlcpy(char* dest, const char* src, size_t size);
+size_t strlcpy(char* dest, const char* src, size_t size);
 
 int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, size_t size);
