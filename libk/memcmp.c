@@ -10,6 +10,5 @@ int memcmp(const void* s1, const void* s2, size_t size)
 		--size;
 	}
 
-	return (size == 0) ? 0 :
-		(*(const unsigned char*)s01 - *(const unsigned char*)s02);
+	return (size == 0) ? 0 : (*s01 - *s02);
 }

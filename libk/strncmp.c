@@ -9,6 +9,8 @@ int strncmp(const char* s1, const char* s2, size_t size)
 
 		if (*s1++ == '\0')
 			return 0;
+
+		--size;
 	}
 
 	return 0;
