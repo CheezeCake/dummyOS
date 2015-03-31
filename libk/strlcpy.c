@@ -1,8 +1,7 @@
 #include <kernel/libk.h>
 
-char* strlcpy(char* dest, const char* src, size_t size)
+size_t strlcpy(char* dest, const char* src, size_t size)
 {
-	char* dst = dest;
 	const char* src0 = src;
 	size_t s = size;
 
