@@ -1,7 +1,7 @@
 include ../make.config
 include make.config
 
-CPPFLAGS=-I../include
+CPPFLAGS=-I../include -DARCH_$(TARGET_ARCH)=1
 
 all: $(LIBK_OBJS)
 
