@@ -10,8 +10,8 @@
 #define TERMINAL_LINES 25
 #define TERMINAL_COLUMNS 80
 
-#define TERMINAL_SETCHAR(term, c, color) term.character = c; \
-										 term.attribute = color
+#define TERMINAL_SETCHAR(term, c, color) { term.character = c; \
+										 term.attribute = color; }
 
 struct vga_memory
 {
@@ -90,9 +90,8 @@ void terminal_clear(uint8_t color)
 	terminal_column = 0;
 	terminal_color = color;
 
-	for (int i = 0; i < TERMINAL_LINES * TERMINAL_COLUMNS; i++) {
+	for (int i = 0; i < TERMINAL_LINES * TERMINAL_COLUMNS; i++)
 		TERMINAL_SETCHAR(terminal[i], 0, terminal_color);
-	}
 }
 
 void terminal_set_color(uint8_t color)
