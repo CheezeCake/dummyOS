@@ -72,10 +72,13 @@ void terminal_putchar(char c)
 	}
 }
 
-void terminal_puts(const char* str)
+int terminal_puts(const char* str)
 {
-	while (*str)
-		terminal_putchar(*(str++));
+	int len;
+	for (len = 0; str[len]; len++)
+		terminal_putchar(str[len]);
+
+	return len;
 }
 
 void terminal_write(const char* data, size_t size)
@@ -102,4 +105,17 @@ void terminal_set_color(uint8_t color)
 void terminal_init(void)
 {
 	terminal_clear(vga_make_color(COLOR_WHITE, COLOR_BLACK));
+}
+
+int terminal_printf(const char* format, ...)
+{
+	const int buffer_size = 256;
+	char buffer[buffer_size];
+	va_list ap;
+
+	va_start(ap, format);
+	vsnprintf(buffer, buffer_size, format, ap);
+	va_end(ap);
+
+	return terminal_puts(buffer);
 }
