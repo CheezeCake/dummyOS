@@ -5,8 +5,8 @@ CPPFLAGS=-I../include
 
 all: $(LIBK_OBJS)
 
-%.o: %.c
-	$(CC) -c $^ -o $@ $(CFLAGS) $(CPPFLAGS)
+%.o: %.c ../include/kernel/libk.h
+	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 
 .PHONY: all clean
 
