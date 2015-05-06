@@ -3,8 +3,6 @@
 
 void kernel_main(void)
 {
-	LOG_PUTS("test debug");
-
 	terminal_init();
 	for (int i = 0; i < 10; i++)
 		terminal_puts("Hello, world !\n");
