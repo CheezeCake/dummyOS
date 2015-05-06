@@ -50,13 +50,15 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap)
 
 						do {
 							int m = value % 16;
-							char base = (m <= 9) ? '0' : 'a';
+							char hex_char = (m <= 9) ? ('0' + m) : ('a' + m - 10);
 
-							buffer[n++] = base + m;
+							buffer[n++] = hex_char;
 							value >>= 4;
 						} while (value != 0);
 
-						while (n > 0);
+						PUTCHAR('0');
+						PUTCHAR('x');
+						while (n > 0)
 							PUTCHAR(buffer[--n]);
 
 						break;
@@ -69,6 +71,8 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap)
 								PUTCHAR(*s);
 						}
 						// else, print "null" ?
+
+						break;
 					}
 				default:
 					PUTCHAR('%');
