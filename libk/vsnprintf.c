@@ -56,8 +56,6 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap)
 							value >>= 4;
 						} while (value != 0);
 
-						PUTCHAR('0');
-						PUTCHAR('x');
 						while (n > 0)
 							PUTCHAR(buffer[--n]);
 
