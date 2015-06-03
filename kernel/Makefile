@@ -7,7 +7,6 @@ all: $(KERNEL_OBJS)
 
 kernel.o: ../include/kernel/terminal.h \
 	../include/kernel/log.h \
-	../arch/x86/log.h
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
