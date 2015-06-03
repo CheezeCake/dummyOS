@@ -1,7 +1,7 @@
 include ../make.config
 include make.config
 
-CPPFLAGS=-I../include -DARCH_$(TARGET_ARCH)=1
+CPPFLAGS+=-I../include
 
 all: $(KERNEL_OBJS)
 

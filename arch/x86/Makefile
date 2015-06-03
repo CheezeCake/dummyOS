@@ -1,5 +1,7 @@
 include ../../make.config
 
+CPPFLAGS+=-I../../include
+
 all: $(ARCH_ROOT_OBJS)
 	@$(MAKE) -C boot
 	@$(MAKE) -C drivers

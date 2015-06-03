@@ -1,7 +1,7 @@
 include ../../../make.config
 include make.config
 
-CPPFLAGS:=-I../../../include
+CPPFLAGS+=-I../../../include
 
 all: $(ARCH_DRIVERS_OBJS)
 
