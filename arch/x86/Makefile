@@ -8,7 +8,11 @@ all: $(ARCH_ROOT_OBJS)
 
 .PHONY: all clean
 
-%.o: %.c %.h
+gdt.o: gdt.h
+
+cpu.o: ../../include/kernel/cpu.h
+
+%.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 
 clean:
