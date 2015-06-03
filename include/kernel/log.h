@@ -10,7 +10,7 @@
 #endif
 
 #ifndef LOG_PUTS
-#define LOG_PUTS(str) fut
+#define LOG_PUTS(str)
 #endif
 
 #endif
