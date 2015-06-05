@@ -5,12 +5,12 @@
 #include "../arch/x86/log.h"
 #endif
 
-#ifndef LOG_PRINTF
-#define LOG_PRINTF(format, ...)
+#ifndef log_printf
+#define log_printf(format, ...)
 #endif
 
-#ifndef LOG_PUTS
-#define LOG_PUTS(str)
+#ifndef log_puts
+#define log_puts(str)
 #endif
 
 #endif
