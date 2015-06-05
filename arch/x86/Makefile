@@ -10,6 +10,12 @@ all: $(ARCH_ROOT_OBJS)
 
 gdt.o: gdt.h
 
+idt.o: idt.h
+
+exception.o: exception.h
+
+interrupt.o: exception.h
+
 cpu.o: ../../include/kernel/cpu.h
 
 %.o: %.c
