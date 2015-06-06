@@ -61,7 +61,7 @@
 	     EXCEPTION_RESERVED_11, 			\
 	     EXCEPTION_RESERVED_12, 			\
 	     EXCEPTION_RESERVED_13, 			\
-	     EXCEPTION_RESERVED_14 			\
+	     EXCEPTION_RESERVED_14
 
      .p2align 2, NOP /* align on a 4 byte boundary, fill empty space with NOP */
      asm_exception_handler_\nb:
@@ -84,7 +84,7 @@
 	     EXCEPTION_STACK_SEGMENT_FAULT,	\
 	     EXCEPTION_GENERAL_PROTECTION,	\
 	     EXCEPTION_PAGE_FAULT,		\
-	     EXCEPTION_ALIGNEMENT_CHECK		\
+	     EXCEPTION_ALIGNEMENT_CHECK
 
      .p2align 2, NOP /* align on a 4 byte boundary, fill empty space with NOP */
      asm_exception_handler_\nb:
