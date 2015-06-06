@@ -127,6 +127,8 @@
 		movb $0x20,%al
 		outb %al, PIC_MASTER
 
+		RESTORE_CONTEXT
+
 		iret
 .endr
 
@@ -154,6 +156,8 @@
 		outb %al, PIC_MASTER
 		outb %al, PIC_SLAVE
 
+		RESTORE_CONTEXT
+
 		iret
 .endr
 
@@ -166,7 +170,7 @@
 asm_interrupt_handlers:
 	/* indexes 0 -> 31: asm exceptions hanlders */
 	.irp nb,  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, \
-		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31
+		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
 		.long (asm_exception_handler_\nb)
 	.endr
 	/* indexes 32 -> 47: asm irq hanlders */
