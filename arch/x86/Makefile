@@ -16,6 +16,8 @@ exception.o: exception.h
 
 interrupt.o: exception.h
 
+i8259.o: i8259.h io_ports.h
+
 cpu.o: ../../include/kernel/cpu.h
 
 %.o: %.c
