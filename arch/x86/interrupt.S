@@ -26,7 +26,8 @@
 .endm
 
 .set NOP, 0x90
-
+#define PIC_MASTER $0x20
+#define PIC_SLAVE $0xa0
 
 .text
 
@@ -122,6 +123,10 @@
 		leal irq_handlers, %edi
 		call *\nb * 4(%edi) /* call C handler */
 
+		/* send EOI */
+		movb $0x20,%al
+		outb %al, PIC_MASTER
+
 		iret
 .endr
 
@@ -133,7 +138,7 @@
 	     IRQ_PS2_MOUSE		\
 	     IRQ_COPROCESSOR		\
 	     IRQ_PRIMARY_HARDDISK	\
-	     IRQ_SECONDARY_HARDDISK	\
+	     IRQ_SECONDARY_HARDDISK
 
 	.p2align 2, NOP /* align on a 4 byte boundary, fill empty space with NOP */
 	asm_irq_handler_\nb:
@@ -143,6 +148,11 @@
 
 		leal irq_handlers, %edi
 		call *\nb * 4(%edi) /* call C handler */
+
+		/* send EOI */
+		movb $0x20,%al
+		outb %al, PIC_MASTER
+		outb %al, PIC_SLAVE
 
 		iret
 .endr
