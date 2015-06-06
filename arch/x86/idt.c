@@ -12,8 +12,9 @@ static struct idt_gate_descriptor idt[IDT_SIZE];
 int idt_set_handler(unsigned int index, uint8_t type)
 {
 	if (index < 0 || index > IDT_SIZE ||
-			type != INTGATE || type != TRAPGATE)
+			(type != INTGATE && type != TRAPGATE))
 		return -1;
+
 
 	uint32_t handler = asm_interrupt_handlers[index];
 	if (handler == 0)
