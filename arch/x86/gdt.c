@@ -2,7 +2,7 @@
 
 static struct gdt_segment_descriptor gdt[GDT_SIZE] = {{0, }};
 
-extern inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr,
+static inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr,
 		uint8_t dpl, uint8_t type)
 {
 	segment_descr->limit_15_0 = 0xffff;
@@ -11,7 +11,7 @@ extern inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr
 
 	segment_descr->base_23_16 = 0;
 	segment_descr->type = type;
-	segment_descr->descriptor_type = type;
+	segment_descr->descriptor_type = 1;
 	segment_descr->dpl = dpl & 0x3;
 	segment_descr->present = 1;
 
@@ -35,18 +35,17 @@ void gdt_init(void)
 	gdt_register.base_address = (uint32_t)gdt;
 	gdt_register.limit = sizeof(gdt) - 1;
 
-
 	// load the gdtr resgister and update the segement registers
 	__asm__ __volatile__ (
-			"lgdt %0 \n"
-			"movw %1, %%ax \n"
-			"movw %%ax, %%ss \n"
-			"movw %%ax, %%ds \n"
-			"movw %%ax, %%es \n"
-			"movw %%ax, %%fs \n"
-			"movw %%ax, %%gs \n"
-			"ljmp %2, $next \n"
-			"next: \n"
+			"lgdt %0\n"
+			"movw %1, %%ax\n"
+			"movw %%ax, %%ss\n"
+			"movw %%ax, %%ds\n"
+			"movw %%ax, %%es\n"
+			"movw %%ax, %%fs\n"
+			"movw %%ax, %%gs\n"
+			"ljmp %2, $next\n"
+			"next:\n"
 			:
 			: "m" (gdt_register), "i" (KDATA << 3),
 			  "i" (KCODE << 3)

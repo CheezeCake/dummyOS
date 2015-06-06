@@ -31,8 +31,8 @@ struct gdt_segment_descriptor
 	uint8_t operation_size:1;
 	uint8_t granularity:1;
 
-	uint16_t base_31_24;
-} __attribute__((packed, aligned(8)));
+	uint8_t base_31_24;
+} __attribute__((packed));
 
 /*
  * GDT register
@@ -47,8 +47,6 @@ struct gdtr
 #define CODE_SEGMENT 0xb
 #define DATA_SEGMENT 0x3
 
-inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr,
-		uint8_t dpl, uint8_t type);
 void gdt_init(void);
 
 #endif
