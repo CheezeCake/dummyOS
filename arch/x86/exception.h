@@ -41,6 +41,7 @@
 #define EXCEPTION_RESERVED_13 30
 #define EXCEPTION_RESERVED_14 31
 
+
 #ifndef ASM_SOURCE
 
 #define EXCEPTION_IDT_INDEX(exception) (EXCEPTION_BASE + exception)

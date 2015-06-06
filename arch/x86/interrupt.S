@@ -1,7 +1,7 @@
 #define ASM_SOURCE
 
 #include "exception.h"
-/* #include "irq.h" */
+#include "irq.h"
 
 .macro SAVE_CONTEXT
 	pushal
@@ -27,13 +27,14 @@
 
 .set NOP, 0x90
 
+
 .text
 
 /* defined in exception.c */
 .extern exception_handlers
 
 /* defined in irq.c */
-/* .extern irq_handlers */
+.extern irq_handlers
 
 
 /* No error code exception handlers */
@@ -102,16 +103,63 @@
 .endr
 
 
+/* Master PIC IRQ handlers */
+.irp nb, IRQ_TIMER,		\
+	     IRQ_KEYBOARD	\
+	     IRQ_CASCADE	\
+	     IRQ_COM2		\
+	     IRQ_COM1		\
+	     IRQ_LPT2		\
+	     IRQ_FLOPPY		\
+	     IRQ_LPT1
+
+	.p2align 2, NOP /* align on a 4 byte boundary, fill empty space with NOP */
+	asm_irq_handler_\nb:
+		.type asm_irq_handler_\nb, @function
+
+		SAVE_CONTEXT
+
+		leal irq_handlers, %edi
+		call *\nb * 4(%edi) /* call C handler */
+
+		iret
+.endr
+
+/* Slave PIC IRQ hanlders */
+.irp nb, IRQ_RTC			\
+	     IRQ_UNDEFINED_1		\
+	     IRQ_UNDEFINED_2		\
+	     IRQ_UNDEFINED_3		\
+	     IRQ_PS2_MOUSE		\
+	     IRQ_COPROCESSOR		\
+	     IRQ_PRIMARY_HARDDISK	\
+	     IRQ_SECONDARY_HARDDISK	\
+
+	.p2align 2, NOP /* align on a 4 byte boundary, fill empty space with NOP */
+	asm_irq_handler_\nb:
+		.type asm_irq_handler_\nb, @function
+
+		SAVE_CONTEXT
+
+		leal irq_handlers, %edi
+		call *\nb * 4(%edi) /* call C handler */
+
+		iret
+.endr
+
+
 .data
 
 .globl asm_interrupt_handlers
 
 .p2align 5, 0x0
 asm_interrupt_handlers:
+	/* indexes 0 -> 31: asm exceptions hanlders */
 	.irp nb,  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, \
 		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31
 		.long (asm_exception_handler_\nb)
 	.endr
-	/* .irp nb, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47 */
-	/* 	.long (asm_irq_handler_\nb) */
-	/* .endr */
+	/* indexes 32 -> 47: asm irq hanlders */
+	.irp nb,  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+		.long (asm_irq_handler_\nb)
+	.endr
