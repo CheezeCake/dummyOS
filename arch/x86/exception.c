@@ -10,7 +10,7 @@ interrupt_handler_t exception_handlers[EXCEPTION_NB] = { NULL, };
 int exception_set_handler(unsigned int exception, interrupt_handler_t handler)
 {
 	if (exception < 0 || exception > EXCEPTION_MAX ||
-			!handler)
+			handler == 0)
 		return -1;
 
 	// return -1 for double fault
