@@ -47,7 +47,7 @@ void doublefault_handler(void)
 			"jmp l\n");
 }
 
-int init_exception(void)
+int exception_init(void)
 {
 	// setup double fault handler
 	return exception_set_handler(EXCEPTION_DOUBLE_FAULT, doublefault_handler);

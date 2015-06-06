@@ -47,7 +47,7 @@
 
 int exception_set_handler(unsigned int exception, interrupt_handler_t handler);
 int exception_unset_handler(unsigned int exception);
-int init_exception(void);
+int exception_init(void);
 
 #endif
 

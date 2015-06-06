@@ -42,7 +42,7 @@ int idt_unset_handler(unsigned int index)
 	return 0;
 }
 
-void init_idt(void)
+void idt_init(void)
 {
 	struct idtr idt_register;
 

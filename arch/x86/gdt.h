@@ -47,8 +47,8 @@ struct gdtr
 #define CODE_SEGMENT 0xb
 #define DATA_SEGMENT 0x3
 
-inline void init_gdt_segment(struct gdt_segment_descriptor* segment_descr,
+inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr,
 		uint8_t dpl, uint8_t type);
-void init_gdt(void);
+void gdt_init(void);
 
 #endif

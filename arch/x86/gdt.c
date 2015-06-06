@@ -2,7 +2,7 @@
 
 static struct gdt_segment_descriptor gdt[GDT_SIZE] = {{0, }};
 
-extern inline void init_gdt_segment(struct gdt_segment_descriptor* segment_descr,
+extern inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr,
 		uint8_t dpl, uint8_t type)
 {
 	segment_descr->limit_15_0 = 0xffff;
@@ -23,14 +23,14 @@ extern inline void init_gdt_segment(struct gdt_segment_descriptor* segment_descr
 	segment_descr->base_31_24 = 0;
 }
 
-void init_gdt(void)
+void gdt_init(void)
 {
 	struct gdtr gdt_register;
 
-	init_gdt_segment(&gdt[KCODE], 0, CODE_SEGMENT);
-	init_gdt_segment(&gdt[KDATA], 0, DATA_SEGMENT);
-	init_gdt_segment(&gdt[UCODE], 3, CODE_SEGMENT);
-	init_gdt_segment(&gdt[UDATA], 3, DATA_SEGMENT);
+	gdt_init_segment(&gdt[KCODE], 0, CODE_SEGMENT);
+	gdt_init_segment(&gdt[KDATA], 0, DATA_SEGMENT);
+	gdt_init_segment(&gdt[UCODE], 3, CODE_SEGMENT);
+	gdt_init_segment(&gdt[UDATA], 3, DATA_SEGMENT);
 
 	gdt_register.base_address = (uint32_t)gdt;
 	gdt_register.limit = sizeof(gdt) - 1;

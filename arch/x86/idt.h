@@ -37,6 +37,6 @@ struct idtr
 
 int idt_set_handler(unsigned int index, uint8_t type);
 int idt_unset_handler(unsigned int index);
-void init_idt(void);
+void idt_init(void);
 
 #endif
