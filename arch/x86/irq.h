@@ -31,30 +31,8 @@
 
 #define IRQ_IDT_INDEX(irq) (IRQ_BASE + irq)
 
-static inline void disable_irqs(uint32_t* flags)
-{
-	// save EFLAGS register to flags
-	__asm__ __volatile__ (
-			"pushfl\n"
-			"popl %0\n"
-			: "=g" (*flags)
-			:
-			: "memory");
-
-	__asm__ ("cli\n");
-}
-
-static inline void restore_irqs(uint32_t flags)
-{
-	// restore EFLAGS register
-	__asm__ __volatile__ (
-			"pushl %0\n"
-			"popfl\n"
-			:
-			: "g" (flags)
-			: "memory");
-}
-
+#define disable_irqs() __asm__ ("cli")
+#define enable_irqs() __asm__ ("sti")
 
 int irq_set_handler(uint8_t irq, interrupt_handler_t handler);
 int irq_unset_handler(uint8_t irq);

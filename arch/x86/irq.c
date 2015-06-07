@@ -13,8 +13,7 @@ int irq_set_handler(uint8_t irq, interrupt_handler_t handler)
 			handler == 0)
 		return -1;
 
-	uint32_t flags;
-	disable_irqs(&flags);
+	disable_irqs();
 
 	int ret = idt_set_handler(IRQ_BASE + irq, INTGATE);
 
@@ -23,7 +22,7 @@ int irq_set_handler(uint8_t irq, interrupt_handler_t handler)
 		i8259_irq_enable(irq); // update PIC
 	}
 
-	restore_irqs(flags);
+	enable_irqs();
 
 	return ret;
 }
@@ -33,8 +32,7 @@ int irq_unset_handler(uint8_t irq)
 	if (irq < 0 || irq > IRQ_MAX)
 		return -1;
 
-	uint32_t flags;
-	disable_irqs(&flags);
+	disable_irqs();
 
 	int ret = idt_unset_handler(IRQ_BASE + irq);
 
@@ -43,7 +41,7 @@ int irq_unset_handler(uint8_t irq)
 		i8259_irq_disable(irq); // update PIC
 	}
 
-	restore_irqs(flags);
+	enable_irqs();
 
 	return ret;
 }

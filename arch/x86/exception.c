@@ -18,14 +18,13 @@ int exception_set_handler(unsigned int exception, interrupt_handler_t handler)
 	if (exception == EXCEPTION_DOUBLE_FAULT)
 		return -1;
 
-	uint32_t flags;
-	disable_irqs(&flags);
+	disable_irqs();
 
 	int ret = idt_set_handler(EXCEPTION_BASE + exception, INTGATE);
 	if (ret == 0)
 		exception_handlers[exception] = handler;
 
-	restore_irqs(flags);
+	enable_irqs();
 
 	return ret;
 }
@@ -35,14 +34,13 @@ int exception_unset_handler(unsigned int exception)
 	if (exception < 0 || exception > EXCEPTION_MAX)
 		return -1;
 
-	uint32_t flags;
-	disable_irqs(&flags);
+	disable_irqs();
 
 	int ret = idt_unset_handler(EXCEPTION_BASE + exception);
 	if (ret == 0)
 		exception_handlers[exception] = NULL;
 
-	restore_irqs(flags);
+	enable_irqs();
 
 	return ret;
 }
