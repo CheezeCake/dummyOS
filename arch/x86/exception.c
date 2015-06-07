@@ -51,7 +51,7 @@ void doublefault_handler(void)
 {
 	terminal_puts("PANIC: double fault");
 	__asm__ ("l: hlt\n"
-			"jmp l\n");
+			"jmp l");
 }
 
 int exception_init(void)

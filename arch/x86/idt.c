@@ -62,7 +62,7 @@ void idt_init(void)
 
 	// load the idt register
 	__asm__ __volatile__ (
-			"lidt %0\n"
+			"lidt %0"
 			:
 			: "m" (idt_register)
 			: "memory");
