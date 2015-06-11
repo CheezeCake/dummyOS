@@ -1,4 +1,5 @@
 #include "gdt.h"
+#include "segment.h"
 
 static struct gdt_segment_descriptor gdt[GDT_SIZE] = {{0, }};
 
@@ -45,9 +46,9 @@ void gdt_init(void)
 			"movw %%ax, %%fs\n"
 			"movw %%ax, %%gs\n"
 			"ljmp %2, $next\n"
-			"next:\n"
+			"next:"
 			:
-			: "m" (gdt_register), "i" (KDATA << 3),
-			  "i" (KCODE << 3)
+			: "m" (gdt_register), "i" (make_segment_register(0, false, KDATA)),
+			  "i" (make_segment_register(0, false, KCODE))
 			: "eax", "memory");
 }

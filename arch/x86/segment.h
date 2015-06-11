@@ -12,10 +12,7 @@
 #define CODE_SEGMENT 0xb
 #define DATA_SEGMENT 0x3
 
-static inline uint16_t make_segment_register(uint8_t privilege,
-		bool in_ldt, uint16_t index)
-{
-	return ((privilege & 0x3) | ((in_ldt ? 1 : 0) << 2) | (index << 3));
-}
+#define make_segment_register(privilege, in_ldt, index) \
+	((privilege & 0x3) | ((in_ldt ? 1 : 0) << 2) | (index << 3))
 
 #endif
