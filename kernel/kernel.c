@@ -1,15 +1,21 @@
+#include <kernel/arch.h>
 #include <kernel/terminal.h>
 #include <kernel/cpu.h>
 #include <kernel/log.h>
+#include <kernel/multiboot.h>
 
-void kernel_main(void)
+void kernel_main(multiboot_info_t* mbi)
 {
 	terminal_init();
-	for (int i = 0; i < 10; i++)
-		terminal_puts("Hello, world !\n");
-	for (int i = 0; i < 15; i++)
-		terminal_puts("Ah ouais ?!\n");
+
+	arch_init();
 
 	struct cpu_info* cpu = cpu_info();
-	terminal_puts(cpu->cpu_vendor);
+
+	terminal_puts("Welcome to dummyOS!\n");
+	terminal_printf("CPU: %s\tRAM: %dMB (0x%x)", cpu->cpu_vendor,
+			(mbi->mem_upper >> 10) + 1, mbi->mem_upper);
+
+	for (;;)
+		__asm__ ("hlt");
 }

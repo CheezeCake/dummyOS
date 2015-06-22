@@ -32,6 +32,8 @@ _start:
 	pushl $0
 	popf
 
+	pushl %ebx
+
 	# call the C main function
 	call kernel_main
 
