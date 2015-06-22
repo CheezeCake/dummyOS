@@ -22,6 +22,8 @@ irq.o: irq.h i8259.h idt.h interrupt.h
 
 cpu.o: ../../include/kernel/cpu.h
 
+arch.o: ../../include/kernel/arch.h
+
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 
