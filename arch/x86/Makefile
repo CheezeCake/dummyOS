@@ -1,6 +1,6 @@
 include ../../make.config
 
-CPPFLAGS+=-I../../include
+CPPFLAGS+=-I../../include -Iinclude
 
 all: $(ARCH_ROOT_OBJS)
 	@$(MAKE) -C boot
