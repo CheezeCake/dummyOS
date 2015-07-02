@@ -68,7 +68,7 @@ void memory_init(size_t ram_size_bytes)
 	}
 }
 
-inline static struct page_frame* get_page_frame_at(p_addr_t addr)
+static inline struct page_frame* get_page_frame_at(p_addr_t addr)
 {
 	// check if addr is PAGE_SIZE aligned
 	// if it isn't, it's not a page frame address
