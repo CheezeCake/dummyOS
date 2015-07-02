@@ -44,7 +44,7 @@ static inline p_addr_t page_frame_align_sup(p_addr_t addr)
 	return (addr + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
 }
 
-static inline p_addr_t get_kernel_base_page_frame()
+static inline p_addr_t get_kernel_base_page_frame(void)
 {
 	return page_frame_align_inf((p_addr_t)&__begin_kernel);
 }
@@ -58,7 +58,7 @@ static inline p_addr_t get_kernel_top_page_frame(size_t page_frames_in_ram)
 
 
 void memory_init(size_t ram_size_bytes);
-p_addr_t memory_page_frame_alloc();
+p_addr_t memory_page_frame_alloc(void);
 int memory_ref_page_frame(p_addr_t addr);
 int memory_unref_page_frame(p_addr_t addr);
 
