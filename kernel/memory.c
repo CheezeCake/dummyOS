@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <kernel/memory.h>
 #include <kernel/page_frame_status.h>
 #include <kernel/libk.h>
@@ -106,7 +107,14 @@ int memory_ref_page_frame(p_addr_t addr)
 
 	++pf->refs;
 
-	return 0;
+	if (pf->refs == 1) {
+		slist_erase(&free_page_frames, pf);
+		slist_push_back(&used_page_frames, pf);
+	}
+
+	// if pf->refs > INT_MAX return value will be a negative value, i.e. error
+	// return INT_MAX instead
+	return (pf->refs > INT_MAX) ? INT_MAX : pf->refs;
 }
 
 int memory_unref_page_frame(p_addr_t addr)
@@ -122,5 +130,7 @@ int memory_unref_page_frame(p_addr_t addr)
 		list_push_front(&free_page_frames, pf);
 	}
 
-	return 0;
+	// if pf->refs > INT_MAX return value will be a negative value, i.e. error
+	// return INT_MAX instead
+	return (pf->refs > INT_MAX) ? INT_MAX : pf->refs;
 }
