@@ -25,6 +25,8 @@ cpu.o: ../../include/kernel/cpu.h
 arch.o: ../../include/kernel/arch.h \
 	../../include/kernel/panic.h
 
+paging.o: ../../include/kernel/paging.h
+
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 
