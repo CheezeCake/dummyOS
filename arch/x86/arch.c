@@ -6,6 +6,11 @@
 #include "exception.h"
 #include "irq.h"
 
+void page_fault(void)
+{
+	PANIC("page_fault");
+}
+
 void arch_init(void)
 {
 	gdt_init();
@@ -15,6 +20,8 @@ void arch_init(void)
 	exception_init();
 
 	irq_init();
+
+	exception_set_handler(EXCEPTION_PAGE_FAULT, page_fault);
 }
 
 void arch_memory_management_init(size_t ram_size_bytes)
