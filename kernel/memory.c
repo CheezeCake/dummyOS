@@ -58,8 +58,7 @@ void memory_init(size_t ram_size_bytes)
 		pf_descriptor->addr = paddr;
 
 		if (status == PAGE_FRAME_FREE) {
-			pf_descriptor->refs = 0;
-			list_push_back((struct page_frame_list*)&free_page_frames, pf_descriptor);
+			list_push_back(&free_page_frames, pf_descriptor);
 		}
 		else if (status == PAGE_FRAME_KERNEL || status == PAGE_FRAME_HW_MAP) {
 			pf_descriptor->refs = 1;
