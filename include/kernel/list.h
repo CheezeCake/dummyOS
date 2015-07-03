@@ -66,6 +66,17 @@
 #define list_back(list) _list_back(list, root, prev)
 #define _list_back(list, root, prev) ((list)->root->prev)
 
+#define list_erase(list, iterator) _list_erase(list, iterator, root, prev, next)
+#define _list_erase(list, iterator, root, prev, next) \
+	if ((list)->root == iterator && (list)->root->next == iterator) { \
+			(list)->root = NULL; \
+	} \
+	else { \
+		if (iterator->prev) iterator->prev->next = iterator->next; \
+		if (iterator->next) iterator->next->prev = iterator->prev; \
+		if ((list)->root == iterator) (list)->root = iterator->next; \
+	}
+
 
 // list with size
 #define slist_init(list, value) _slist_init(list, value, root, prev, next, size)
@@ -101,16 +112,10 @@
 	_list_pop_back(list, root, prev, next); \
 	--(list)->size; }
 
-#define list_erase(list, iterator) _list_erase(list, iterator, root, prev, next)
-#define _list_erase(list, iterator, root, prev, next) \
-	if ((list)->root == iterator && (list)->root->next == iterator) { \
-			(list)->root = NULL; \
-	} \
-	else { \
-		if (iterator->prev) iterator->prev->next = iterator->next; \
-		if (iterator->next) iterator->next->prev = iterator->prev; \
-		if ((list)->root == iterator) (list)->root = iterator->next; \
-	}
+#define slist_erase(list, iterator) _slist_erase(list, iterator, root, prev, next, size)
+#define _slist_erase(list, iterator, root, prev, next, size) { \
+	_list_erase(list, iterator, root, prev, next); \
+	--(list)->size; }
 
 #define list_empty(list) (!(list)->root)
 
