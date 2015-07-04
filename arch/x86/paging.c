@@ -107,8 +107,8 @@ void paging_init(p_addr_t kernel_top_page_frame)
 	mirroring_entry->address = p_addr2pd_addr(page_directory);
 
 
-	identity_mapping(page_directory, X86_MEMORY_HARDWARE_MAP_BEGIN,
-			X86_MEMORY_HARDWARE_MAP_END);
+	// kernel stack and hardware map
+	identity_mapping(page_directory, PAGE_SIZE, X86_MEMORY_HARDWARE_MAP_END);
 	identity_mapping(page_directory, get_kernel_base_page_frame(),
 			kernel_top_page_frame);
 
@@ -192,7 +192,7 @@ int paging_unmap(v_addr_t vaddr)
 
 	invlpg(vaddr);
 
-	// unref the phisycal page holding the page table
+	// unref the physical page holding the page table
 	// if this was the last reference, reset the page directory entry
 	if (memory_unref_page_frame(pd_addr2p_addr(pde->address)) == 0) {
 		memset(pde, 0, sizeof(struct page_directory_entry));

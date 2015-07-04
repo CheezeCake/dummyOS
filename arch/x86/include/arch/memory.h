@@ -17,7 +17,7 @@ static inline enum page_frame_status get_page_frame_status(p_addr_t pf,
 	if (pf < mem_base)
 		return PAGE_FRAME_RESERVED;
 	else if (pf < X86_MEMORY_HARDWARE_MAP_BEGIN)
-		return PAGE_FRAME_FREE;
+		return PAGE_FRAME_KERNEL_STACK;
 	else if (pf < X86_MEMORY_HARDWARE_MAP_END)
 		return PAGE_FRAME_HW_MAP;
 	else if (pf < kbase)

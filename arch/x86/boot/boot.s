@@ -7,6 +7,8 @@
 .set MULTIBOOT_MAGIC, 0x1BADB002 # magic number: mark for bootloader
 .set MULTIBOOT_CHECKSUM, -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
 
+.set X86_MEMORY_HARDWARE_MAP_BEGIN, 0xa0000
+.set KERNEL_STACK_TOP, X86_MEMORY_HARDWARE_MAP_BEGIN
 
 # Multiboot header. We will force the .multiboot section to come first in
 # the kernel in the linker script. It must be in the first 8192 bytes.
@@ -17,15 +19,10 @@
 .long MULTIBOOT_CHECKSUM
 
 
-# allocate our own temporary stack
-.set STACK_SIZE, 0x4000 # 16KB
-.comm stack, STACK_SIZE
-
-
 .text
 .globl _start
 _start:
-	movl $(stack + STACK_SIZE), %ebp
+	movl $KERNEL_STACK_TOP, %ebp
 	movl %ebp, %esp
 
 	# set EFLAGS register to 0
