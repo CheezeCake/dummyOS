@@ -107,8 +107,8 @@ void paging_init(p_addr_t kernel_top_page_frame)
 	mirroring_entry->address = p_addr2pd_addr(page_directory);
 
 
-	// kernel stack and hardware map
-	identity_mapping(page_directory, PAGE_SIZE, X86_MEMORY_HARDWARE_MAP_END);
+	identity_mapping(page_directory, X86_MEMORY_HARDWARE_MAP_BEGIN,
+			X86_MEMORY_HARDWARE_MAP_END);
 	identity_mapping(page_directory, get_kernel_base_page_frame(),
 			kernel_top_page_frame);
 

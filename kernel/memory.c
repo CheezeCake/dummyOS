@@ -46,9 +46,9 @@ void memory_init(size_t ram_size_bytes)
 
 #ifndef NDEBUG
 		if (stat == -1 || status != stat) {
-			const char* status_str[] = { "reserved", "kernel stack", "kernel", "hw map", "free" };
+			const char* status_str[] = { "reserved", "kernel", "hw map", "free" };
 			stat = status;
-			if (status >= 0 && status <= 4)
+			if (status >= 0 && status <= 3)
 				log_printf("[0x%x]\n %s\n", paddr, status_str[status]);
 			else
 				log_printf("[0x%x]\n %d\n", paddr, status);
