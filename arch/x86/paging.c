@@ -138,7 +138,7 @@ static inline struct page_table_entry* get_page_table_entry(v_addr_t vaddr)
 			(pde_index << PAGE_SIZE_SHIFT) + pte_index);
 }
 
-int paging_map(p_addr_t paddr, v_addr_t vaddr, bool user_page)
+int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 {
 	struct page_directory_entry* pde = get_page_directory_entry(vaddr);
 	struct page_table_entry* pte = NULL;
@@ -164,8 +164,8 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, bool user_page)
 		return -1;
 
 	pte->present = 1;
-	pte->read_write = 1;
-	pte->user = user_page ? 1 : 0;
+	pte->read_write = ((flags & VM_OPT_WRITE) == VM_OPT_WRITE) ? 1 : 0;
+	pte->user = ((flags & VM_OPT_USER) == VM_OPT_USER) ? 1 : 0;
 	pte->address = p_addr2pt_addr(paddr);
 	memory_ref_page_frame(paddr);
 
