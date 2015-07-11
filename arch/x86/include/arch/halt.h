@@ -4,6 +4,6 @@
 #define HALT() \
 	__asm__ ( \
 			"cli\n" \
-			"hlt")
-
+			"hlt"); \
+	for (;;)
 #endif
