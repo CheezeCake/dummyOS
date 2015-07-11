@@ -7,6 +7,11 @@
 #include <arch/memory.h>
 #include <kernel/log.h>
 
+extern p_addr_t page_frame_align_inf(p_addr_t addr);
+extern p_addr_t page_frame_align_sup(p_addr_t addr);
+extern p_addr_t get_kernel_base_page_frame(void);
+extern p_addr_t get_kernel_top_page_frame(size_t page_frames_in_ram);
+
 // place the frame descritors right after the kernel
 #define PAGE_FRAME_DESCRIPTORS ((p_addr_t)(&__end_kernel))
 static struct page_frame* page_frame_descriptors = (struct page_frame*)PAGE_FRAME_DESCRIPTORS;

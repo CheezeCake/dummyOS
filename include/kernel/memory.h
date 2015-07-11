@@ -34,22 +34,22 @@ struct page_frame_list
 extern uint8_t __begin_kernel;
 extern uint8_t __end_kernel;
 
-static inline p_addr_t page_frame_align_inf(p_addr_t addr)
+inline p_addr_t page_frame_align_inf(p_addr_t addr)
 {
 	return (addr & ~(PAGE_SIZE - 1));
 }
 
-static inline p_addr_t page_frame_align_sup(p_addr_t addr)
+inline p_addr_t page_frame_align_sup(p_addr_t addr)
 {
 	return (addr + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
 }
 
-static inline p_addr_t get_kernel_base_page_frame(void)
+inline p_addr_t get_kernel_base_page_frame(void)
 {
 	return page_frame_align_inf((p_addr_t)&__begin_kernel);
 }
 
-static inline p_addr_t get_kernel_top_page_frame(size_t page_frames_in_ram)
+inline p_addr_t get_kernel_top_page_frame(size_t page_frames_in_ram)
 {
 	// __end_kernel + page_frame descriptors
 	return page_frame_align_sup((p_addr_t)&__end_kernel +
