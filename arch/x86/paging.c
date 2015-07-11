@@ -61,7 +61,9 @@ static inline void invlpg(uint32_t addr)
 
 static void identity_mapping(p_addr_t page_directory, p_addr_t from, p_addr_t to)
 {
-	log_printf("identity map : from = 0x%x, to = 0x%x\n", from, to);
+	/*
+	 * paging is not enabled here, we are still working with physical adresses
+	 */
 	kassert(from <= to);
 	for (p_addr_t addr = from; addr < to; addr += PAGE_SIZE) {
 		int index_pd = index_in_pd(addr);
@@ -125,8 +127,8 @@ void paging_init(p_addr_t kernel_top_page_frame)
 static inline struct page_directory_entry* get_page_directory_entry(v_addr_t vaddr)
 {
 	int pde_index = index_in_pd(vaddr);
-	return (struct page_directory_entry*)(MIRRORING_VADDR_BEGIN +
-			(index_in_pd(MIRRORING_VADDR_BEGIN) << PAGE_SIZE_SHIFT) +
+	return ((struct page_directory_entry*)(MIRRORING_VADDR_BEGIN +
+			(index_in_pd(MIRRORING_VADDR_BEGIN) << PAGE_SIZE_SHIFT)) +
 			pde_index);
 }
 
@@ -134,29 +136,31 @@ static inline struct page_table_entry* get_page_table_entry(v_addr_t vaddr)
 {
 	int pde_index = index_in_pd(vaddr);
 	int pte_index = index_in_pt(vaddr);
-	return (struct page_table_entry*)(MIRRORING_VADDR_BEGIN +
-			(pde_index << PAGE_SIZE_SHIFT) + pte_index);
+	return ((struct page_table_entry*)(MIRRORING_VADDR_BEGIN +
+			(pde_index << PAGE_SIZE_SHIFT)) + pte_index);
 }
 
 int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 {
 	struct page_directory_entry* pde = get_page_directory_entry(vaddr);
-	struct page_table_entry* pte = NULL;
+	struct page_table_entry* pte = get_page_table_entry(vaddr);
 
 	// no page table
 	if (!pde->present) {
 		p_addr_t page_table = memory_page_frame_alloc();
 		kassert(page_table != (p_addr_t)NULL);
-		memset(pte, 0, PAGE_SIZE);
 
 		pde->present = 1;
 		pde->read_write = 1;
 		// vaddr < MIRRORING_VADDR_BEGIN => kernel page table
 		pde->user = (vaddr < MIRRORING_VADDR_BEGIN) ? 0 : 1;
 		pde->address = p_addr2pd_addr(page_table);
+
+		invlpg((uint32_t)pte);
+
+		memset(pte, 0, PAGE_SIZE);
 	}
 
-	pte = get_page_table_entry(vaddr);
 
 	// a page frame is already mapped for the virtual page
 	// (vaddr & 0xfffff000) -> (vaddr | 0xfff)
