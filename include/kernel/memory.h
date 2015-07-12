@@ -61,5 +61,7 @@ void memory_init(size_t ram_size_bytes);
 p_addr_t memory_page_frame_alloc(void);
 int memory_ref_page_frame(p_addr_t addr);
 int memory_unref_page_frame(p_addr_t addr);
+void memory_statistics(unsigned int* nb_used_page_frames,
+		unsigned int* nb_free_page_frames);
 
 #endif

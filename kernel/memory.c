@@ -139,3 +139,10 @@ int memory_unref_page_frame(p_addr_t addr)
 	// return INT_MAX instead
 	return (pf->refs > INT_MAX) ? INT_MAX : pf->refs;
 }
+
+void memory_statistics(unsigned int* nb_used_page_frames,
+		unsigned int* nb_free_page_frames)
+{
+	*nb_used_page_frames = used_page_frames.size;
+	*nb_free_page_frames = free_page_frames.size;
+}
