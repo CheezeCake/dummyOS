@@ -19,5 +19,5 @@ void kernel_main(multiboot_info_t* mbi)
 	arch_memory_management_init((mbi->mem_upper << 10) + (1 << 20));
 
 	for (;;)
-		__asm__ ("hlt");
+		;
 }
