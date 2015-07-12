@@ -6,11 +6,9 @@
 #include <kernel/libk.h>
 #include <kernel/memory.h>
 #include <arch/memory.h>
+#include <arch/virtual_memory.h>
 
 #include <kernel/log.h>
-
-#define KERNEL_VADDR_SPACE_TOP 0x40000000 // 1GB
-#define MIRRORING_VADDR_BEGIN (KERNEL_VADDR_SPACE_TOP - 0x1000000) // 1GB - 4MB
 
 #define index_in_pd(addr) (addr >> 22)
 #define index_in_pt(addr) ((addr >> 12) & 0x3ff)

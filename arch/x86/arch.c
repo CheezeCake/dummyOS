@@ -2,6 +2,7 @@
 #include <kernel/memory.h>
 #include <kernel/panic.h>
 #include <kernel/paging.h>
+#include <kernel/kmalloc.h>
 #include "gdt.h"
 #include "idt.h"
 #include "exception.h"
@@ -36,4 +37,6 @@ void arch_memory_management_init(size_t ram_size_bytes)
 	memory_init(ram_size_bytes);
 
 	paging_init(kernel_top);
+
+	kmalloc_init(kernel_top);
 }
