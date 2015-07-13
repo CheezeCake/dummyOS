@@ -72,7 +72,7 @@ void* kmalloc(size_t size)
 	return (void*)((uint8_t*)current_block + sizeof(memory_block_t));
 }
 
-void kfree(void* ptr)
+void kfree(const void* ptr)
 {
 	if (!ptr)
 		return;
@@ -85,16 +85,16 @@ void kfree(void* ptr)
 	*block |= 0; // unset used bit
 
 	// try to merge with the next free blocks
-	const memory_block_t* next_block = (memory_block_t*)
+	memory_block_t* next_block = (memory_block_t*)
 		((uint8_t*)ptr + sizeof(memory_block_t) + memory_block_get_size(*block));
 	memory_block_t* it = next_block;
-	while (it < KHEAP_LIMIT && !memory_block_get_used(*it)) {
+	while ((v_addr_t)it < KHEAP_LIMIT && !memory_block_get_used(*it)) {
 		it = (memory_block_t*)
 			((uint8_t*)it + sizeof(memory_block_t) + memory_block_get_size(*block));
 	}
 
 	// merge
-	if (it < KHEAP_LIMIT && it != next_block) {
+	if ((v_addr_t)it < KHEAP_LIMIT && it != next_block) {
 		const size_t size = (size_t)((uint8_t*)it - ((uint8_t*)ptr + sizeof (memory_block_t)));
 		*block = make_memory_block(size, false);
 	}
