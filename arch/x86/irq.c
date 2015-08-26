@@ -15,7 +15,7 @@ int irq_set_handler(uint8_t irq, interrupt_handler_t handler)
 
 	disable_irqs();
 
-	int ret = idt_set_handler(IRQ_BASE + irq, INTGATE);
+	int ret = idt_set_handler(IRQ_IDT_INDEX(irq), INTGATE);
 
 	if (ret == 0) {
 		irq_handlers[irq] = handler;
@@ -34,7 +34,7 @@ int irq_unset_handler(uint8_t irq)
 
 	disable_irqs();
 
-	int ret = idt_unset_handler(IRQ_BASE + irq);
+	int ret = idt_unset_handler(IRQ_IDT_INDEX(irq));
 
 	if (ret == 0) {
 		irq_handlers[irq] = NULL;

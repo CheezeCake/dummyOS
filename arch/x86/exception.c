@@ -20,7 +20,7 @@ int exception_set_handler(unsigned int exception, interrupt_handler_t handler)
 
 	disable_irqs();
 
-	int ret = idt_set_handler(EXCEPTION_BASE + exception, INTGATE);
+	int ret = idt_set_handler(EXCEPTION_IDT_INDEX(exception), INTGATE);
 	if (ret == 0)
 		exception_handlers[exception] = handler;
 
@@ -36,7 +36,7 @@ int exception_unset_handler(unsigned int exception)
 
 	disable_irqs();
 
-	int ret = idt_unset_handler(EXCEPTION_BASE + exception);
+	int ret = idt_unset_handler(EXCEPTION_IDT_INDEX(exception));
 	if (ret == 0)
 		exception_handlers[exception] = NULL;
 
