@@ -5,6 +5,7 @@
 
 #define GDT_SIZE 5
 
+// indexes in GDT
 #define KCODE 1
 #define KDATA 2
 #define UCODE 3
@@ -46,6 +47,9 @@ struct gdtr
 
 #define CODE_SEGMENT 0xb
 #define DATA_SEGMENT 0x3
+
+#define PRIVILEGE_KERNEL 0
+#define PRIVILEGE_USER 3
 
 void gdt_init(void);
 

@@ -28,10 +28,10 @@ void gdt_init(void)
 {
 	struct gdtr gdt_register;
 
-	gdt_init_segment(&gdt[KCODE], 0, CODE_SEGMENT);
-	gdt_init_segment(&gdt[KDATA], 0, DATA_SEGMENT);
-	gdt_init_segment(&gdt[UCODE], 3, CODE_SEGMENT);
-	gdt_init_segment(&gdt[UDATA], 3, DATA_SEGMENT);
+	gdt_init_segment(&gdt[KCODE], PRIVILEGE_KERNEL, CODE_SEGMENT);
+	gdt_init_segment(&gdt[KDATA], PRIVILEGE_KERNEL, DATA_SEGMENT);
+	gdt_init_segment(&gdt[UCODE], PRIVILEGE_USER, CODE_SEGMENT);
+	gdt_init_segment(&gdt[UDATA], PRIVILEGE_USER, DATA_SEGMENT);
 
 	gdt_register.base_address = (uint32_t)gdt;
 	gdt_register.limit = sizeof(gdt) - 1;
