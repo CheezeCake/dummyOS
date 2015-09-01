@@ -8,7 +8,7 @@ all: $(ARCH_ROOT_OBJS)
 
 .PHONY: all clean
 
-gdt.o: gdt.h
+gdt.o: gdt.h idt.h
 
 idt.o: idt.h
 

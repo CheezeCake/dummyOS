@@ -2,7 +2,10 @@
 #define _GDT_H_
 
 #include <stdint.h>
+#include "idt.h"
 
+// place the GDT right after the IDT in physical memory
+#define GDT_ADDRESS (IDT_ADDRESS + (IDT_SIZE * sizeof(struct idt_gate_descriptor)))
 #define GDT_SIZE 5
 
 // indexes in GDT

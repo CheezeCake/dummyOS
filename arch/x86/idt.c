@@ -7,7 +7,7 @@
 // defined in interrupt.S
 extern uint32_t asm_interrupt_handlers[INTERRUPT_MAX];
 
-static struct idt_gate_descriptor idt[IDT_SIZE];
+static struct idt_gate_descriptor* idt = IDT_ADDRESS;
 
 int idt_set_handler(unsigned int index, uint8_t type)
 {
@@ -54,11 +54,11 @@ void idt_init(void)
 		idt[i].gate_size = 1;
 		idt[i].zero = 0;
 
-		idt_set_handler(i, INTGATE);
+		idt_unset_handler(i);
 	}
 
 	idt_register.base_address = (uint32_t)idt;
-	idt_register.limit = sizeof(idt) - 1;
+	idt_register.limit = (IDT_SIZE * sizeof(struct idt_gate_descriptor)) - 1;
 
 	// load the idt register
 	__asm__ __volatile__ (

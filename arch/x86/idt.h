@@ -1,6 +1,8 @@
 #ifndef _IDT_H_
 #define _IDT_H_
 
+// place the IDT at adress 0 in physical memory
+#define IDT_ADDRESS 0
 #define IDT_SIZE 256
 
 #define INTGATE 0x6 // 110b

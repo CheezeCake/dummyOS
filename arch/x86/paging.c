@@ -8,8 +8,6 @@
 #include <arch/memory.h>
 #include <arch/virtual_memory.h>
 
-#include <kernel/log.h>
-
 #define index_in_pd(addr) (addr >> 22)
 #define index_in_pt(addr) ((addr >> 12) & 0x3ff)
 
@@ -107,6 +105,8 @@ void paging_init(p_addr_t kernel_top_page_frame)
 	mirroring_entry->address = p_addr2pd_addr(page_directory);
 
 
+	// the IDT and GDT are in the first page frame
+	identity_mapping(page_directory, 0, PAGE_SIZE);
 	identity_mapping(page_directory, X86_MEMORY_HARDWARE_MAP_BEGIN,
 			X86_MEMORY_HARDWARE_MAP_END);
 	identity_mapping(page_directory, get_kernel_base_page_frame(),
