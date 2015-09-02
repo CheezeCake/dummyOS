@@ -27,6 +27,8 @@ arch.o: ../../include/kernel/arch.h \
 
 paging.o: ../../include/kernel/paging.h
 
+i8254.o: i8254.h io_ports.h
+
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 
