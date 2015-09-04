@@ -20,7 +20,7 @@ int i8254_set_frequency(unsigned int frequency)
 	// Access mode: lobyte/hibyte
 	// Operating mode: rate generator
 	// http://wiki.osdev.org/Programmable_Interval_Timer#I.2FO_Ports
-	outb(I8254_MODE_COMMAND, 0x32);
+	outb(I8254_MODE_COMMAND, 0x34);
 
 	// low 8 bits first
 	outb(I8254_CHANNEL0_PORT, counter & 0xff);
