@@ -4,6 +4,14 @@
 #include <kernel/log.h>
 #include <kernel/multiboot.h>
 #include <kernel/kassert.h>
+#include <kernel/kernel.h>
+#include <kernel/time.h>
+
+void clock_tick(void)
+{
+	time_tick();
+	// schedule
+}
 
 void kernel_main(multiboot_info_t* mbi)
 {
@@ -15,7 +23,7 @@ void kernel_main(multiboot_info_t* mbi)
 	terminal_printf("CPU: %s\tRAM: %dMB (0x%x)", cpu->cpu_vendor,
 			(mbi->mem_upper >> 10) + 1, mbi->mem_upper);
 
-	arch_init();
+	kassert(arch_init() == 0);
 	arch_memory_management_init((mbi->mem_upper << 10) + (1 << 20));
 
 	for (;;)

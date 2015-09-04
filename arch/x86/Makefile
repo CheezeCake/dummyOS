@@ -23,7 +23,9 @@ irq.o: irq.h i8259.h idt.h ../../include/kernel/interrupt.h
 cpu.o: ../../include/kernel/cpu.h
 
 arch.o: ../../include/kernel/arch.h \
-	../../include/kernel/panic.h
+	../../include/kernel/panic.h \
+	../../include/kernel/kernel.h \
+	../../include/kernel/time.h
 
 paging.o: ../../include/kernel/paging.h
 

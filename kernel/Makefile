@@ -14,10 +14,13 @@ memory.o: ../include/kernel/memory.h \
 
 kernel.o: ../include/kernel/terminal.h \
 	../include/kernel/log.h \
+	../include/kernel/kernel.h
 
 kmalloc.o: ../include/kernel/kmalloc.h
 
 kheap.o: ../include/kernel/kheap.h
+
+time.o: ../include/kernel/interrupt.h ../include/kernel/time.h
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
