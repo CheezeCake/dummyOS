@@ -1,8 +1,8 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <kernel/interrupt.h>
 #include "idt.h"
 #include "segment.h"
-#include "interrupt.h"
 
 // defined in interrupt.S
 extern uint32_t asm_interrupt_handlers[INTERRUPT_MAX];

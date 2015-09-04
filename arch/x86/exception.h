@@ -2,7 +2,7 @@
 #define _EXCEPTION_H_
 
 #ifndef ASM_SOURCE
-#include "interrupt.h"
+#include <kernel/interrupt.h>
 #endif
 
 /*
@@ -43,6 +43,10 @@
 
 
 #ifndef ASM_SOURCE
+
+#define EXCEPTION_BASE 0 // base index in IDT
+#define EXCEPTION_MAX 31
+#define EXCEPTION_NB (EXCEPTION_MAX + 1)
 
 #define EXCEPTION_IDT_INDEX(exception) (EXCEPTION_BASE + exception)
 

@@ -3,7 +3,7 @@
 
 #ifndef ASM_SOURCE
 #include <stdint.h>
-#include "interrupt.h"
+#include <kernel/interrupt.h>
 #endif
 
 /*
@@ -29,10 +29,11 @@
 
 #ifndef ASM_SOURCE
 
-#define IRQ_IDT_INDEX(irq) (IRQ_BASE + irq)
+#define IRQ_BASE 32 // base index in IDT
+#define IRQ_MAX 15
+#define IRQ_NB (IRQ_MAX + 1)
 
-#define disable_irqs() __asm__ ("cli")
-#define enable_irqs() __asm__ ("sti")
+#define IRQ_IDT_INDEX(irq) (IRQ_BASE + irq)
 
 int irq_set_handler(uint8_t irq, interrupt_handler_t handler);
 int irq_unset_handler(uint8_t irq);

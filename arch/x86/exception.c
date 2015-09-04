@@ -1,8 +1,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <kernel/terminal.h>
+#include <kernel/interrupt.h>
 #include "exception.h"
-#include "interrupt.h"
 #include "idt.h"
 #include "irq.h"
 

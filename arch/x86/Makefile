@@ -12,13 +12,13 @@ gdt.o: gdt.h idt.h
 
 idt.o: idt.h
 
-exception.o: exception.h idt.h irq.h interrupt.h
+exception.o: exception.h idt.h irq.h ../../include/kernel/interrupt.h
 
 interrupt.o: exception.h irq.h
 
 i8259.o: i8259.h io_ports.h
 
-irq.o: irq.h i8259.h idt.h interrupt.h
+irq.o: irq.h i8259.h idt.h ../../include/kernel/interrupt.h
 
 cpu.o: ../../include/kernel/cpu.h
 

@@ -1,9 +1,11 @@
 #ifndef _IDT_H_
 #define _IDT_H_
 
+#define INTERRUPT_MAX 256
+
 // place the IDT at adress 0 in physical memory
 #define IDT_ADDRESS 0
-#define IDT_SIZE 256
+#define IDT_SIZE INTERRUPT_MAX
 
 #define INTGATE 0x6 // 110b
 #define TRAPGATE 0x7 // 111b

@@ -1,9 +1,9 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <kernel/interrupt.h>
 #include "irq.h"
 #include "i8259.h"
 #include "idt.h"
-#include "interrupt.h"
 
 interrupt_handler_t irq_handlers[IRQ_NB] = { NULL, };
 
