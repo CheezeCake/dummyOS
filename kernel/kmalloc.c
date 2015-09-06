@@ -72,7 +72,7 @@ void* kmalloc(size_t size)
 	return (void*)((uint8_t*)current_block + sizeof(memory_block_t));
 }
 
-void kfree(const void* ptr)
+void kfree(void* ptr)
 {
 	if (!ptr)
 		return;
