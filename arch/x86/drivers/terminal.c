@@ -1,6 +1,5 @@
 #include <stddef.h>
 #include <stdint.h>
-
 #include <kernel/vga.h>
 #include <kernel/terminal.h>
 #include <kernel/libk.h>
@@ -10,19 +9,13 @@
 #define TERMINAL_LINES 25
 #define TERMINAL_COLUMNS 80
 
-#define TERMINAL_SETCHAR(term, c, color) { term.character = c; \
-										 term.attribute = color; }
-
-struct vga_memory
-{
-	uint8_t character;
-	uint8_t attribute;
-} __attribute__((packed));
+#define TERMINAL_SETCHAR(term, c, color) term = (color << 8 | c)
 
 static uint8_t terminal_line = 0;
 static uint8_t terminal_column = 0;
 static uint8_t terminal_color = 0;
-static volatile struct vga_memory* terminal = (volatile struct vga_memory*)VGA_MEMORY;
+static volatile uint16_t* terminal = (uint16_t*)VGA_MEMORY;
+
 
 void terminal_putchar(char c)
 {
@@ -60,9 +53,9 @@ void terminal_putchar(char c)
 		terminal_line = TERMINAL_LINES  - 1;
 
 		// copy lines
-		memcpy((struct vga_memory*)terminal,
-				(struct vga_memory*)terminal + TERMINAL_COLUMNS,
-				sizeof(struct vga_memory) * (TERMINAL_LINES - 1) * TERMINAL_COLUMNS);
+		memcpy((uint16_t*)terminal,
+				(uint16_t*)terminal + TERMINAL_COLUMNS,
+				sizeof(uint16_t) * (TERMINAL_LINES - 1) * TERMINAL_COLUMNS);
 
 		// reset last line
 		for (int i = 0; i < TERMINAL_COLUMNS; i++) {
