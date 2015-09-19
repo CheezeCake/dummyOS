@@ -4,17 +4,11 @@
 #include <kernel/libk.h>
 #include <kernel/list.h>
 #include <kernel/kassert.h>
+#include <kernel/kernel_image.h>
 #include <arch/memory.h>
 #include <kernel/log.h>
 
-extern p_addr_t page_frame_align_inf(p_addr_t addr);
-extern p_addr_t page_frame_align_sup(p_addr_t addr);
-extern p_addr_t get_kernel_base_page_frame(void);
-extern p_addr_t get_kernel_top_page_frame(size_t page_frames_in_ram);
-
-// place the frame descritors right after the kernel
-#define PAGE_FRAME_DESCRIPTORS ((p_addr_t)(&__end_kernel))
-static struct page_frame* page_frame_descriptors = (struct page_frame*)PAGE_FRAME_DESCRIPTORS;
+static struct page_frame* page_frame_descriptors = NULL;
 
 static struct page_frame_list free_page_frames = { NULL, 0 };
 static struct page_frame_list used_page_frames = { NULL, 0 };
@@ -24,9 +18,16 @@ static p_addr_t memory_top;
 
 void memory_init(size_t ram_size_bytes)
 {
-	p_addr_t kernel_base = get_kernel_base_page_frame();
-	p_addr_t kernel_top =
-		get_kernel_top_page_frame(ram_size_bytes >> PAGE_SIZE_SHIFT);
+	// place the frame descriptors right after the kernel
+	page_frame_descriptors = (struct page_frame*)kernel_image_get_end();
+
+	// shift kernel end by page_frame_descritors size
+	const size_t page_frame_descriptors_size =
+		(ram_size_bytes >> PAGE_SIZE_SHIFT) * sizeof(struct page_frame);
+	kernel_image_shift_kernel_end(page_frame_descriptors_size);
+
+	p_addr_t kernel_base = kernel_image_get_base_page_frame();
+	p_addr_t kernel_top = kernel_image_get_top_page_frame();
 
 	// top_memory_left = ram_size_bytes % PAGE_SIZE;
 	p_addr_t top_memory_left = (ram_size_bytes & ((1 << PAGE_SIZE_SHIFT) - 1));
@@ -34,6 +35,8 @@ void memory_init(size_t ram_size_bytes)
 	// start of memory at PAGE_SIZE B
 	memory_base = PAGE_SIZE;
 	memory_top = ram_size_bytes - top_memory_left;
+
+	kassert(kernel_top < memory_top);
 
 #ifndef NDEBUG
 	log_printf("kernel_base = 0x%x ; kernel_top = 0x%x\n", kernel_base, kernel_top);

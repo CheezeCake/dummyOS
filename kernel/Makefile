@@ -16,6 +16,9 @@ kernel.o: ../include/kernel/terminal.h \
 	../include/kernel/log.h \
 	../include/kernel/kernel.h
 
+kernel_image.o: ../include/kernel/kernel_image.h \
+	../include/kernel/memory.h ../include/kernel/kassert.h
+
 kmalloc.o: ../include/kernel/kmalloc.h
 
 kheap.o: ../include/kernel/kheap.h

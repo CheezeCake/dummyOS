@@ -5,6 +5,7 @@
 #include <kernel/kmalloc.h>
 #include <kernel/kernel.h>
 #include <kernel/time.h>
+#include <kernel/kernel_image.h>
 #include "gdt.h"
 #include "idt.h"
 #include "exception.h"
@@ -39,15 +40,11 @@ int arch_init(void)
 
 void arch_memory_management_init(size_t ram_size_bytes)
 {
-	p_addr_t kernel_top =
-		get_kernel_top_page_frame(ram_size_bytes >> PAGE_SIZE_SHIFT);
-
-	if (kernel_top > ram_size_bytes)
-		PANIC("insufficient amount of RAM");
-
 	memory_init(ram_size_bytes);
 
-	paging_init(kernel_top);
+	p_addr_t kernel_top = kernel_image_get_top_page_frame();
+
+	paging_init(kernel_image_get_base_page_frame(), kernel_top);
 
 	kmalloc_init(kernel_top);
 }
