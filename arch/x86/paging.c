@@ -50,7 +50,7 @@ struct page_table_entry
 } __attribute__((packed));
 
 
-static inline void invlpg(uint32_t addr)
+static inline void invlpg(p_addr_t addr)
 {
 	__asm__ __volatile__ ("invlpg %0" : :"m" (addr) : "memory");
 }
@@ -154,7 +154,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 		pde->user = (vaddr < MIRRORING_VADDR_BEGIN) ? 0 : 1;
 		pde->address = p_addr2pd_addr(page_table);
 
-		invlpg((uint32_t)pte);
+		invlpg((p_addr_t)pte);
 
 		memset(pte, 0, PAGE_SIZE);
 	}
@@ -198,7 +198,7 @@ int paging_unmap(v_addr_t vaddr)
 	// if this was the last reference, reset the page directory entry
 	if (memory_unref_page_frame(pd_addr2p_addr(pde->address)) == 0) {
 		memset(pde, 0, sizeof(struct page_directory_entry));
-		invlpg((uint32_t)pte);
+		invlpg((p_addr_t)pte);
 	}
 
 	return 0;
