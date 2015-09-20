@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <kernel/terminal.h>
 #include <kernel/interrupt.h>
+#include <kernel/panic.h>
 #include "exception.h"
 #include "idt.h"
 #include "irq.h"
@@ -47,9 +48,7 @@ int exception_unset_handler(unsigned int exception)
 
 void doublefault_handler(void)
 {
-	terminal_puts("PANIC: double fault");
-	__asm__ ("l: hlt\n"
-			"jmp l");
+	PANIC("double fault");
 }
 
 int exception_init(void)

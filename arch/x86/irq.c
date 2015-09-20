@@ -9,8 +9,7 @@ interrupt_handler_t irq_handlers[IRQ_NB] = { NULL, };
 
 int irq_set_handler(uint8_t irq, interrupt_handler_t handler)
 {
-	if (irq < 0 || irq > IRQ_MAX ||
-			handler == 0)
+	if (irq < 0 || irq > IRQ_MAX || handler == NULL)
 		return -1;
 
 	disable_irqs();
