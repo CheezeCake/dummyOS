@@ -74,7 +74,8 @@ void* kmalloc(size_t size)
 
 void kfree(void* ptr)
 {
-	if (!ptr)
+	if (!ptr || (v_addr_t)ptr < kheap_get_start() ||
+			(v_addr_t)ptr > KHEAP_LIMIT)
 		return;
 
 	memory_block_t* block = (memory_block_t*)((uint8_t*)ptr - sizeof(memory_block_t));
