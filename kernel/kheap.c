@@ -23,7 +23,7 @@ size_t kheap_init(v_addr_t start, size_t initial_size)
 			return 0;
 
 		if (paging_map(page_frame, addr, VM_OPT_WRITE) != 0) {
-			memory_unref_page_frame(page_frame);
+			memory_page_frame_free(page_frame);
 			break;
 		}
 	}
@@ -50,7 +50,7 @@ static int _kheap_sbrk(unsigned int page_number, v_addr_t addr)
 
 	if (_kheap_sbrk(page_number - 1, addr + PAGE_SIZE) != 0) {
 		paging_unmap(addr);
-		memory_unref_page_frame(page_frame);
+		memory_page_frame_free(page_frame);
 		return -1;
 	}
 

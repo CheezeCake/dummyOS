@@ -70,7 +70,6 @@ void memory_init(size_t ram_size_bytes)
 			list_push_back(&free_page_frames, pf_descriptor);
 		}
 		else if (status == PAGE_FRAME_KERNEL || status == PAGE_FRAME_HW_MAP) {
-			pf_descriptor->refs = 1;
 			list_push_back(&used_page_frames, pf_descriptor);
 		}
 	}
@@ -99,48 +98,21 @@ p_addr_t memory_page_frame_alloc()
 	struct page_frame* new_page_frame = list_front(&free_page_frames);
 	slist_pop_front(&free_page_frames);
 
-	kassert(new_page_frame->refs == 0);
-
-	new_page_frame->refs = 1;
 	list_push_back(&used_page_frames, new_page_frame);
 
 	return new_page_frame->addr;
 }
 
-int memory_ref_page_frame(p_addr_t addr)
+int memory_page_frame_free(p_addr_t addr)
 {
 	struct page_frame* pf = get_page_frame_at(addr);
 	if (!pf)
 		return -1;
 
-	++pf->refs;
+	list_erase(&used_page_frames, pf);
+	list_push_front(&free_page_frames, pf);
 
-	if (pf->refs == 1) {
-		slist_erase(&free_page_frames, pf);
-		slist_push_back(&used_page_frames, pf);
-	}
-
-	// if pf->refs > INT_MAX return value will be a negative value, i.e. error
-	// return INT_MAX instead
-	return (pf->refs > INT_MAX) ? INT_MAX : pf->refs;
-}
-
-int memory_unref_page_frame(p_addr_t addr)
-{
-	struct page_frame* pf = get_page_frame_at(addr);
-	if (!pf)
-		return -1;
-
-	kassert(pf->refs > 0);
-
-	if (--pf->refs == 0) { // free page frame
-		list_erase(&used_page_frames, pf);
-		list_push_front(&free_page_frames, pf);
-	}
-
-	// if pf->refs > INT_MAX return value will be a negative value, i.e. error
-	// return INT_MAX instead
-	return (pf->refs > INT_MAX) ? INT_MAX : pf->refs;
+	return 0;
 }
 
 void memory_statistics(unsigned int* nb_used_page_frames,

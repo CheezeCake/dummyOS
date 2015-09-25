@@ -50,6 +50,28 @@ struct page_table_entry
 } __attribute__((packed));
 
 
+#define PAGE_DIRECTORY_ENTRIES 1024
+/*
+ * saves how many times a page table is referenced i.e. how many entries
+ * are present in the page table.
+ * When there are no more entries, we can free the page frame holding the
+ * page table
+ */
+static unsigned int page_tables_page_frame_refs[PAGE_DIRECTORY_ENTRIES] = {0};
+
+static inline void paging_ref_page_table(p_addr_t page_table)
+{
+	// increment reference count
+	++page_tables_page_frame_refs[index_in_pd(page_table)];
+}
+
+static inline unsigned int paging_unref_page_table(p_addr_t page_table)
+{
+	const int index = index_in_pd(page_table);
+	kassert(page_tables_page_frame_refs[index] > 0);
+	return --page_tables_page_frame_refs[index];
+}
+
 static inline void invlpg(p_addr_t addr)
 {
 	__asm__ __volatile__ ("invlpg %0" : :"m" (addr) : "memory");
@@ -65,16 +87,18 @@ static void identity_mapping(p_addr_t page_directory, p_addr_t from, p_addr_t to
 		int index_pd = index_in_pd(addr);
 		int index_pt = index_in_pt(addr);
 
-		struct page_directory_entry* pde = (struct page_directory_entry*)page_directory + index_pd;
+		struct page_directory_entry* pde =
+			(struct page_directory_entry*)page_directory + index_pd;
 		p_addr_t page_table = 0;
 		struct page_table_entry* pte = NULL;
 		if (pde->present) {
 			page_table = pd_addr2p_addr(pde->address);
-			memory_ref_page_frame(page_table);
+			pagin_ref_page_table(page_table);
 		}
 		else {
 			page_table = memory_page_frame_alloc();
 			kassert(page_table != (p_addr_t)NULL);
+			paging_ref_page_table(page_table);
 			memset((void*)page_table, 0, PAGE_SIZE);
 
 			pde->present = 1;
@@ -147,6 +171,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 	if (!pde->present) {
 		p_addr_t page_table = memory_page_frame_alloc();
 		kassert(page_table != (p_addr_t)NULL);
+		paging_ref_page_table(page_table);
 
 		pde->present = 1;
 		pde->read_write = 1;
@@ -169,7 +194,6 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 	pte->read_write = ((flags & VM_OPT_WRITE) == VM_OPT_WRITE) ? 1 : 0;
 	pte->user = ((flags & VM_OPT_USER) == VM_OPT_USER) ? 1 : 0;
 	pte->address = p_addr2pt_addr(paddr);
-	memory_ref_page_frame(paddr);
 
 	invlpg(vaddr);
 
@@ -179,24 +203,26 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 int paging_unmap(v_addr_t vaddr)
 {
 	struct page_directory_entry* pde = get_page_directory_entry(vaddr);
-	struct page_table_entry* pte = NULL;
+	struct page_table_entry* pte = get_page_table_entry(vaddr);
 
 	if (!pde->present)
 		return -1;
 
-	pte = get_page_table_entry(vaddr);
 	if (!pde->present)
 		return -1;
 
-	// unref the physical page and reset the page table entry
-	memory_unref_page_frame(pt_addr2p_addr(pte->address));
+	// free the page frame and reset the page table entry
+	memory_page_frame_free(pt_addr2p_addr(pte->address));
 	memset(pte, 0, sizeof(struct page_table_entry));
 
 	invlpg(vaddr);
 
 	// unref the physical page holding the page table
-	// if this was the last reference, reset the page directory entry
-	if (memory_unref_page_frame(pd_addr2p_addr(pde->address)) == 0) {
+	// if this was the last reference, free the page frame and reset the
+	// page directory entry
+	const p_addr_t page_table = pd_addr2p_addr(pde->address);
+	if (paging_unref_page_table(page_table) == 0) {
+		memory_page_frame_free(page_table);
 		memset(pde, 0, sizeof(struct page_directory_entry));
 		invlpg((p_addr_t)pte);
 	}
