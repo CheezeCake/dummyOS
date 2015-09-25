@@ -181,7 +181,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 
 		invlpg((p_addr_t)pte);
 
-		memset(pte, 0, PAGE_SIZE);
+		memset(page_table, 0, PAGE_SIZE);
 	}
 
 
@@ -205,10 +205,7 @@ int paging_unmap(v_addr_t vaddr)
 	struct page_directory_entry* pde = get_page_directory_entry(vaddr);
 	struct page_table_entry* pte = get_page_table_entry(vaddr);
 
-	if (!pde->present)
-		return -1;
-
-	if (!pde->present)
+	if (!pde->present || !pte->present)
 		return -1;
 
 	// free the page frame and reset the page table entry
