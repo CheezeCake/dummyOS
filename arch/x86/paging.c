@@ -93,7 +93,7 @@ static void identity_mapping(p_addr_t page_directory, p_addr_t from, p_addr_t to
 		struct page_table_entry* pte = NULL;
 		if (pde->present) {
 			page_table = pd_addr2p_addr(pde->address);
-			pagin_ref_page_table(page_table);
+			paging_ref_page_table(page_table);
 		}
 		else {
 			page_table = memory_page_frame_alloc();
@@ -181,7 +181,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 
 		invlpg((p_addr_t)pte);
 
-		memset(page_table, 0, PAGE_SIZE);
+		memset((void*)page_table, 0, PAGE_SIZE);
 	}
 
 
