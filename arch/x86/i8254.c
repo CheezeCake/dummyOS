@@ -1,8 +1,9 @@
 #include "i8254.h"
 #include "io_ports.h"
 
-int i8254_set_frequency(unsigned int frequency)
+int i8254_set_tick_interval(unsigned int ms)
 {
+	unsigned int frequency = 1000 / ms;
 	// compute the value of the counter needed to get a
 	// interupt at approximately frequency Hz
 	unsigned int counter = I8254_FREQUENCY / frequency;

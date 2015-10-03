@@ -8,6 +8,6 @@
 
 #define I8254_MODE_COMMAND 0x43
 
-int i8254_set_frequency(unsigned int frequency);
+int i8254_set_tick_interval(unsigned int ms);
 
 #endif
