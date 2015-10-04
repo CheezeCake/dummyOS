@@ -39,8 +39,6 @@ void memory_init(size_t ram_size_bytes)
 	kassert(kernel_top < memory_top);
 
 #ifndef NDEBUG
-	log_printf("kernel_base = 0x%x ; kernel_top = 0x%x\n", kernel_base, kernel_top);
-	log_printf("memory_base = 0x%x ; memory_top = 0x%x\n", memory_base, memory_top);
 	int stat = -1;
 #endif
 
@@ -57,9 +55,9 @@ void memory_init(size_t ram_size_bytes)
 			const char* status_str[] = { "reserved", "kernel", "hw map", "free" };
 			stat = status;
 			if (status >= 0 && status <= 3)
-				log_printf("[0x%x]\n %s\n", paddr, status_str[status]);
+				log_printf("[0x%x]\n %s\n", (unsigned int)paddr, status_str[status]);
 			else
-				log_printf("[0x%x]\n %d\n", paddr, status);
+				log_printf("[0x%x]\n %d\n", (unsigned int)paddr, status);
 		}
 #endif
 

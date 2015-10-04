@@ -34,7 +34,8 @@ void time_tick(void)
 #ifndef NDEBUG
 	// should be printed every second
 	if (current.sec != old_sec)
-		log_printf("sec = %d, nsec = %d\n", current.sec, current.nano_sec);
+		log_printf("sec = %d, nsec = %d\n", (unsigned int)current.sec,
+				(unsigned int)current.nano_sec);
 #endif
 
 	enable_irqs();

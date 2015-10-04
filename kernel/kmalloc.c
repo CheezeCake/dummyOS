@@ -31,7 +31,8 @@ void kmalloc_init(p_addr_t kernel_top)
 
 	log_printf("kheap_start = 0x%x, kheap_end = 0x%x, initial_size = 0x%x, "
 			"heap_size_returned = 0x%x\n",
-			kheap_get_start(), kheap_get_end(), KHEAP_INITIAL_SIZE, size);
+			(unsigned int)kheap_get_start(), (unsigned int)kheap_get_end(),
+			KHEAP_INITIAL_SIZE, (unsigned int)size);
 
 	memory_block_t* kheap = (memory_block_t*)kheap_get_start();
 	*kheap = make_memory_block(size - sizeof(memory_block_t), false);
