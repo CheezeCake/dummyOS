@@ -85,10 +85,10 @@
 	if ((value)) { \
 		(value)->prev = (value); \
 		(value)->next = (value); \
-		(list)->size = 0; \
+		(list)->size = 1; \
 	} \
 	else { \
-		(list)->size = 1; \
+		(list)->size = 0; \
 	} \
 }
 
