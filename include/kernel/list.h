@@ -1,6 +1,8 @@
 #ifndef _KLIST_H_
 #define _KLIST_H_
 
+#define list_init_null(list) (list)->root = NULL
+
 #define list_init(list, value) _list_init(list, value, root, prev, next)
 #define _list_init(list, value, root, prev, next) { \
 	(list)->root = (value); \
@@ -79,6 +81,11 @@
 
 
 // list with size
+#define slist_init_null(list) { \
+	(list)->root = NULL; \
+	(list)->size = 0; \
+}
+
 #define slist_init(list, value) _slist_init(list, value, root, prev, next, size)
 #define _slist_init(list, value, root, prev, next, size) { \
 	(list)->root = (value); \
