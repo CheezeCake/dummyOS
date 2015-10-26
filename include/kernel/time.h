@@ -14,5 +14,6 @@ struct time
 void time_init(struct time tick_value);
 void time_tick(void);
 struct time time_get_current(void);
+double time_diff_ms(const struct time* t1, const struct time* t2);
 
 #endif

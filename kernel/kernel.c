@@ -6,11 +6,19 @@
 #include <kernel/kassert.h>
 #include <kernel/kernel.h>
 #include <kernel/time.h>
+#include <kernel/thread.h>
+#include <kernel/sched.h>
+
+void idle_kthread_do(void)
+{
+	while (1)
+		;
+}
 
 void clock_tick(void)
 {
 	time_tick();
-	// schedule
+	sched_schedule();
 }
 
 void kernel_main(multiboot_info_t* mbi)
@@ -25,6 +33,14 @@ void kernel_main(multiboot_info_t* mbi)
 
 	kassert(arch_init() == 0);
 	arch_memory_management_init((mbi->mem_upper << 10) + (1 << 20));
+
+	sched_init(1000);
+
+	struct thread idle_kthread;
+	kassert(thread_create(&idle_kthread, "[idle]", 256, idle_kthread_do, NULL) == 0);
+	sched_add_thread(&idle_kthread);
+
+	sched_start();
 
 	for (;;)
 		;

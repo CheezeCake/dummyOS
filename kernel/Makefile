@@ -25,6 +25,12 @@ kheap.o: ../include/kernel/kheap.h
 
 time.o: ../include/kernel/interrupt.h ../include/kernel/time.h
 
+thread.o: ../include/kernel/thread.h ../include/kernel/kmalloc.h \
+	../include/kernel/libk.h ../include/kernel/cpu_context.h
+
+sched.o: ../include/kernel/sched.h ../include/kernel/time.h \
+	../include/kernel/kassert.h ../include/kernel/cpu_context.h
+
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 

@@ -31,6 +31,10 @@ paging.o: ../../include/kernel/paging.h
 
 i8254.o: i8254.h io_ports.h
 
+cpu_context.o: ../../include/kernel/cpu_context.h \
+	../../include/kernel/libk.h
+
+
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 

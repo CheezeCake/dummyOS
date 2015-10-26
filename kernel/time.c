@@ -1,7 +1,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/time.h>
-
 #include <kernel/log.h>
+
 
 static struct time tick_value;
 
@@ -44,4 +44,12 @@ void time_tick(void)
 struct time time_get_current(void)
 {
 	return current;
+}
+
+double time_diff_ms(const struct time* t1, const struct time* t2)
+{
+	double sec = (double)t1->sec - t2->sec;
+	double ns = (double)t1->nano_sec - t2->nano_sec;
+
+	return (sec * 1000 + ns / 1000000);
 }
