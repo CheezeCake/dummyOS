@@ -22,16 +22,6 @@ void page_fault(void)
 	PANIC("page_fault");
 }
 
-void inv(void)
-{
-	PANIC("inv");
-}
-
-void kbd(void)
-{
-	log_puts("kbd()\n");
-}
-
 int arch_init(void)
 {
 	gdt_init();
@@ -43,9 +33,7 @@ int arch_init(void)
 	irq_init();
 
 	exception_set_handler(EXCEPTION_PAGE_FAULT, page_fault);
-	exception_set_handler(EXCEPTION_INVALID_OPCODE, inv);
 	irq_set_handler(IRQ_TIMER, clock_tick);
-	irq_set_handler(IRQ_KEYBOARD, kbd);
 
 	time_init((struct time) { .sec = 0,
 			.nano_sec = MS_IN_NANOSEC * TICK_INTERVAL_IN_MS });

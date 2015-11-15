@@ -9,28 +9,6 @@
 #include <kernel/thread.h>
 #include <kernel/sched.h>
 
-void onche(void)
-{
-	unsigned int i = 200 * 1000;
-	while (i--)
-		terminal_puts("o");
-}
-
-void ponche(void)
-{
-	/* while (1) */
-	/* 	terminal_puts("p"); */
-	unsigned int i = 500 * 1000;
-	while (i--)
-		terminal_puts("p");
-}
-
-void exit(void)
-{
-	log_puts("########## EXIT ##########\n");
-	sched_remove_current_thread();
-}
-
 void idle_kthread_do(void)
 {
 	while (1)
@@ -61,14 +39,6 @@ void kernel_main(multiboot_info_t* mbi)
 	struct thread idle_kthread;
 	kassert(thread_create(&idle_kthread, "[idle]", 256, idle_kthread_do, NULL) == 0);
 	sched_add_thread(&idle_kthread);
-
-	struct thread t1;
-	thread_create(&t1, "[onche]", 1024, onche, exit);
-	struct thread t2;
-	thread_create(&t2, "[ponche]", 1024, ponche, exit);
-
-	sched_add_thread(&t1);
-	sched_add_thread(&t2);
 
 	sched_start();
 
