@@ -39,7 +39,7 @@ void gdt_init(void)
 	gdt_register.base_address = (uint32_t)gdt;
 	gdt_register.limit = (GDT_SIZE * sizeof(struct gdt_segment_descriptor)) - 1;
 
-	// load the gdtr resgister and update the segement registers
+	// load the gdtr register and update the segment registers
 	__asm__ __volatile__ (
 			"lgdt %0\n"
 			"movw %1, %%ax\n"
