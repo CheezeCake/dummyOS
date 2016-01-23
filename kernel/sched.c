@@ -29,7 +29,7 @@ static void sched_switch_to_next_thread(void)
 	list_pop_front(&ready_list);
 	current_thread_start = time_get_current();
 
-	log_printf("switching from %s to %s\n", previous->name, current_thread->name);
+	log_printf("switching from %s to %s\n", (previous) ? previous->name : NULL, current_thread->name);
 	struct cpu_context *ctx = (previous) ? previous->cpu_context : NULL;
 	cpu_context_switch(ctx, current_thread->cpu_context);
 }
