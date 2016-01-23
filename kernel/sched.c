@@ -8,19 +8,15 @@
 
 static unsigned int quantum;
 
-static struct thread* current_thread;
+static struct thread* current_thread = NULL;
 static struct thread_list ready_list;
-static struct time current_thread_start;
+static struct time current_thread_start = { .sec = 0, .nano_sec = 0 };
 
 void sched_init(unsigned int quantum_in_ms)
 {
 	quantum = quantum_in_ms;
 
 	list_init_null(&ready_list);
-
-	current_thread = NULL;
-	current_thread_start.sec = 0;
-	current_thread_start.nano_sec = 0;
 }
 
 static void sched_switch_to_next_thread(void)

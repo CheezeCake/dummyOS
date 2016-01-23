@@ -5,21 +5,17 @@
 
 static struct time tick_value;
 
-static struct time current;
+static uint64_t ticks = 0;
+static struct time current = { .sec = 0, .nano_sec = 0 };
 
 void time_init(struct time tick_val)
 {
 	tick_value.sec = tick_val.sec;
 	tick_value.nano_sec = tick_val.nano_sec;
-
-	current.sec = 0;
-	current.nano_sec = 0;
 }
 
 void time_tick(void)
 {
-	static uint32_t ticks = 0;
-
 	disable_irqs();
 
 	++ticks;
