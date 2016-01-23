@@ -5,7 +5,6 @@
 
 static struct time tick_value;
 
-static uint64_t ticks = 0;
 static struct time current = { .sec = 0, .nano_sec = 0 };
 
 void time_init(struct time tick_val)
@@ -17,8 +16,6 @@ void time_init(struct time tick_val)
 void time_tick(void)
 {
 	disable_irqs();
-
-	++ticks;
 
 	uint32_t nano_sec = current.nano_sec + tick_value.nano_sec;
 #ifndef NDEBUG
