@@ -41,6 +41,27 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap)
 
 						break;
 					}
+				case 'l':
+					if (*(format + 1) && *(format + 1) == 'u')
+					{
+						unsigned long value = va_arg(ap, unsigned long);
+						char buffer[10];
+						int n = 0;
+
+						do {
+							unsigned int m = value % 10;
+
+							buffer[n++] = '0' + m;
+							value /= 10;
+						} while (value != 0);
+
+						while (n > 0)
+							PUTCHAR(buffer[--n]);
+
+						++format;
+
+						break;
+					}
 				case 'p':
 					PUTCHAR('0');
 					PUTCHAR('x');
