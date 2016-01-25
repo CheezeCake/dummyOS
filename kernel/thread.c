@@ -2,6 +2,7 @@
 #include <kernel/cpu_context.h>
 #include <kernel/kmalloc.h>
 #include <kernel/libk.h>
+#include <kernel/sched.h>
 
 int thread_create(struct thread* thread, const char* name, size_t stack_size,
 		void (start(void)), void (exit(void)))
@@ -23,6 +24,8 @@ int thread_create(struct thread* thread, const char* name, size_t stack_size,
 	*((uint32_t*)stack_top - 1) = (uint32_t)exit;
 	cpu_context_create(thread->cpu_context, stack_top - 4, (v_addr_t)start);
 
+	thread->state = THREAD_READY;
+
 	return 0;
 }
 
@@ -30,4 +33,14 @@ void thread_destroy(struct thread* thread)
 {
 	kfree(thread->cpu_context);
 	kfree((void*)thread->stack);
+}
+
+void thread_yield(void)
+{
+	sched_yield_current_thread();
+}
+
+void thread_sleep(unsigned int millis)
+{
+	sched_sleep_current_thread(millis);
 }

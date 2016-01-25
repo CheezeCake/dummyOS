@@ -8,17 +8,22 @@
 #include <kernel/time.h>
 #include <kernel/thread.h>
 #include <kernel/sched.h>
+#include <kernel/interrupt.h>
 
 void idle_kthread_do(void)
 {
 	while (1)
-		;
+		thread_yield();
 }
 
 void clock_tick(void)
 {
+	disable_irqs();
+
 	time_tick();
 	sched_schedule();
+
+	enable_irqs();
 }
 
 void kernel_main(multiboot_info_t* mbi)

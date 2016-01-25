@@ -15,7 +15,6 @@
 #include <kernel/log.h>
 
 #define TICK_INTERVAL_IN_MS 10
-#define MS_IN_NANOSEC 1000000
 
 void page_fault(void)
 {
@@ -35,8 +34,8 @@ int arch_init(void)
 	exception_set_handler(EXCEPTION_PAGE_FAULT, page_fault);
 	irq_set_handler(IRQ_TIMER, clock_tick);
 
-	time_init((struct time) { .sec = 0,
-			.nano_sec = MS_IN_NANOSEC * TICK_INTERVAL_IN_MS });
+	time_init((struct time) { .sec = 0, .milli_sec = TICK_INTERVAL_IN_MS,
+			.nano_sec = 0 });
 
 	return i8254_set_tick_interval(TICK_INTERVAL_IN_MS);
 }

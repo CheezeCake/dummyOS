@@ -15,5 +15,7 @@ void sched_add_thread(struct thread* thread);
 void sched_remove_current_thread(void);
 void sched_schedule(void);
 void sched_start(void);
+void sched_yield_current_thread(void);
+void sched_sleep_current_thread(unsigned int millis);
 
 #endif
