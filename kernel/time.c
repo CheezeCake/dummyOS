@@ -72,15 +72,6 @@ int time_cmp(const struct time* t1, const struct time* t2)
 	}
 }
 
-double time_diff_ms(const struct time* t1, const struct time* t2)
-{
-	const double sec = (double)t1->sec - t2->sec;
-	const double ms = (double)t1->milli_sec - t2->milli_sec;
-	const double ns = (double)t1->nano_sec - t2->nano_sec;
-
-	return ((sec * TIME_SEC_IN_MS) + ms + (ns / TIME_MS_IN_NANOSEC));
-}
-
 static void time_update_thread_wait_list(void)
 {
 	int i;

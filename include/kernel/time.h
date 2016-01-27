@@ -26,11 +26,19 @@ static inline void time_add_millis(struct time* time,
 	time->milli_sec = millis % TIME_SEC_IN_MS;
 }
 
+static inline int64_t time_diff_ms(const struct time* t1, const struct time* t2)
+{
+	const int64_t sec = ((int64_t)t1->sec - t2->sec) * TIME_SEC_IN_MS;
+	const int64_t ms = (int64_t)t1->milli_sec - t2->milli_sec;
+
+	return (sec + ms);
+}
+
+
 void time_init(struct time tick_value);
 void time_tick(void);
 void time_get_current(struct time* time);
 int time_cmp(const struct time* t1, const struct time* t2);
-double time_diff_ms(const struct time* t1, const struct time* t2);
 void time_add_waiting_thread(struct thread* thread);
 
 #endif
