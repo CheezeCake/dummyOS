@@ -4,6 +4,7 @@
 #include <kernel/libk.h>
 #include <kernel/list.h>
 #include <kernel/kassert.h>
+#include <kernel/kmalloc.h>
 #include <kernel/kernel_image.h>
 #include <arch/memory.h>
 #include <kernel/log.h>
@@ -18,13 +19,11 @@ static p_addr_t memory_top;
 
 void memory_init(size_t ram_size_bytes)
 {
-	// place the frame descriptors right after the kernel
-	page_frame_descriptors = (struct page_frame*)kernel_image_get_end();
-
-	// shift kernel end by page_frame_descritors size
 	const size_t page_frame_descriptors_size =
 		(ram_size_bytes >> PAGE_SIZE_SHIFT) * sizeof(struct page_frame);
-	kernel_image_shift_kernel_end(page_frame_descriptors_size);
+
+	// allocate page_frame_descriptors with kmalloc_early (allocated after kernel image)
+	page_frame_descriptors = (struct page_frame*)kmalloc_early(page_frame_descriptors_size);
 
 	p_addr_t kernel_base = kernel_image_get_base_page_frame();
 	p_addr_t kernel_top = kernel_image_get_top_page_frame();

@@ -23,6 +23,8 @@ static inline memory_block_t make_memory_block(size_t size, bool used)
 #define memory_block_get_size(memory_block) (memory_block >> 1)
 #define memory_block_get_used(memory_block) (memory_block & 1)
 
+bool kmalloc_init_done = false;
+
 void kmalloc_init(p_addr_t kernel_top)
 {
 	size_t size = kheap_init(kernel_top, KHEAP_INITIAL_SIZE);
@@ -36,6 +38,7 @@ void kmalloc_init(p_addr_t kernel_top)
 
 	memory_block_t* kheap = (memory_block_t*)kheap_get_start();
 	*kheap = make_memory_block(size - sizeof(memory_block_t), false);
+	kmalloc_init_done = true;
 }
 
 void* kmalloc(size_t size)
@@ -100,4 +103,15 @@ void kfree(void* ptr)
 		const size_t size = (size_t)((uint8_t*)it - ((uint8_t*)ptr + sizeof (memory_block_t)));
 		*block = make_memory_block(size, false);
 	}
+}
+
+p_addr_t kmalloc_early(size_t size)
+{
+	if (kmalloc_init_done)
+		PANIC("kmalloc_early was called after the initialization of the kmalloc subsytem!");
+
+	const p_addr_t kernel_end = kernel_image_get_end();
+	kernel_image_shift_kernel_end(size);
+
+	return kernel_end;
 }
