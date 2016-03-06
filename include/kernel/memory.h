@@ -35,7 +35,7 @@ static inline p_addr_t page_frame_align_inf(p_addr_t addr)
 
 static inline p_addr_t page_frame_align_sup(p_addr_t addr)
 {
-	return (addr + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
+	return ((addr + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1));
 }
 
 void memory_init(size_t ram_size_bytes);
