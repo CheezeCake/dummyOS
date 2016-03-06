@@ -10,6 +10,8 @@ memory.o: ../include/kernel/memory.h \
 	../include/kernel/libk.h \
 	../include/kernel/list.h \
 	../include/kernel/kassert.h \
+	../include/kernel/kmalloc.h \
+	../include/kernel/kernel_image.h \
 	../arch/$(TARGET_ARCH)/include/arch/memory.h \
 
 kernel.o: ../include/kernel/terminal.h \
