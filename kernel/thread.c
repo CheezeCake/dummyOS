@@ -21,7 +21,7 @@ int thread_create(struct thread* thread, const char* name, size_t stack_size,
 	}
 
 	const v_addr_t stack_top = thread->stack + stack_size;
-	*((uint32_t*)stack_top - 1) = (uint32_t)exit;
+	*((v_addr_t*)stack_top - 1) = (v_addr_t)exit;
 	cpu_context_create(thread->cpu_context, stack_top - 4, (v_addr_t)start);
 
 	thread->state = THREAD_READY;
