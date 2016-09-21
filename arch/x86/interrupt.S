@@ -147,13 +147,13 @@
 
 		SAVE_CONTEXT
 
-		leal irq_handlers, %edi
-		call *\nb * 4(%edi) /* call C handler */
-
 		/* send EOI */
 		movb $0x20,%al
 		outb %al, PIC_MASTER
 		outb %al, PIC_SLAVE
+
+		leal irq_handlers, %edi
+		call *\nb * 4(%edi) /* call C handler */
 
 		RESTORE_CONTEXT
 
