@@ -16,9 +16,10 @@
 
 #define TICK_INTERVAL_IN_MS 10
 
-void page_fault(void)
+static void default_exception_handler(unsigned int exception)
 {
-	PANIC("page_fault");
+	terminal_printf("exception : %d\n", exception);
+	HALT();
 }
 
 int arch_init(void)
@@ -31,7 +32,9 @@ int arch_init(void)
 
 	irq_init();
 
-	exception_set_handler(EXCEPTION_PAGE_FAULT, page_fault);
+	for (unsigned int e = 0; e <= EXCEPTION_MAX; e++)
+		exception_set_handler_generic(e, default_exception_handler);
+
 	irq_set_handler(IRQ_TIMER, clock_tick);
 
 	time_init((struct time) { .sec = 0, .milli_sec = TICK_INTERVAL_IN_MS,

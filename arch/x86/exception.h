@@ -54,6 +54,12 @@ int exception_set_handler(unsigned int exception, interrupt_handler_t handler);
 int exception_unset_handler(unsigned int exception);
 int exception_init(void);
 
+static inline int exception_set_handler_generic(unsigned int exception,
+		void (*handler)(unsigned int))
+{
+	return exception_set_handler(exception, (interrupt_handler_t)handler);
+}
+
 #endif
 
 #endif
