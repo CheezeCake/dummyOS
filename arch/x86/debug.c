@@ -61,5 +61,5 @@ void debug_dump()
 	ebp = (uint32_t*)ebp[0];
 
 	terminal_puts("\n=== STACKTRACE ===\n");
-	debug_stacktrace(DEBUG_FRAMES, ebp);
+	debug_stacktrace(DEBUG_MAX_FRAMES, ebp);
 }
