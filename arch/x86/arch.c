@@ -18,8 +18,8 @@
 
 static void default_exception_handler(unsigned int exception)
 {
-	terminal_printf("exception : %d\n", exception);
-	HALT();
+	terminal_printf("\nexception : %d", exception);
+	PANIC("exception");
 }
 
 int arch_init(void)

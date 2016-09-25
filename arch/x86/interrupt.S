@@ -70,8 +70,12 @@
 
 	SAVE_CONTEXT
 
+	pushl $\nb
+
 	leal exception_handlers, %edi
 	call *\nb * 4(%edi) /* call C handler */
+
+	addl $4, %esp
 
 	RESTORE_CONTEXT
 
@@ -93,8 +97,12 @@
 
 	SAVE_CONTEXT
 
+	pushl $\nb
+
 	leal exception_handlers, %edi
 	call *\nb * 4(%edi) /* call C handler */
+
+	addl $4, %esp
 
 	RESTORE_CONTEXT
 
