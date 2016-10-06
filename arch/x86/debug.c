@@ -6,23 +6,18 @@
 
 static void debug_stacktrace(int frame, uint32_t* ebp)
 {
-	if (frame == 0)
-		return;
+	for (int i = 0; i < frame; i++) {
+		uint32_t* args = ebp + 2;
+		uint32_t eip = ebp[1];
+		if (eip == 0)
+			return;
 
-	uint32_t* args = ebp + 2;
-	uint32_t eip = ebp[1];
-	if (eip == 0)
-		return;
+		terminal_printf("#%d: [0x%x] (0x%x, 0x%x, 0x%x)\n", i, (unsigned int)eip,
+				(unsigned int)args[0], (unsigned int)args[1],
+				(unsigned int)args[2]);
 
-	ebp = (uint32_t*)ebp[0];
-
-	debug_stacktrace(frame - 1, ebp);
-
-	for (int i = 0; i < frame; i++)
-		terminal_putchar(' ');
-	terminal_printf("[0x%x] (0x%x, 0x%x, 0x%x)\n", (unsigned int)eip,
-			(unsigned int)args[0], (unsigned int)args[1],
-			(unsigned int)args[2]);
+		ebp = (uint32_t*)ebp[0];
+	}
 }
 
 void debug_dump()
