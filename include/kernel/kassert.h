@@ -8,7 +8,7 @@
 
 #define kassert(expr) {\
 	if (expr) (void)0; \
-	else PANIC("Assertion failed: " #expr ", " STR(__FILE__) ", " STR(__LINE__)); \
+	else PANIC("Assertion failed: `" #expr "'"); \
 }
 
 #endif
