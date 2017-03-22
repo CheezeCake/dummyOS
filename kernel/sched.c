@@ -71,8 +71,10 @@ void sched_schedule(void)
 	time_get_current(&current_time);
 	if (time_diff_ms(&current_time, &current_thread_start) > quantum) {
 		struct thread* previous = current_thread;
-		if (previous)
+		if (previous) {
+			current_thread->state = THREAD_READY;
 			list_push_back(&ready_list, previous);
+		}
 
 		log_printf("switching from %s ", (previous) ? previous->name : NULL);
 		sched_switch_to_next_thread();
