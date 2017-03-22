@@ -33,16 +33,13 @@ int irq_unset_handler(uint8_t irq)
 
 	disable_irqs();
 
-	int ret = idt_unset_handler(IRQ_IDT_INDEX(irq));
-
-	if (ret == 0) {
-		irq_handlers[irq] = NULL;
-		i8259_irq_disable(irq); // update PIC
-	}
+	idt_unset_handler(IRQ_IDT_INDEX(irq));
+	irq_handlers[irq] = NULL;
+	i8259_irq_disable(irq); // update PIC
 
 	enable_irqs();
 
-	return ret;
+	return 0;
 }
 
 void irq_init(void)

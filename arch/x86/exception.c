@@ -37,13 +37,12 @@ int exception_unset_handler(unsigned int exception)
 
 	disable_irqs();
 
-	int ret = idt_unset_handler(EXCEPTION_IDT_INDEX(exception));
-	if (ret == 0)
-		exception_handlers[exception] = NULL;
+	idt_unset_handler(EXCEPTION_IDT_INDEX(exception));
+	exception_handlers[exception] = NULL;
 
 	enable_irqs();
 
-	return ret;
+	return 0;
 }
 
 static void doublefault_handler(void)

@@ -7,8 +7,12 @@
 #define IDT_ADDRESS 0
 #define IDT_SIZE INTERRUPT_MAX
 
-#define INTGATE 0x6 // 110b
-#define TRAPGATE 0x7 // 111b
+enum gate_type
+{
+	TASKGATE = 0x5, // 101b
+	INTGATE = 0x6, // 110b
+	TRAPGATE = 0x7 // 111b
+};
 
 /*
  * 8 byte gate descriptor structure
@@ -39,8 +43,8 @@ struct idtr
 	uint32_t base_address;
 } __attribute__ ((packed));
 
-int idt_set_handler(unsigned int index, uint8_t type);
-int idt_unset_handler(unsigned int index);
+int idt_set_handler(uint8_t index, enum gate_type type);
+void idt_unset_handler(uint8_t index);
 void idt_init(void);
 
 #endif

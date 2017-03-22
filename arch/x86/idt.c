@@ -9,13 +9,8 @@ extern uint32_t asm_interrupt_handlers[INTERRUPT_MAX];
 
 static struct idt_gate_descriptor* idt = IDT_ADDRESS;
 
-int idt_set_handler(unsigned int index, uint8_t type)
+int idt_set_handler(uint8_t index, enum gate_type type)
 {
-	if (index < 0 || index > IDT_SIZE ||
-			(type != INTGATE && type != TRAPGATE))
-		return -1;
-
-
 	uint32_t handler = asm_interrupt_handlers[index];
 	if (handler == 0)
 		return -1;
@@ -29,18 +24,13 @@ int idt_set_handler(unsigned int index, uint8_t type)
 	return 0;
 }
 
-int idt_unset_handler(unsigned int index)
+void idt_unset_handler(uint8_t index)
 {
-	if (index < 0 || index > IDT_SIZE)
-		return -1;
-
 	idt[index].offset_15_0 = 0;
 	idt[index].offset_31_16 = 0;
 	idt[index].type = INTGATE;
 	idt[index].dpl = 0;
 	idt[index].present = 0; // no handler
-
-	return 0;
 }
 
 void idt_init(void)
