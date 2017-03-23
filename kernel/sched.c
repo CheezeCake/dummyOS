@@ -72,7 +72,7 @@ void sched_schedule(void)
 	if (time_diff_ms(&current_time, &current_thread_start) > quantum) {
 		struct thread* previous = current_thread;
 		if (previous) {
-			current_thread->state = THREAD_READY;
+			previous->state = THREAD_READY;
 			list_push_back(&ready_list, previous);
 		}
 
