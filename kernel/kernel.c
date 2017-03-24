@@ -33,7 +33,7 @@ void kernel_main(multiboot_info_t* mbi)
 	struct cpu_info* cpu = cpu_info();
 
 	terminal_puts("Welcome to dummyOS!\n");
-	terminal_printf("CPU: %s\tRAM: %dMB (0x%x)", cpu->cpu_vendor,
+	terminal_printf("CPU: %s\tRAM: %dMB (0x%x)\n", cpu->cpu_vendor,
 			(mbi->mem_upper >> 10) + 1, mbi->mem_upper);
 
 	kassert(arch_init() == 0);
