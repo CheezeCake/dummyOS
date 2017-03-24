@@ -1,8 +1,8 @@
 #include <kernel/debug.h>
-#include <kernel/terminal.h>
+#include <kernel/log.h>
 
 #define print_register(reg, value) \
-	terminal_printf("%s:\t0x%x\n", reg, value)
+	log_e_printf("%s = 0x%x\t", reg, value)
 
 static void debug_stacktrace(int frame, uint32_t* ebp)
 {
@@ -12,7 +12,7 @@ static void debug_stacktrace(int frame, uint32_t* ebp)
 		if (eip == 0)
 			return;
 
-		terminal_printf("#%d: [0x%x] (0x%x, 0x%x, 0x%x)\n", i, (unsigned int)eip,
+		log_e_printf("#%d: [0x%x] (0x%x, 0x%x, 0x%x)\n", i, (unsigned int)eip,
 				(unsigned int)args[0], (unsigned int)args[1],
 				(unsigned int)args[2]);
 
@@ -29,12 +29,14 @@ void debug_dump()
 	X(ebx, output) \
 	X(ecx, output) \
 	X(edx, output) \
+	log_e_putchar('\n'); \
 	X(esi, output) \
 	X(edi, output) \
 	X(ebp, output) \
-	X(esp, output)
+	X(esp, output) \
+	log_e_putchar('\n');
 
-	terminal_puts("\n");
+	log_e_putchar('\n');
 
 #define X(reg, output) { \
 	__asm__ ("movl %%"#reg", %0" : "=r" (output)); \
@@ -50,11 +52,12 @@ void debug_dump()
 			"addl $4, %%esp"
 			: "=r" (reg));
 	print_register("eflags", (unsigned int)reg);
+	log_e_putchar('\n');
 
 	uint32_t* ebp;
 	__asm__ ("movl %%ebp, %0" : "=r" (ebp));
 	ebp = (uint32_t*)ebp[0];
 
-	terminal_puts("\n=== STACKTRACE ===\n");
+	log_e_puts("\n=== STACKTRACE ===\n");
 	debug_stacktrace(DEBUG_MAX_FRAMES, ebp);
 }

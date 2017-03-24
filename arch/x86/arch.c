@@ -18,7 +18,7 @@
 
 static void default_exception_handler(unsigned int exception)
 {
-	terminal_printf("\nexception : %d", exception);
+	log_e_printf("\nexception : %d", exception);
 	PANIC("exception");
 }
 
