@@ -20,6 +20,41 @@ static void debug_stacktrace(int frame, uint32_t* ebp)
 	}
 }
 
+static void print_eflags(uint32_t eflags)
+{
+	const char* const flag_abbr[][2] = {
+		[0] = { "cf", "CF" },
+		[2] = { "pf", "PF" },
+		[4] = { "af", "AF" },
+		[6] = { "zf", "ZF" },
+		[7] = { "sf", "SF" },
+		[8] = { "tf", "TF" },
+		[9] = { "if", "IF" },
+		[10] = { "df", "DF" },
+		[11] = { "of", "OF" },
+		[14] = { "nt", "NT" },
+		[16] = { "rf", "RF" },
+		[17] = { "vm", "VM" },
+		[18] = { "ac", "AC" },
+		[19] = { "vif", "VIF" },
+		[20] = { "vip", "VIP" },
+		[21] = { "id",  "ID" }
+	};
+	const uint32_t bitmask = 0x3f4fd5;
+
+	log_e_printf("eflags: IOPL=%d ", (unsigned int)((eflags >> 12) & 0x3));
+
+	for (int i = 21; i >= 0; --i) {
+		if((bitmask >> i) & 1) {
+			const int set = (eflags >> i) & 1;
+			log_e_puts(flag_abbr[i][set]);
+			log_e_putchar(' ');
+		}
+	}
+
+	log_e_printf("(0x%x)\n", (unsigned int)eflags);
+}
+
 void debug_dump()
 {
 	uint32_t reg;
@@ -51,8 +86,7 @@ void debug_dump()
 			"movl (%%esp), %0\n"
 			"addl $4, %%esp"
 			: "=r" (reg));
-	print_register("eflags", (unsigned int)reg);
-	log_e_putchar('\n');
+	print_eflags(reg);
 
 	uint32_t* ebp;
 	__asm__ ("movl %%ebp, %0" : "=r" (ebp));
