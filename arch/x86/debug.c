@@ -20,7 +20,7 @@ static void debug_stacktrace(int frame, uint32_t* ebp)
 	}
 }
 
-static void print_eflags(uint32_t eflags)
+static void debug_print_eflags(uint32_t eflags)
 {
 	const char* const flag_abbr[][2] = {
 		[0] = { "cf", "CF" },
@@ -86,7 +86,7 @@ void debug_dump()
 			"movl (%%esp), %0\n"
 			"addl $4, %%esp"
 			: "=r" (reg));
-	print_eflags(reg);
+	debug_print_eflags(reg);
 
 	uint32_t* ebp;
 	__asm__ ("movl %%ebp, %0" : "=r" (ebp));
