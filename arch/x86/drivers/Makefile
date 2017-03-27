@@ -5,7 +5,9 @@ CPPFLAGS+=-I../../../include -I../include
 
 all: $(ARCH_DRIVERS_OBJS)
 
-terminal.o: ../../../include/kernel/terminal.h
+terminal.o: ../../../include/kernel/terminal.h \
+	../../../include/kernel/libk.h \
+	../../../include/kernel/vga.h \
 
 ioport_0xe9.o: ../../../include/kernel/libk.h ioport_0xe9.h
 
