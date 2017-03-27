@@ -1,6 +1,9 @@
 include ../../make.config
 
-CPPFLAGS+=-I../../include -Iinclude
+ARCH_INCLUDE_DIR=include/
+KERNEL_INCLUDE_DIR=../../include/
+
+CPPFLAGS+=-I$(KERNEL_INCLUDE_DIR) -I$(ARCH_INCLUDE_DIR)
 
 all: $(ARCH_ROOT_OBJS)
 	@$(MAKE) -C boot
@@ -8,61 +11,80 @@ all: $(ARCH_ROOT_OBJS)
 
 .PHONY: all clean
 
-gdt.o: gdt.h \
+gdt.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
+	gdt.h \
 	segment.h \
-	../../include/kernel/libk.h
 
-idt.o: idt.h \
-	../../include/kernel/interrupt.h \
-	segment.h
+idt.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/interrupt.h \
+	idt.h \
+	segment.h \
 
-exception.o: exception.h idt.h \
+exception.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/interrupt.h \
+	$(KERNEL_INCLUDE_DIR)kernel/panic.h \
+	$(KERNEL_INCLUDE_DIR)kernel/terminal.h \
+	exception.h \
+	idt.h \
 	irq.h \
-	../../include/kernel/interrupt.h \
-	../../include/kernel/panic.h \
-	../../include/kernel/terminal.h
 
-interrupt.o: exception.h irq.h
+interrupt.o: \
+	exception.h \
+	irq.h \
 
-i8259.o: i8259.h io_ports.h
+i8259.o: \
+	i8259.h \
+	io_ports.h \
 
-irq.o: irq.h i8259.h idt.h ../../include/kernel/interrupt.h
+irq.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/interrupt.h \
+	i8259.h \
+	idt.h \
+	irq.h \
 
-cpu.o: ../../include/kernel/cpu.h \
-	../../include/kernel/log.h
+cpu.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/cpu.h \
+	$(KERNEL_INCLUDE_DIR)kernel/log.h \
 
-arch.o: ../../include/kernel/arch.h \
-	../../include/kernel/panic.h \
-	../../include/kernel/kernel.h \
-	../../include/kernel/time.h \
-	../../include/kernel/kernel_image.h \
-	../../include/kernel/kmalloc.h \
-	../../include/kernel/log.h \
-	../../include/kernel/memory.h \
-	../../include/kernel/paging.h \
+arch.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/arch.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kernel.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
+	$(KERNEL_INCLUDE_DIR)kernel/log.h \
+	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
+	$(KERNEL_INCLUDE_DIR)kernel/paging.h \
+	$(KERNEL_INCLUDE_DIR)kernel/panic.h \
+	$(KERNEL_INCLUDE_DIR)kernel/time.h \
 	exception.h \
 	gdt.h \
 	i8254.h \
 	idt.h \
-	irq.h
+	irq.h \
 
-paging.o: ../../include/kernel/paging.h \
-	include/arch/memory.h \
-	include/arch/virtual_memory.h \
-	../../include/kernel/kassert.h \
-	../../include/kernel/libk.h \
-	../../include/kernel/memory.h \
-	../../include/kernel/types.h
+paging.o: \
+	$(ARCH_INCLUDE_DIR)arch/memory.h \
+	$(ARCH_INCLUDE_DIR)arch/virtual_memory.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
+	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
+	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
+	$(KERNEL_INCLUDE_DIR)kernel/paging.h \
+	$(KERNEL_INCLUDE_DIR)kernel/types.h \
 
-i8254.o: i8254.h io_ports.h
+i8254.o: \
+	i8254.h \
+	io_ports.h \
 
-cpu_context.o: ../../include/kernel/cpu_context.h \
-	../../include/kernel/libk.h \
+cpu_context.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/cpu_context.h \
+	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
 	gdt.h \
-	segment.h
+	segment.h \
 
-debug.o: ../../include/kernel/debug.h \
-	../../include/kernel/log.h
+debug.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/debug.h \
+	$(KERNEL_INCLUDE_DIR)kernel/log.h \
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)

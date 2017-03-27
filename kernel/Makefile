@@ -1,64 +1,75 @@
 include ../make.config
 include make.config
 
-CPPFLAGS+=-I../include -I../arch/$(TARGET_ARCH)/include
+ARCH_INCLUDE_DIR=../arch/$(TARGET_ARCH)/include/
+KERNEL_INCLUDE_DIR=../include/
+
+CPPFLAGS+=-I$(KERNEL_INCLUDE_DIR) -I$(ARCH_INCLUDE_DIR)
 
 all: $(KERNEL_OBJS)
 
-memory.o: ../include/kernel/memory.h \
-	../include/kernel/page_frame_status.h \
-	../include/kernel/libk.h \
-	../include/kernel/list.h \
-	../include/kernel/kassert.h \
-	../include/kernel/kmalloc.h \
-	../include/kernel/kernel_image.h \
-	../arch/$(TARGET_ARCH)/include/arch/memory.h \
-	../include/kernel/log.h
+memory.o: \
+	$(ARCH_INCLUDE_DIR)arch/memory.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
+	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
+	$(KERNEL_INCLUDE_DIR)kernel/list.h \
+	$(KERNEL_INCLUDE_DIR)kernel/log.h \
+	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
+	$(KERNEL_INCLUDE_DIR)kernel/page_frame_status.h \
 
-kernel.o: ../include/kernel/terminal.h \
-	../include/kernel/log.h \
-	../include/kernel/kernel.h \
-	../include/kernel/arch.h \
-	../include/kernel/cpu.h \
-	../include/kernel/interrupt.h \
-	../include/kernel/kassert.h \
-	../include/kernel/multiboot.h \
-	../include/kernel/sched.h \
-	../include/kernel/thread.h \
-	../include/kernel/time.h \
+kernel.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/arch.h \
+	$(KERNEL_INCLUDE_DIR)kernel/cpu.h \
+	$(KERNEL_INCLUDE_DIR)kernel/interrupt.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kernel.h \
+	$(KERNEL_INCLUDE_DIR)kernel/log.h \
+	$(KERNEL_INCLUDE_DIR)kernel/multiboot.h \
+	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
+	$(KERNEL_INCLUDE_DIR)kernel/terminal.h \
+	$(KERNEL_INCLUDE_DIR)kernel/thread.h \
+	$(KERNEL_INCLUDE_DIR)kernel/time.h \
 
-kernel_image.o: ../include/kernel/kernel_image.h \
-	../include/kernel/memory.h \
-	../include/kernel/kassert.h
+kernel_image.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \
+	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
 
-kmalloc.o: ../include/kernel/kmalloc.h \
-	../include/kernel/kheap.h \
-	../include/kernel/panic.h \
-	../include/kernel/log.h \
+kmalloc.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/kheap.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
+	$(KERNEL_INCLUDE_DIR)kernel/log.h \
+	$(KERNEL_INCLUDE_DIR)kernel/panic.h \
 
-kheap.o: ../include/kernel/kheap.h \
-	../include/kernel/memory.h \
-	../arch/$(TARGET_ARCH)/include/arch/memory.h \
-	../include/kernel/log.h \
-	../include/kernel/paging.h \
+kheap.o: \
+	$(ARCH_INCLUDE_DIR)arch/memory.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kheap.h \
+	$(KERNEL_INCLUDE_DIR)kernel/log.h \
+	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
+	$(KERNEL_INCLUDE_DIR)kernel/paging.h \
 
-time.o: ../include/kernel/time.h \
-	../include/kernel/kassert.h \
-	../include/kernel/log.h \
-	../include/kernel/sched.h \
+time.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
+	$(KERNEL_INCLUDE_DIR)kernel/log.h \
+	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
+	$(KERNEL_INCLUDE_DIR)kernel/time.h \
 
-thread.o: ../include/kernel/thread.h \
-	../include/kernel/kmalloc.h \
-	../include/kernel/libk.h \
-	../include/kernel/cpu_context.h \
-	../include/kernel/sched.h \
+thread.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/cpu_context.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
+	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
+	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
+	$(KERNEL_INCLUDE_DIR)kernel/thread.h \
 
-sched.o: ../include/kernel/sched.h \
-	../include/kernel/time.h \
-	../include/kernel/kassert.h \
-	../include/kernel/cpu_context.h \
-	../include/kernel/libk.h \
-	../include/kernel/log.h
+sched.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/cpu_context.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
+	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
+	$(KERNEL_INCLUDE_DIR)kernel/log.h \
+	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
+	$(KERNEL_INCLUDE_DIR)kernel/time.h \
 
 
 %.o: %.c
