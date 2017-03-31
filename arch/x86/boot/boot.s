@@ -18,20 +18,26 @@
 
 
 # allocate the kernel's stack
-.set STACK_SIZE, 0x4000 # 16KB
-.comm stack, STACK_SIZE
+.section .bss
+.align 16
+__stack_bottom:
+.skip 0x4000 # 16KB
+__stack_top:
+
+.globl __stack_top
 
 
 .text
 .globl _start
 _start:
-	movl $(stack + STACK_SIZE), %ebp
-	movl %ebp, %esp
+	movl $__stack_top, %esp
+	movl %esp, %ebp
 
 	# set EFLAGS register to 0
 	pushl $0
 	popf
 
+	# GRUB multiboot_info_t struct
 	pushl %ebx
 
 	# call the C main function
