@@ -20,6 +20,7 @@ static inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr
 
 	segment_descr->limit_19_16 = 0xf;
 	segment_descr->avl = 0;
+	segment_descr->zero = 0;
 	segment_descr->operation_size = 1;
 	segment_descr->granularity = 1;
 
