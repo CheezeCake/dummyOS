@@ -1,4 +1,5 @@
 include ../../make.config
+include make.config
 
 ARCH_INCLUDE_DIR=include/
 KERNEL_INCLUDE_DIR=../../include/
@@ -63,7 +64,7 @@ arch.o: \
 	idt.h \
 	irq.h \
 
-paging.o: \
+paging.o: paging.c \
 	$(ARCH_INCLUDE_DIR)arch/memory.h \
 	$(ARCH_INCLUDE_DIR)arch/virtual_memory.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
