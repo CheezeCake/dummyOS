@@ -14,10 +14,10 @@ memory.o: \
 	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
 	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-	$(KERNEL_INCLUDE_DIR)kernel/list.h \
 	$(KERNEL_INCLUDE_DIR)kernel/log.h \
 	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
 	$(KERNEL_INCLUDE_DIR)kernel/page_frame_status.h \
+	$(KERNEL_INCLUDE_DIR)kernel/sz_list.h \
 
 kernel.o: \
 	$(KERNEL_INCLUDE_DIR)kernel/arch.h \

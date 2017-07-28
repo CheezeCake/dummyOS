@@ -1,18 +1,41 @@
 #include <limits.h>
+#include <stdbool.h>
+
 #include <kernel/memory.h>
 #include <kernel/page_frame_status.h>
 #include <kernel/libk.h>
-#include <kernel/list.h>
+#include <kernel/sz_list.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
 #include <kernel/kernel_image.h>
 #include <arch/memory.h>
 #include <kernel/log.h>
 
+/*
+ * describes a physical page
+ */
+struct page_frame
+{
+	p_addr_t addr;
+
+	LIST_NODE_CREATE(struct page_frame);
+};
+
+/*
+ * list structure
+ */
+struct page_frame_list
+{
+	LIST_CREATE(struct page_frame);
+
+	size_t size;
+};
+
+
 static struct page_frame* page_frame_descriptors = NULL;
 
-static struct page_frame_list free_page_frames = { NULL, 0 };
-static struct page_frame_list used_page_frames = { NULL, 0 };
+static struct page_frame_list free_page_frames;
+static struct page_frame_list used_page_frames;
 
 static p_addr_t memory_base;
 static p_addr_t memory_top;
@@ -25,17 +48,20 @@ void memory_init(size_t ram_size_bytes)
 	// allocate page_frame_descriptors with kmalloc_early (allocated after kernel image)
 	page_frame_descriptors = (struct page_frame*)kmalloc_early(page_frame_descriptors_size);
 
-	p_addr_t kernel_base = kernel_image_get_base_page_frame();
-	p_addr_t kernel_top = kernel_image_get_top_page_frame();
+	const p_addr_t kernel_base = kernel_image_get_base_page_frame();
+	const p_addr_t kernel_top = kernel_image_get_top_page_frame();
 
 	// top_memory_left = ram_size_bytes % PAGE_SIZE;
-	p_addr_t top_memory_left = (ram_size_bytes & ((1 << PAGE_SIZE_SHIFT) - 1));
+	const p_addr_t top_memory_left = (ram_size_bytes & ((1 << PAGE_SIZE_SHIFT) - 1));
 
 	// start of memory at PAGE_SIZE B
 	memory_base = PAGE_SIZE;
 	memory_top = ram_size_bytes - top_memory_left;
 
 	kassert(kernel_top < memory_top);
+
+	sz_list_init_null(&free_page_frames);
+	sz_list_init_null(&used_page_frames);
 
 #ifndef NDEBUG
 	int stat = -1;
@@ -64,10 +90,10 @@ void memory_init(size_t ram_size_bytes)
 		pf_descriptor->addr = paddr;
 
 		if (status == PAGE_FRAME_FREE) {
-			list_push_back(&free_page_frames, pf_descriptor);
+			sz_list_push_back(&free_page_frames, pf_descriptor);
 		}
 		else if (status == PAGE_FRAME_KERNEL || status == PAGE_FRAME_HW_MAP) {
-			list_push_back(&used_page_frames, pf_descriptor);
+			sz_list_push_back(&used_page_frames, pf_descriptor);
 		}
 	}
 }
@@ -89,13 +115,13 @@ static inline struct page_frame* get_page_frame_at(p_addr_t addr)
 p_addr_t memory_page_frame_alloc()
 {
 	// no free pages left
-	if (list_empty(&free_page_frames))
+	if (sz_list_empty(&free_page_frames))
 		return (p_addr_t)NULL;
 
-	struct page_frame* new_page_frame = list_front(&free_page_frames);
-	slist_pop_front(&free_page_frames);
+	struct page_frame* new_page_frame = sz_list_front(&free_page_frames);
+	sz_list_pop_front(&free_page_frames);
 
-	list_push_back(&used_page_frames, new_page_frame);
+	sz_list_push_back(&used_page_frames, new_page_frame);
 
 	return new_page_frame->addr;
 }
@@ -106,8 +132,8 @@ int memory_page_frame_free(p_addr_t addr)
 	if (!pf)
 		return -1;
 
-	list_erase(&used_page_frames, pf);
-	list_push_front(&free_page_frames, pf);
+	sz_list_erase(&used_page_frames, pf);
+	sz_list_push_front(&free_page_frames, pf);
 
 	return 0;
 }

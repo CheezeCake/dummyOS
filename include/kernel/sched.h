@@ -7,7 +7,7 @@
 
 struct thread_list
 {
-	struct thread* root;
+	LIST_CREATE(struct thread);
 };
 
 void sched_init(unsigned int quantum_in_ms);

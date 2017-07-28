@@ -6,28 +6,6 @@
 #include <kernel/types.h>
 #include <arch/memory.h>
 
-/*
- * describes a physical page
- */
-struct page_frame
-{
-	p_addr_t addr;
-
-	struct page_frame* prev;
-	struct page_frame* next;
-};
-
-
-/*
- * list
- */
-struct page_frame_list
-{
-	struct page_frame* root;
-	size_t size;
-};
-
-
 static inline p_addr_t page_frame_align_inf(p_addr_t addr)
 {
 	return (addr & ~(PAGE_SIZE - 1));

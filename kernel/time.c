@@ -74,14 +74,13 @@ int time_cmp(const struct time* t1, const struct time* t2)
 
 static void time_update_thread_wait_list(void)
 {
-	int i;
 	struct thread* erase = NULL;
 	struct thread* it;
 
 	if (list_empty(&wait_list))
 		return;
 
-	list_foreach(&wait_list, it, i) {
+	list_foreach(&wait_list, it) {
 		if (erase) {
 			list_erase(&wait_list, erase);
 			sched_add_thread(erase);
