@@ -12,9 +12,9 @@ struct thread;
 
 struct time
 {
-	unsigned long sec;
+	unsigned long long sec;
 	unsigned short milli_sec;
-	unsigned long nano_sec;
+	unsigned int nano_sec;
 };
 
 static inline void time_add_millis(struct time* time,
@@ -24,6 +24,21 @@ static inline void time_add_millis(struct time* time,
 
 	time->sec += millis / TIME_SEC_IN_MS;
 	time->milli_sec = millis % TIME_SEC_IN_MS;
+}
+
+static inline void time_add_time(struct time* a, const struct time* b)
+{
+	unsigned long long sum = 0;
+
+	sum = a->nano_sec + b->nano_sec;
+	a->nano_sec = sum % TIME_MS_IN_NANOSEC;
+
+	sum /= TIME_MS_IN_NANOSEC;
+	sum += a->milli_sec + b->milli_sec;
+	a->milli_sec = sum % TIME_SEC_IN_MS;
+
+	sum /= TIME_SEC_IN_MS;
+	a->sec += sum + b->sec;
 }
 
 static inline int64_t time_diff_ms(const struct time* t1, const struct time* t2)

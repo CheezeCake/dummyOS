@@ -29,24 +29,12 @@ void time_tick(void)
 	unsigned long old_sec = current.sec;
 #endif
 
-	current.nano_sec += tick_value.nano_sec;
-	if (current.nano_sec >= TIME_MS_IN_NANOSEC) {
-		++current.milli_sec;
-		current.nano_sec -= TIME_MS_IN_NANOSEC;
-	}
-
-	current.milli_sec += tick_value.milli_sec;
-	if (current.milli_sec >= TIME_SEC_IN_MS) {
-		++current.sec;
-		current.milli_sec -= TIME_SEC_IN_MS;
-	}
-
-	current.sec += tick_value.sec;
+	time_add_time(&current, &tick_value);
 
 #ifndef NDEBUG
 	// should be printed every second
 	if (current.sec != old_sec)
-		log_printf("sec = %lu, msec = %d, nsec = %lu\n", current.sec,
+		log_printf("sec = %llu, msec = %d, nsec = %u\n", current.sec,
 				current.milli_sec, current.nano_sec);
 #endif
 
