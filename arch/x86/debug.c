@@ -6,17 +6,18 @@
 
 static void debug_stacktrace(int frame, uint32_t* ebp)
 {
+
 	for (int i = 0; i < frame; i++) {
-		uint32_t* args = ebp + 2;
-		uint32_t eip = ebp[1];
+		const uint32_t eip = ebp[1];
 		if (eip == 0)
 			return;
+
+		ebp = (uint32_t*)ebp[0];
+		const uint32_t* args = ebp + 2;
 
 		log_e_printf("#%d: [0x%x] (0x%x, 0x%x, 0x%x)\n", i, (unsigned int)eip,
 				(unsigned int)args[0], (unsigned int)args[1],
 				(unsigned int)args[2]);
-
-		ebp = (uint32_t*)ebp[0];
 	}
 }
 
@@ -90,7 +91,6 @@ void debug_dump()
 
 	uint32_t* ebp;
 	__asm__ ("movl %%ebp, %0" : "=r" (ebp));
-	ebp = (uint32_t*)ebp[0];
 
 	log_e_puts("\n=== STACKTRACE ===\n");
 	debug_stacktrace(DEBUG_MAX_FRAMES, ebp);
