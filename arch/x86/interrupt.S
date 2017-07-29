@@ -4,6 +4,9 @@
 #include "irq.h"
 
 .macro SAVE_CONTEXT
+	pushl $0 /* eip sentinel for stacktrace */
+	pushl %ebp
+	movl %esp, %ebp
 	pushal
 	subl $2,%esp /* keep the stack aligned */
 	pushw %ss
@@ -11,7 +14,6 @@
 	pushw %es
 	pushw %fs
 	pushw %gs
-
 .endm
 
 .macro RESTORE_CONTEXT
@@ -22,6 +24,8 @@
 	popw %ss
 	addl $2,%esp
 	popal
+	popl %ebp
+	addl $4, %esp /* remove sentinel */
 .endm
 
 .set NOP, 0x90
