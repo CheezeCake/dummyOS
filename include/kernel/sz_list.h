@@ -70,5 +70,5 @@
 		list_erase(list, value);	\
 		--(list)->size;				\
 	} while (0)
-	
+
 #endif
