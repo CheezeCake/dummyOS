@@ -30,7 +30,7 @@ int semaphore_create(sem_t* sem, int n)
 
 	*sem = sem_idx;
 
-	return 1;
+	return 0;
 }
 
 int semaphore_destroy(sem_t* sem)
