@@ -40,6 +40,7 @@ kernel_image.o: \
 kmalloc.o: \
 	$(KERNEL_INCLUDE_DIR)kernel/kheap.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
+	$(KERNEL_INCLUDE_DIR)kernel/locking/spinlock.h \
 	$(KERNEL_INCLUDE_DIR)kernel/log.h \
 	$(KERNEL_INCLUDE_DIR)kernel/panic.h \
 
@@ -70,6 +71,9 @@ sched.o: \
 	$(KERNEL_INCLUDE_DIR)kernel/log.h \
 	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
 	$(KERNEL_INCLUDE_DIR)kernel/time.h \
+
+semaphore.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/locking/semaphore.h \
 
 
 %.o: %.c
