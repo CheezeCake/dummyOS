@@ -2,12 +2,17 @@
 #define _SZ_LIST_H_
 
 #include <kernel/list.h>
+#include <stdint.h>
 
 /*
  * **************
  * list with size
  * **************
  */
+
+#define SZ_LIST_CREATE(node_type)	\
+	LIST_CREATE(node_type);			\
+	size_t size
 
 /*
  * init
