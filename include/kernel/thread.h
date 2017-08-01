@@ -5,10 +5,11 @@
 #include <arch/cpu_context.h>
 #include <kernel/types.h>
 #include <kernel/time.h>
+#include <kernel/list.h>
 
 #define MAX_THREAD_NAME_LENGTH 16
 
-enum thread_state { THREAD_RUNNING, THREAD_READY, THREAD_BLOCKED_TIME };
+enum thread_state { THREAD_RUNNING, THREAD_READY, THREAD_BLOCKED };
 
 struct thread
 {
@@ -19,15 +20,14 @@ struct thread
 	v_addr_t stack;
 	size_t stack_size;
 
-	struct thread* prev;
-	struct thread* next;
-
 	enum thread_state state;
 
 	union
 	{
 		struct time until;
 	} waiting_for;
+
+	LIST_NODE_CREATE(struct thread);
 };
 
 int thread_create(struct thread* thread, const char* name, size_t stack_size,

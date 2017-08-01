@@ -24,6 +24,8 @@ static void sched_switch_to_next_thread(void)
 	if (list_empty(&ready_list))
 		return;
 
+	log_printf("switching from %s ", (current_thread) ? current_thread->name : NULL);
+
 	struct cpu_context* ctx = (current_thread) ? current_thread->cpu_context : NULL;
 
 	current_thread = list_front(&ready_list);
@@ -50,7 +52,18 @@ void sched_add_thread(struct thread* thread)
 	list_push_back(&ready_list, thread);
 }
 
-// XXX: protect with irq_disable?
+struct thread* sched_get_current_thread(void)
+{
+	return current_thread;
+}
+
+void sched_block_current_thread(void)
+{
+	log_printf("sched blocking %s\n", current_thread->name);
+	current_thread->state = THREAD_BLOCKED;
+	sched_switch_to_next_thread();
+}
+
 void sched_remove_current_thread(void)
 {
 	if (!current_thread)
@@ -70,13 +83,11 @@ void sched_schedule(void)
 	struct time current_time;
 	time_get_current(&current_time);
 	if (time_diff_ms(&current_time, &current_thread_start) > quantum) {
-		struct thread* previous = current_thread;
-		if (previous) {
-			previous->state = THREAD_READY;
-			list_push_back(&ready_list, previous);
+		if (current_thread) {
+			current_thread->state = THREAD_READY;
+			list_push_back(&ready_list, current_thread);
 		}
 
-		log_printf("switching from %s ", (previous) ? previous->name : NULL);
 		sched_switch_to_next_thread();
 	}
 }
@@ -86,18 +97,17 @@ void sched_yield_current_thread(void)
 	if (!list_empty(&ready_list) && current_thread) {
 		current_thread->state = THREAD_READY;
 		list_push_back(&ready_list, current_thread);
-		log_printf("switching from %s ", current_thread->name);
+
 		sched_switch_to_next_thread();
 	}
 }
 
 void sched_sleep_current_thread(unsigned int millis)
 {
-	current_thread->state = THREAD_BLOCKED_TIME;
+	current_thread->state = THREAD_BLOCKED;
 	time_get_current(&current_thread->waiting_for.until);
 	time_add_millis(&current_thread->waiting_for.until, millis);
 
 	time_add_waiting_thread(current_thread);
-	log_printf("switching from %s ", current_thread->name);
 	sched_switch_to_next_thread();
 }

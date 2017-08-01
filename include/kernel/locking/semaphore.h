@@ -1,13 +1,21 @@
 #ifndef _SEMAPHORE_H_
 #define _SEMAPHORE_H_
 
-typedef int sem_t;
+#include <kernel/sched.h>
+
+typedef struct thread_list thread_queue;
+
+typedef struct sem_t
+{
+	int value;
+	thread_queue wait_queue;
+} sem_t;
 
 int semaphore_create(sem_t* sem, int n);
 int semaphore_destroy(sem_t* sem);
 
-int semaphore_up(const sem_t* sem);
-int semaphore_down(const sem_t* sem);
-int semaphore_getvalue(const sem_t* sem, int* val);
+int semaphore_up(sem_t* sem);
+int semaphore_down(sem_t* sem);
+int semaphore_get_value(const sem_t* sem);
 
 #endif

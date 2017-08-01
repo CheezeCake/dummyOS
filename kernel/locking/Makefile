@@ -8,7 +8,10 @@ CPPFLAGS+=-I$(KERNEL_INCLUDE_DIR) -I$(ARCH_INCLUDE_DIR)
 
 all: $(KERNEL_LOCKING_OBJS)
 
-# dependencies
+semaphore.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/atomic.h \
+	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
+	$(KERNEL_INCLUDE_DIR)kernel/locking/semaphore.h \
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
