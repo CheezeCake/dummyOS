@@ -9,9 +9,9 @@
 
 enum gate_type
 {
-	TASKGATE = 0x5, // 101b
+	TASKGATE = 0x5, // 101b [unused]
 	INTGATE = 0x6, // 110b
-	TRAPGATE = 0x7 // 111b
+	TRAPGATE = 0x7 // 111b  [unused]
 };
 
 /*
