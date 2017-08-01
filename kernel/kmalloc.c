@@ -1,7 +1,9 @@
 #include <stdbool.h>
+
 #include <kernel/kmalloc.h>
 #include <kernel/kheap.h>
 #include <kernel/panic.h>
+#include <kernel/locking/spinlock.h>
 
 #include <kernel/log.h>
 
@@ -23,7 +25,8 @@ static inline memory_block_t make_memory_block(size_t size, bool used)
 #define memory_block_get_size(memory_block) (memory_block >> 1)
 #define memory_block_get_used(memory_block) (memory_block & 1)
 
-bool kmalloc_init_done = false;
+static bool kmalloc_init_done = false;
+static spinlock_declare_lock(lock);
 
 void kmalloc_init(p_addr_t kernel_top)
 {
@@ -43,6 +46,8 @@ void kmalloc_init(p_addr_t kernel_top)
 
 void* kmalloc(size_t size)
 {
+	spinlock_lock(lock);
+
 	memory_block_t* current_block = (memory_block_t*)kheap_get_start();
 
 	while ((v_addr_t)current_block < KHEAP_LIMIT &&
@@ -73,11 +78,15 @@ void* kmalloc(size_t size)
 		*current_block |= 1; // set used bit
 	}
 
+	spinlock_unlock(lock);
+
 	return (void*)((uint8_t*)current_block + sizeof(memory_block_t));
 }
 
 void kfree(void* ptr)
 {
+	spinlock_lock(lock);
+
 	if (!ptr || (v_addr_t)ptr < kheap_get_start() ||
 			(v_addr_t)ptr > KHEAP_LIMIT)
 		return;
@@ -103,6 +112,8 @@ void kfree(void* ptr)
 		const size_t size = (size_t)((uint8_t*)it - ((uint8_t*)ptr + sizeof (memory_block_t)));
 		*block = make_memory_block(size, false);
 	}
+
+	spinlock_unlock(lock);
 }
 
 p_addr_t kmalloc_early(size_t size)
