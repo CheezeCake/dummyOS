@@ -31,7 +31,7 @@ struct thread
 };
 
 int thread_create(struct thread* thread, const char* name, size_t stack_size,
-		void (start(void)), void (exit(void)));
+		void (*start)(void), void (*exit)(void));
 void thread_destroy(struct thread* thread);
 
 void thread_yield(void);

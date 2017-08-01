@@ -5,7 +5,7 @@
 #include <kernel/sched.h>
 
 int thread_create(struct thread* thread, const char* name, size_t stack_size,
-		void (start(void)), void (exit(void)))
+		void (*start)(void), void (*exit)(void))
 {
 	memset(thread, 0, sizeof(struct thread));
 
