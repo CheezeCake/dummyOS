@@ -2,6 +2,7 @@
 #include <kernel/paging.h>
 #include <kernel/memory.h>
 #include <arch/memory.h>
+#include <kernel/kassert.h>
 
 #include <kernel/log.h>
 
@@ -10,6 +11,8 @@ static v_addr_t kheap_end;
 
 size_t kheap_init(v_addr_t start, size_t initial_size)
 {
+	kassert(start + initial_size < KHEAP_LIMIT);
+
 	v_addr_t addr;
 
 	kheap_start = start;
