@@ -49,6 +49,7 @@ cpu.o: \
 	$(KERNEL_INCLUDE_DIR)kernel/log.h \
 
 arch.o: \
+	$(ARCH_INCLUDE_DIR)arch/irq.h \
 	$(KERNEL_INCLUDE_DIR)kernel/arch.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kernel.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \

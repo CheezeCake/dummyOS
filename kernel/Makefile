@@ -55,6 +55,7 @@ time.o: \
 	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
 	$(KERNEL_INCLUDE_DIR)kernel/log.h \
 	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
+	$(KERNEL_INCLUDE_DIR)kernel/thread_list.h \
 	$(KERNEL_INCLUDE_DIR)kernel/time.h \
 
 thread.o: \
@@ -65,11 +66,13 @@ thread.o: \
 	$(KERNEL_INCLUDE_DIR)kernel/thread.h \
 
 sched.o: \
+	$(ARCH_INCLUDE_DIR)arch/irq.h \
 	$(KERNEL_INCLUDE_DIR)kernel/cpu_context.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
 	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
 	$(KERNEL_INCLUDE_DIR)kernel/log.h \
 	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
+	$(KERNEL_INCLUDE_DIR)kernel/thread_list.h \
 	$(KERNEL_INCLUDE_DIR)kernel/time.h \
 
 semaphore.o: \

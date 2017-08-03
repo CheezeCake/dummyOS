@@ -3,26 +3,56 @@
 #include <kernel/time.h>
 #include <kernel/kassert.h>
 #include <kernel/libk.h>
+#include <kernel/thread_list.h>
+#include <arch/irq.h>
 
 #include <kernel/log.h>
 
 static unsigned int quantum;
 
+// current thread
 static struct thread* current_thread = NULL;
-static struct thread_list ready_list;
 static struct time current_thread_start = { .sec = 0, .nano_sec = 0 };
+
+// ready queue & ready buffer
+static struct thread_list ready_list;
+static struct thread_list_synced ready_buffer;
+
+static inline void copy_buffer_to_ready_queue()
+{
+	if (list_locked(&ready_buffer))
+		return;
+
+	struct thread* it;
+
+	list_lock_synced(&ready_buffer);
+
+	it = list_begin(&ready_buffer);
+	while (it) {
+		struct thread* tmp = it;
+		it = list_it_next(it);
+
+		list_push_back(&ready_list, tmp); // add to ready queue
+	}
+
+	list_clear(&ready_buffer); // clear ready buffer
+
+	list_unlock_synced(&ready_buffer);
+}
 
 void sched_init(unsigned int quantum_in_ms)
 {
 	quantum = quantum_in_ms;
 
 	list_init_null(&ready_list);
+	list_init_null_synced(&ready_buffer);
 }
 
 static void sched_switch_to_next_thread(void)
 {
-	if (list_empty(&ready_list))
-		return;
+	copy_buffer_to_ready_queue();
+
+	kassert(!list_empty(&ready_list));
 
 	log_printf("switching from %s ", (current_thread) ? current_thread->name : NULL);
 
@@ -30,6 +60,7 @@ static void sched_switch_to_next_thread(void)
 
 	current_thread = list_front(&ready_list);
 	list_pop_front(&ready_list);
+
 	current_thread->state = THREAD_RUNNING;
 	time_get_current(&current_thread_start);
 
@@ -39,17 +70,23 @@ static void sched_switch_to_next_thread(void)
 
 void sched_start(void)
 {
-	kassert(current_thread == NULL);
-	kassert(!list_empty(&ready_list));
+	log_puts("sched_start()\n");
 
+	kassert(current_thread == NULL);
+
+	irq_enable();
 	sched_switch_to_next_thread();
 }
 
 void sched_add_thread(struct thread* thread)
 {
+	kassert(thread != NULL);
+
 	log_printf("sched add %s\n", thread->name);
 	thread->state = THREAD_READY;
-	list_push_back(&ready_list, thread);
+
+	// add to synced buffer
+	list_push_back_synced(&ready_buffer, thread);
 }
 
 struct thread* sched_get_current_thread(void)
@@ -75,8 +112,13 @@ void sched_remove_current_thread(void)
 	sched_switch_to_next_thread();
 }
 
+/*
+ * called from time tick interrupt handler
+ */
 void sched_schedule(void)
 {
+	copy_buffer_to_ready_queue();
+
 	if (list_empty(&ready_list))
 		return;
 
@@ -94,20 +136,26 @@ void sched_schedule(void)
 
 void sched_yield_current_thread(void)
 {
-	if (!list_empty(&ready_list) && current_thread) {
-		current_thread->state = THREAD_READY;
-		list_push_back(&ready_list, current_thread);
+	if (list_empty(&ready_list))
+		return;
 
-		sched_switch_to_next_thread();
-	}
+	current_thread->state = THREAD_READY;
+	list_push_back_synced(&ready_buffer, current_thread);
+
+	/* irq_disable(); */
+	sched_switch_to_next_thread();
+	/* irq_enable(); */
 }
 
 void sched_sleep_current_thread(unsigned int millis)
 {
 	current_thread->state = THREAD_BLOCKED;
+
 	time_get_current(&current_thread->waiting_for.until);
 	time_add_millis(&current_thread->waiting_for.until, millis);
-
 	time_add_waiting_thread(current_thread);
+
+	/* irq_disable(); */
 	sched_switch_to_next_thread();
+	/* irq_enable(); */
 }

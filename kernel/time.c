@@ -1,5 +1,6 @@
 #include <kernel/time.h>
 #include <kernel/sched.h>
+#include <kernel/thread_list.h>
 #include <kernel/kassert.h>
 #include <kernel/log.h>
 
@@ -7,7 +8,7 @@
 static struct time tick_value;
 static struct time current = { .sec = 0, .milli_sec = 0, .nano_sec = 0 };
 
-static struct thread_list wait_list;
+static struct thread_list_synced wait_list;
 
 static void time_update_thread_wait_list(void);
 
@@ -20,7 +21,7 @@ void time_init(struct time tick_val)
 	tick_value.milli_sec = tick_val.milli_sec;
 	tick_value.nano_sec = tick_val.nano_sec;
 
-	list_init_null(&wait_list);
+	list_init_null_synced(&wait_list);
 }
 
 void time_tick(void)
@@ -68,9 +69,10 @@ static void time_update_thread_wait_list(void)
 	if (list_empty(&wait_list))
 		return;
 
+	list_lock_synced(&wait_list); // lock list
 	list_foreach(&wait_list, it) {
 		if (erase) {
-			list_erase(&wait_list, erase);
+			list_erase(&wait_list, erase); // normal erase
 			sched_add_thread(erase);
 			erase = NULL;
 		}
@@ -78,9 +80,10 @@ static void time_update_thread_wait_list(void)
 		if (time_cmp(&current, &it->waiting_for.until) >= 0)
 			erase = it;
 	}
+	list_unlock_synced(&wait_list); // unlock
 
 	if (erase) {
-		list_erase(&wait_list, erase);
+		list_erase_synced(&wait_list, erase); // synced erase
 		sched_add_thread(erase);
 	}
 }
@@ -88,6 +91,8 @@ static void time_update_thread_wait_list(void)
 // TODO: keep list sorted
 void time_add_waiting_thread(struct thread* thread)
 {
-	if (thread)
-		list_push_back(&wait_list, thread);
+	if (thread) {
+		log_printf("time add %s\n", thread->name);
+		list_push_back_synced(&wait_list, thread);
+	}
 }

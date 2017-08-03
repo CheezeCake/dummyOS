@@ -12,6 +12,7 @@ semaphore.o: \
 	$(KERNEL_INCLUDE_DIR)kernel/atomic.h \
 	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
 	$(KERNEL_INCLUDE_DIR)kernel/locking/semaphore.h \
+	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)

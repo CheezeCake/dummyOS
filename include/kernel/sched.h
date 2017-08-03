@@ -2,13 +2,7 @@
 #define _SCHED_H_
 
 #include <stddef.h>
-#include <kernel/list.h>
 #include <kernel/thread.h>
-
-struct thread_list
-{
-	LIST_CREATE(struct thread);
-};
 
 void sched_init(unsigned int quantum_in_ms);
 void sched_add_thread(struct thread* thread);

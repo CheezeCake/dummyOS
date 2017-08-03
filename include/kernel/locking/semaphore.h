@@ -1,9 +1,9 @@
 #ifndef _SEMAPHORE_H_
 #define _SEMAPHORE_H_
 
-#include <kernel/sched.h>
+#include <kernel/thread_list.h>
 
-typedef struct thread_list thread_queue;
+typedef struct thread_list_synced thread_queue;
 
 typedef struct sem_t
 {

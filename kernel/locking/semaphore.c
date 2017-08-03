@@ -2,6 +2,7 @@
 
 #include <kernel/locking/semaphore.h>
 #include <kernel/atomic.h>
+#include <kernel/sched.h>
 #include <kernel/libk.h>
 
 int semaphore_create(sem_t* sem, int n)
@@ -29,8 +30,12 @@ int semaphore_up(sem_t* sem)
 	atomic_inc_int(sem->value);
 
 	if (!list_empty(&sem->wait_queue)) {
+		list_lock_synced(&sem->wait_queue);
+
 		struct thread* first = list_front(&sem->wait_queue);
 		list_pop_front(&sem->wait_queue);
+
+		list_unlock_synced(&sem->wait_queue);
 
 		sched_add_thread(first);
 	}
@@ -43,7 +48,7 @@ int semaphore_down(sem_t* sem)
 	atomic_dec_int(sem->value);
 
 	if (sem->value < 0) {
-		list_push_front(&sem->wait_queue, sched_get_current_thread());
+		list_push_front_synced(&sem->wait_queue, sched_get_current_thread());
 		sched_block_current_thread();
 	}
 
