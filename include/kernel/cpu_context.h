@@ -1,5 +1,5 @@
-#ifndef _CPU_CONTEXT_H_
-#define _CPU_CONTEXT_H_
+#ifndef _KERNEL_CPU_CONTEXT_H_
+#define _KERNEL_CPU_CONTEXT_H_
 
 #include <arch/cpu_context.h>
 #include <kernel/types.h>

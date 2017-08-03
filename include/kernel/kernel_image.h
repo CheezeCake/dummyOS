@@ -1,5 +1,5 @@
-#ifndef _KERNEL_IMAGE_H_
-#define _KERNEL_IMAGE_H_
+#ifndef _KERNEL_KERNEL_IMAGE_H_
+#define _KERNEL_KERNEL_IMAGE_H_
 
 #include <stddef.h>
 #include <kernel/types.h>

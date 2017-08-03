@@ -1,5 +1,5 @@
-#ifndef _SCHED_H_
-#define _SCHED_H_
+#ifndef _KERNEL_SCHED_H_
+#define _KERNEL_SCHED_H_
 
 #include <stddef.h>
 #include <kernel/thread.h>

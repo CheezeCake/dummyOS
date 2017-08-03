@@ -1,5 +1,5 @@
-#ifndef _KMALLOC_H_
-#define _KMALLOC_H_
+#ifndef _KERNEL_KMALLOC_H_
+#define _KERNEL_KMALLOC_H_
 
 #include <kernel/kernel_image.h>
 

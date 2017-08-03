@@ -1,5 +1,5 @@
-#ifndef _KPAGE_FRAME_H_
-#define _KPAGE_FRAME_H_
+#ifndef _KERNEL_PAGE_FRAME_H_
+#define _KERNEL_PAGE_FRAME_H_
 
 enum page_frame_status
 {

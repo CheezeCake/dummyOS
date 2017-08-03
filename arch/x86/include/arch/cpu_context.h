@@ -1,5 +1,5 @@
-#ifndef _ACPU_CONTEXT_H_
-#define _ACPU_CONTEXT_H_
+#ifndef _ARCH_CPU_CONTEXT_H_
+#define _ARCH_CPU_CONTEXT_H_
 
 #include <stdint.h>
 

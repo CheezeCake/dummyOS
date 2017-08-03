@@ -1,5 +1,5 @@
-#ifndef _ASPINLOCK_H_
-#define _ASPINLOCK_H_
+#ifndef _ARCH_LOCKING_SPINLOCK_H_
+#define _ARCH_LOCKING_SPINLOCK_H_
 
 #include <stdint.h>
 

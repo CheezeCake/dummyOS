@@ -1,5 +1,5 @@
-#ifndef _TERMINAL_H_
-#define _TERMINAL_H_
+#ifndef _KERNEL_TERMINAL_H_
+#define _KERNEL_TERMINAL_H_
 
 #include <stddef.h>
 #include <stdint.h>

@@ -1,5 +1,5 @@
-#ifndef _SEMAPHORE_H_
-#define _SEMAPHORE_H_
+#ifndef _KERNEL_LOCKING_SEMAPHORE_H_
+#define _KERNEL_LOCKING_SEMAPHORE_H_
 
 #include <kernel/thread_list.h>
 

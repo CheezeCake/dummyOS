@@ -1,5 +1,5 @@
-#ifndef _SZ_LIST_H_
-#define _SZ_LIST_H_
+#ifndef _KERNEL_SZ_LIST_H_
+#define _KERNEL_SZ_LIST_H_
 
 #include <kernel/list.h>
 #include <stdint.h>

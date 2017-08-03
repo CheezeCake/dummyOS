@@ -1,5 +1,5 @@
-#ifndef _KASSERT_H_
-#define _KASSERT_H_
+#ifndef _KERNEL_KASSERT_H_
+#define _KERNEL_KASSERT_H_
 
 #include <kernel/panic.h>
 

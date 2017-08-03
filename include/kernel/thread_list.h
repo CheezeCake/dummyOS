@@ -1,5 +1,5 @@
-#ifndef _THREAD_LIST_H_
-#define _THREAD_LIST_H_
+#ifndef _KERNEL_THREAD_LIST_H_
+#define _KERNEL_THREAD_LIST_H_
 
 #include <kernel/thread.h>
 #include <kernel/list.h>

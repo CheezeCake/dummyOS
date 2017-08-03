@@ -1,5 +1,5 @@
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef _ARCH_TYPES_H_
+#define _ARCH_TYPES_H_
 
 #include <stdint.h>
 

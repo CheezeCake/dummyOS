@@ -1,5 +1,5 @@
-#ifndef _KMEMORY_H_
-#define _KMEMORY_H_
+#ifndef _KERNEL_MEMORY_H_
+#define _KERNEL_MEMORY_H_
 
 #include <stddef.h>
 #include <kernel/page_frame_status.h>

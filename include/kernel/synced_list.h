@@ -1,5 +1,5 @@
-#ifndef _KSYNCED_LIST_H_
-#define _KSYNCED_LIST_H_
+#ifndef _KERNEL_SYNCED_LIST_H_
+#define _KERNEL_SYNCED_LIST_H_
 
 #include <kernel/list.h>
 #include <kernel/locking/spinlock.h>

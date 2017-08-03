@@ -1,5 +1,5 @@
-#ifndef _VGA_H_
-#define _VGA_H_
+#ifndef _KERNEL_VGA_H_
+#define _KERNEL_VGA_H_
 
 enum vga_color
 {

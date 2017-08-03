@@ -1,5 +1,5 @@
-#ifndef _LOG_H_
-#define _LOG_H_
+#ifndef _ARCH_LOG_H_
+#define _ARCH_LOG_H_
 
 #include "../../drivers/ioport_0xe9.h"
 

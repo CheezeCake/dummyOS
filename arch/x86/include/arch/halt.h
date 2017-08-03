@@ -1,9 +1,10 @@
-#ifndef _AHALT_H_
-#define _AHALT_H_
+#ifndef _ARCH_HALT_H_
+#define _ARCH_HALT_H_
 
 #define HALT() \
 	__asm__ ( \
 			"cli\n" \
 			"hlt"); \
 	for (;;)
+
 #endif

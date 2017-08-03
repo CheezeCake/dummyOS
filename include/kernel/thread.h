@@ -1,5 +1,5 @@
-#ifndef _THREAD_H_
-#define _THREAD_H_
+#ifndef _KERNEL_THREAD_H_
+#define _KERNEL_THREAD_H_
 
 #include <stddef.h>
 #include <arch/cpu_context.h>

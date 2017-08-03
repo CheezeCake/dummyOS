@@ -1,5 +1,5 @@
-#ifndef _LIBK_H_
-#define _LIBK_H_
+#ifndef _KERNEL_LIBK_H_
+#define _KERNEL_LIBK_H_
 
 #include <stddef.h>
 #include <stdarg.h>

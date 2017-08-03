@@ -1,5 +1,5 @@
-#ifndef _KHEAP_H_
-#define _KHEAP_H_
+#ifndef _KERNEL_KHEAP_H_
+#define _KERNEL_KHEAP_H_
 
 #include <stddef.h>
 #include <kernel/types.h>

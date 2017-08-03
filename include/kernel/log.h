@@ -1,3 +1,6 @@
+#ifndef _KERNEL_LOG_H_
+#define _KERNEL_LOG_H_
+
 #include <arch/log.h>
 #include <kernel/terminal.h>
 
@@ -21,3 +24,5 @@
 }
 #define log_w_putchar(c) log_putchar(c)
 #define log_i_putchar(c) log_putchar(c)
+
+#endif

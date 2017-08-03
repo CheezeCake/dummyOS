@@ -1,5 +1,5 @@
-#ifndef _MUTEX_H_
-#define _MUTEX_H_
+#ifndef _KERNEL_LOCKING_MUTEX_H_
+#define _KERNEL_LOCKING_MUTEX_H_
 
 #include <kernel/locking/semaphore.h>
 

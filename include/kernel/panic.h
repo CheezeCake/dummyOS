@@ -1,5 +1,5 @@
-#ifndef _KPANIC_H_
-#define _KPANIC_H_
+#ifndef _KERNEL_PANIC_H_
+#define _KERNEL_PANIC_H_
 
 #include <kernel/terminal.h>
 #include <arch/halt.h>

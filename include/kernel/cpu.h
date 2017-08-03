@@ -1,5 +1,5 @@
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef _KERNEL_CPU_H_
+#define _KERNEL_CPU_H_
 
 struct cpu_info
 {

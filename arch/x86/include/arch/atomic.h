@@ -1,5 +1,5 @@
-#ifndef _AATOMIC_H_
-#define _AATOMIC_H_
+#ifndef _ARCH_ATOMIC_H_
+#define _ARCH_ATOMIC_H_
 
 #define __atomic_single_operand(instr, value)	\
 	__asm__ __volatile__ (						\

@@ -1,5 +1,5 @@
-#ifndef _KLIST_H_
-#define _KLIST_H_
+#ifndef _KERNEL_LIST_H_
+#define _KERNEL_LIST_H_
 
 /*
  * struct node {

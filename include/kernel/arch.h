@@ -1,5 +1,5 @@
-#ifndef _KARCH_H_
-#define _KARCH_H_
+#ifndef _KERNEL_ARCH_H_
+#define _KERNEL_ARCH_H_
 
 #include <stddef.h>
 

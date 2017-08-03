@@ -1,5 +1,5 @@
-#ifndef _AMEMORY_H_
-#define _AMEMORY_H_
+#ifndef _ARCH_MEMORY_H_
+#define _ARCH_MEMORY_H_
 
 #include <stdbool.h>
 #include <kernel/types.h>
