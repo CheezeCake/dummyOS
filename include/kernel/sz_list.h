@@ -76,4 +76,6 @@
 		--(list)->size;				\
 	} while (0)
 
+#define sz_list_clear(list) sz_list_init_null(list)
+
 #endif

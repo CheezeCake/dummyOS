@@ -33,6 +33,8 @@
 
 #define list_init(list, value)	\
 	do {						\
+		value->prev = NULL;		\
+		value->next = NULL;		\
 		(list)->head = value;	\
 		(list)->tail = value;	\
 	} while (0)
@@ -44,6 +46,17 @@
 #define list_front(list) ((list)->head)
 
 #define list_back(list) ((list)->tail)
+
+/*
+ * iterators
+ */
+#define list_begin(list) list_front(list)
+
+#define list_end(list) list_back(list)
+
+#define list_it_next(it) ((it)->next)
+
+#define list_it_prev(it) ((it)->pev)
 
 
 /*
@@ -106,6 +119,8 @@
 		if (value->next)						\
 			value->next->prev = value->prev;	\
 	} while (0)
+
+#define list_clear(list) list_init_null(list)
 
 
 /*
