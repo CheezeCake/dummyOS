@@ -24,4 +24,6 @@ typedef __volatile__ uint32_t spinlock_t;
 			: "m" (lock)		\
 			: "memory")
 
+#define spinlock_locked(lock) (lock == 1)
+
 #endif
