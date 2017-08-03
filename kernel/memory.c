@@ -47,6 +47,7 @@ void memory_init(size_t ram_size_bytes)
 
 	// allocate page_frame_descriptors with kmalloc_early (allocated after kernel image)
 	page_frame_descriptors = (struct page_frame*)kmalloc_early(page_frame_descriptors_size);
+	kassert(page_frame_descriptors != NULL);
 
 	const p_addr_t kernel_base = kernel_image_get_base_page_frame();
 	const p_addr_t kernel_top = kernel_image_get_top_page_frame();
