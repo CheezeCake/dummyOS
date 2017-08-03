@@ -4,7 +4,7 @@
 #include <kernel/kernel_image.h>
 
 p_addr_t kmalloc_early(size_t size);
-void kmalloc_init(p_addr_t kernel_top);
+void kmalloc_init(void);
 void* kmalloc(size_t size);
 void kfree(void* ptr);
 

@@ -5,6 +5,7 @@
 #include <kernel/types.h>
 #include <kernel/libk.h>
 #include <kernel/memory.h>
+#include <kernel/kernel_image.h>
 #include <arch/memory.h>
 #include <arch/virtual_memory.h>
 
@@ -113,7 +114,7 @@ static void identity_mapping(p_addr_t page_directory, p_addr_t from, p_addr_t to
 	}
 }
 
-void paging_init(p_addr_t kernel_base_page_frame, p_addr_t kernel_top_page_frame)
+void paging_init(void)
 {
 	p_addr_t page_directory = memory_page_frame_alloc();
 	kassert(page_directory != (p_addr_t)NULL);
@@ -133,8 +134,8 @@ void paging_init(p_addr_t kernel_base_page_frame, p_addr_t kernel_top_page_frame
 	identity_mapping(page_directory, 0, PAGE_SIZE);
 	identity_mapping(page_directory, X86_MEMORY_HARDWARE_MAP_BEGIN,
 			X86_MEMORY_HARDWARE_MAP_END);
-	identity_mapping(page_directory, kernel_base_page_frame,
-			kernel_top_page_frame);
+	identity_mapping(page_directory, kernel_image_get_base_page_frame(),
+			kernel_image_get_top_page_frame());
 
 	__asm__ (
 			"movl %0, %%eax\n"

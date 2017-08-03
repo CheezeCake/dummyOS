@@ -4,7 +4,7 @@
 #include <kernel/kheap.h>
 #include <kernel/panic.h>
 #include <kernel/locking/spinlock.h>
-
+#include <kernel/kernel_image.h>
 #include <kernel/log.h>
 
 /*
@@ -28,9 +28,9 @@ static inline memory_block_t make_memory_block(size_t size, bool used)
 static bool kmalloc_init_done = false;
 static spinlock_declare_lock(lock);
 
-void kmalloc_init(p_addr_t kernel_top)
+void kmalloc_init(void)
 {
-	size_t size = kheap_init(kernel_top, KHEAP_INITIAL_SIZE);
+	size_t size = kheap_init(kernel_image_get_top_page_frame(), KHEAP_INITIAL_SIZE);
 	if (size < KHEAP_INITIAL_SIZE)
 		PANIC("not enough memory for kernel heap");
 

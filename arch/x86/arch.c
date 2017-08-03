@@ -50,9 +50,7 @@ void arch_memory_management_init(size_t ram_size_bytes)
 {
 	memory_init(ram_size_bytes);
 
-	p_addr_t kernel_top = kernel_image_get_top_page_frame();
+	paging_init();
 
-	paging_init(kernel_image_get_base_page_frame(), kernel_top);
-
-	kmalloc_init(kernel_top);
+	kmalloc_init();
 }
