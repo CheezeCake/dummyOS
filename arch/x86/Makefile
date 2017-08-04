@@ -69,6 +69,7 @@ paging.o: paging.c \
 	$(ARCH_INCLUDE_DIR)arch/memory.h \
 	$(ARCH_INCLUDE_DIR)arch/virtual_memory.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \
 	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
 	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
 	$(KERNEL_INCLUDE_DIR)kernel/paging.h \

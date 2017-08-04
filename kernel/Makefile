@@ -38,6 +38,7 @@ kernel_image.o: \
 	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
 
 kmalloc.o: \
+	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kheap.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
 	$(KERNEL_INCLUDE_DIR)kernel/locking/spinlock.h \
@@ -46,6 +47,7 @@ kmalloc.o: \
 
 kheap.o: \
 	$(ARCH_INCLUDE_DIR)arch/memory.h \
+	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
 	$(KERNEL_INCLUDE_DIR)kernel/kheap.h \
 	$(KERNEL_INCLUDE_DIR)kernel/log.h \
 	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
