@@ -13,7 +13,7 @@ all: $(ARCH_ROOT_OBJS)
 	@$(MAKE) -C drivers
 
 %.d: %.[csS]
-	$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
+	@$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
 include $(ARCH_ROOT_DEPS)
 
