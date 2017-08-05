@@ -1,7 +1,5 @@
 #!/bin/sh
 
-mkdir -p ${ISODIR}
-mkdir -p ${ISODIR}/boot
 mkdir -p ${ISODIR}/boot/grub
 
 cp dummy_os.bin ${ISODIR}/boot/dummy_os.bin
