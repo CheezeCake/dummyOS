@@ -24,7 +24,6 @@ include $(ARCH_ROOT_DEPS)
 	$(AS) $^ -o $@
 
 %.o: %.c
-	@echo onche
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 
 clean:
