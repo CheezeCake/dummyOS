@@ -6,50 +6,14 @@ KERNEL_INCLUDE_DIR=../include/
 
 CPPFLAGS+=-I$(KERNEL_INCLUDE_DIR) -I$(ARCH_INCLUDE_DIR)
 
+LIBK_DEPS=$(subst .o,.d,$(LIBK_OBJS))
+
 all: $(LIBK_OBJS)
 
-memcmp.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
+%.d: %.[csS]
+	$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
-memcpy.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-memset.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-snprintf.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-strcat.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-strcmp.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-strcpy.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-strlcpy.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-strlen.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-strncat.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-strncmp.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-strncpy.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-strnlen.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
-vsnprintf.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-
+include $(LIBK_DEPS)
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
@@ -58,3 +22,4 @@ vsnprintf.o: \
 
 clean:
 	@rm -f $(LIBK_OBJS)
+	@rm -f $(LIBK_DEPS)

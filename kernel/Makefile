@@ -5,81 +5,15 @@ ARCH_INCLUDE_DIR=../arch/$(TARGET_ARCH)/include/
 KERNEL_INCLUDE_DIR=../include/
 
 CPPFLAGS+=-I$(KERNEL_INCLUDE_DIR) -I$(ARCH_INCLUDE_DIR)
+KERNEL_ROOT_DEPS=$(subst .o,.d,$(KERNEL_ROOT_OBJS))
 
-all: $(KERNEL_OBJS)
+all: $(KERNEL_ROOT_OBJS)
+	@$(MAKE) -C locking
 
-memory.o: \
-	$(ARCH_INCLUDE_DIR)arch/memory.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-	$(KERNEL_INCLUDE_DIR)kernel/log.h \
-	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
-	$(KERNEL_INCLUDE_DIR)kernel/page_frame_status.h \
-	$(KERNEL_INCLUDE_DIR)kernel/sz_list.h \
+%.d: %.[csS]
+	$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
-kernel.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/arch.h \
-	$(KERNEL_INCLUDE_DIR)kernel/cpu.h \
-	$(KERNEL_INCLUDE_DIR)kernel/interrupt.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kernel.h \
-	$(KERNEL_INCLUDE_DIR)kernel/log.h \
-	$(KERNEL_INCLUDE_DIR)kernel/multiboot.h \
-	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
-	$(KERNEL_INCLUDE_DIR)kernel/terminal.h \
-	$(KERNEL_INCLUDE_DIR)kernel/thread.h \
-	$(KERNEL_INCLUDE_DIR)kernel/time.h \
-
-kernel_image.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \
-	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
-
-kmalloc.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/kernel_image.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kheap.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
-	$(KERNEL_INCLUDE_DIR)kernel/locking/spinlock.h \
-	$(KERNEL_INCLUDE_DIR)kernel/log.h \
-	$(KERNEL_INCLUDE_DIR)kernel/panic.h \
-
-kheap.o: \
-	$(ARCH_INCLUDE_DIR)arch/memory.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kheap.h \
-	$(KERNEL_INCLUDE_DIR)kernel/log.h \
-	$(KERNEL_INCLUDE_DIR)kernel/memory.h \
-	$(KERNEL_INCLUDE_DIR)kernel/paging.h \
-
-time.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
-	$(KERNEL_INCLUDE_DIR)kernel/log.h \
-	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
-	$(KERNEL_INCLUDE_DIR)kernel/thread_list.h \
-	$(KERNEL_INCLUDE_DIR)kernel/time.h \
-
-thread.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/cpu_context.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kmalloc.h \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
-	$(KERNEL_INCLUDE_DIR)kernel/thread.h \
-
-sched.o: \
-	$(ARCH_INCLUDE_DIR)arch/irq.h \
-	$(KERNEL_INCLUDE_DIR)kernel/cpu_context.h \
-	$(KERNEL_INCLUDE_DIR)kernel/kassert.h \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-	$(KERNEL_INCLUDE_DIR)kernel/log.h \
-	$(KERNEL_INCLUDE_DIR)kernel/sched.h \
-	$(KERNEL_INCLUDE_DIR)kernel/thread_list.h \
-	$(KERNEL_INCLUDE_DIR)kernel/time.h \
-
-semaphore.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/locking/semaphore.h \
-
+include $(KERNEL_ROOT_DEPS)
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
@@ -88,3 +22,5 @@ semaphore.o: \
 
 clean:
 	@rm -f $(KERNEL_OBJS)
+	@rm -f $(KERNEL_DEPS)
+	@$(MAKE) clean -C locking

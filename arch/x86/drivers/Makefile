@@ -6,16 +6,14 @@ KERNEL_INCLUDE_DIR=../../../include/
 
 CPPFLAGS+=-I$(KERNEL_INCLUDE_DIR) -I$(ARCH_INCLUDE_DIR)
 
+ARCH_DRIVERS_DEPS=$(subst .o,.d,$(ARCH_DRIVERS_OBJS))
+
 all: $(ARCH_DRIVERS_OBJS)
 
-terminal.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-	$(KERNEL_INCLUDE_DIR)kernel/terminal.h \
-	$(KERNEL_INCLUDE_DIR)kernel/vga.h \
+%.d: %.[csS]
+	$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
-ioport_0xe9.o: \
-	$(KERNEL_INCLUDE_DIR)kernel/libk.h \
-	ioport_0xe9.h \
+include $(ARCH_DRIVERS_DEPS)
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
@@ -24,3 +22,4 @@ ioport_0xe9.o: \
 
 clean:
 	@rm -f $(ARCH_DRIVERS_OBJS)
+	@rm -f $(ARCH_DRIVERS_DEPS)

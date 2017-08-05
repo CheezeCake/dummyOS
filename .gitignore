@@ -1,4 +1,5 @@
 *.o
+*.d
 *.swp
 dummy_os.bin
 dummy_os.iso
