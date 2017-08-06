@@ -34,6 +34,7 @@ cpu_context_switch:
 	pushfl
 	movl (%esp), %eax
 	addl $4, %esp
+	movl %eax, 48(%ebp)
 
 load:
 	# load "to" context
