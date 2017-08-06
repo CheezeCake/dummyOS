@@ -15,8 +15,13 @@
 	log_puts(str); \
 	terminal_puts(str); \
 }
+#define log_e_print(str) log_e_puts(str)
+
 #define log_w_puts(str) log_puts(str)
+#define log_w_print(str) log_puts(str)
+
 #define log_i_puts(str) log_puts(str)
+#define log_i_print(str) log_puts(str)
 
 #define log_e_putchar(c) { \
 	log_putchar(c); \
