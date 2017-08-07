@@ -142,9 +142,9 @@ void sched_yield_current_thread(void)
 	current_thread->state = THREAD_READY;
 	list_push_back_synced(&ready_buffer, current_thread);
 
-	/* irq_disable(); */
+	irq_disable();
 	sched_switch_to_next_thread();
-	/* irq_enable(); */
+	irq_enable();
 }
 
 void sched_sleep_current_thread(unsigned int millis)
@@ -155,7 +155,7 @@ void sched_sleep_current_thread(unsigned int millis)
 	time_add_millis(&current_thread->waiting_for.until, millis);
 	time_add_waiting_thread(current_thread);
 
-	/* irq_disable(); */
+	irq_disable();
 	sched_switch_to_next_thread();
-	/* irq_enable(); */
+	irq_enable();
 }
