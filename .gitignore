@@ -6,3 +6,4 @@ dummy_os.iso
 isodir
 TODO
 cscope.*
+compile_commands.json
