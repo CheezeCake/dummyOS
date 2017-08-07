@@ -48,7 +48,7 @@ void sched_init(unsigned int quantum_in_ms)
 	list_init_null_synced(&ready_buffer);
 }
 
-static void sched_switch_to_next_thread(void)
+static void sched_preempt(void)
 {
 	copy_buffer_to_ready_queue();
 
@@ -75,7 +75,7 @@ void sched_start(void)
 	kassert(current_thread == NULL);
 
 	irq_enable();
-	sched_switch_to_next_thread();
+	sched_preempt();
 }
 
 void sched_add_thread(struct thread* thread)
@@ -98,7 +98,7 @@ void sched_block_current_thread(void)
 {
 	log_printf("sched blocking %s\n", current_thread->name);
 	current_thread->state = THREAD_BLOCKED;
-	sched_switch_to_next_thread();
+	sched_preempt();
 }
 
 void sched_remove_current_thread(void)
@@ -109,7 +109,7 @@ void sched_remove_current_thread(void)
 	thread_destroy(current_thread);
 	current_thread = NULL;
 
-	sched_switch_to_next_thread();
+	sched_preempt();
 }
 
 /*
@@ -130,7 +130,7 @@ void sched_schedule(void)
 			list_push_back(&ready_list, current_thread);
 		}
 
-		sched_switch_to_next_thread();
+		sched_preempt();
 	}
 }
 
@@ -143,7 +143,7 @@ void sched_yield_current_thread(void)
 	list_push_back_synced(&ready_buffer, current_thread);
 
 	irq_disable();
-	sched_switch_to_next_thread();
+	sched_preempt();
 	irq_enable();
 }
 
@@ -156,6 +156,6 @@ void sched_sleep_current_thread(unsigned int millis)
 	time_add_waiting_thread(current_thread);
 
 	irq_disable();
-	sched_switch_to_next_thread();
+	sched_preempt();
 	irq_enable();
 }
