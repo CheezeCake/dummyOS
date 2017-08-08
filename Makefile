@@ -13,7 +13,7 @@ include $(LIBKDIR)make.config
 include $(KERNELDIR)make.config
 OBJECTS=$(ARCH_OBJS) $(LIBK_OBJS) $(KERNEL_OBJS)
 
-.PHONY: all arch libk kernel clean mrproper rebuild bin iso run
+.PHONY: all arch libk kernel clean mrproper rebuild bin iso run debug
 
 
 all: bin
@@ -39,6 +39,9 @@ iso: bin dummy_os.iso
 
 run: iso
 	$(SUPPORTDIR)qemu.sh
+
+debug: iso
+	$(SUPPORTDIR)qemu.sh debug
 
 clean:
 	@$(MAKE) clean -C $(ARCHDIR)

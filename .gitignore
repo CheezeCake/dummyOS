@@ -8,3 +8,4 @@ TODO
 cscope.*
 compile_commands.json
 .gdb_history
+.gdbinit
