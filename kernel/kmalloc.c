@@ -23,7 +23,18 @@ static inline memory_block_t make_memory_block(size_t size, bool used)
 }
 
 #define memory_block_get_size(memory_block) (memory_block >> 1)
+
 #define memory_block_get_used(memory_block) (memory_block & 1)
+
+#define memory_block_get_header(ptr) \
+	((memory_block_t*)((uint8_t*)ptr - sizeof(memory_block_t)))
+
+#define memory_block_get_data(block_ptr) \
+	((void*)((uint8_t*)block_ptr + sizeof(memory_block_t)))
+
+#define memory_block_get_next(block_ptr) \
+	((memory_block_t*)((uint8_t*)block_ptr + \
+		sizeof(memory_block_t) + memory_block_get_size(*block_ptr)))
 
 static bool kmalloc_init_done = false;
 static spinlock_declare_lock(lock);
@@ -35,9 +46,9 @@ void kmalloc_init(void)
 		PANIC("not enough memory for kernel heap");
 
 	log_printf("kheap_start = 0x%x, kheap_end = 0x%x, initial_size = 0x%x, "
-			"heap_size_returned = 0x%x\n",
+			"heap_size_returned = 0x%x | KHEAP_LIMIT = 0x%x\n",
 			(unsigned int)kheap_get_start(), (unsigned int)kheap_get_end(),
-			KHEAP_INITIAL_SIZE, (unsigned int)size);
+			KHEAP_INITIAL_SIZE, (unsigned int)size, KHEAP_LIMIT);
 
 	memory_block_t* kheap = (memory_block_t*)kheap_get_start();
 	*kheap = make_memory_block(size - sizeof(memory_block_t), false);
@@ -53,12 +64,13 @@ void* kmalloc(size_t size)
 	while ((v_addr_t)current_block < KHEAP_LIMIT &&
 			(memory_block_get_size(*current_block) < size
 			|| memory_block_get_used(*current_block))) {
-		current_block = (memory_block_t*)
-			((uint8_t*)current_block + sizeof(memory_block_t)
-			 + memory_block_get_size(*current_block));
+		current_block = memory_block_get_next(current_block);
 	}
 
-	if ((v_addr_t)current_block >= KHEAP_LIMIT) {
+	if ((v_addr_t)current_block >= KHEAP_LIMIT)
+		return NULL;
+
+	if ((v_addr_t)current_block >= kheap_get_end()) {
 		current_block = (memory_block_t*)kheap_sbrk(size);
 		if (!current_block)
 			return NULL;
@@ -69,8 +81,8 @@ void* kmalloc(size_t size)
 	if (original_size - size > sizeof(memory_block_t)) {
 		*current_block = make_memory_block(size, true);
 
-		memory_block_t* second_part = (memory_block_t*)((uint8_t*)current_block
-				+ sizeof(memory_block_t) + size);
+		memory_block_t* second_part =
+			(memory_block_t*)(memory_block_get_data(current_block) + size);
 		*second_part = make_memory_block(
 				original_size - size - sizeof(memory_block_t), false);
 	}
@@ -80,7 +92,7 @@ void* kmalloc(size_t size)
 
 	spinlock_unlock(lock);
 
-	return (void*)((uint8_t*)current_block + sizeof(memory_block_t));
+	return (void*)memory_block_get_data(current_block);
 }
 
 void kfree(void* ptr)
@@ -88,28 +100,28 @@ void kfree(void* ptr)
 	spinlock_lock(lock);
 
 	if (!ptr || (v_addr_t)ptr < kheap_get_start() ||
-			(v_addr_t)ptr > KHEAP_LIMIT)
+			(v_addr_t)ptr > kheap_get_end())
 		return;
 
-	memory_block_t* block = (memory_block_t*)((uint8_t*)ptr - sizeof(memory_block_t));
+	memory_block_t* block = memory_block_get_header(ptr);
 
 	if (!memory_block_get_used(*block))
 		return;
 
-	*block |= 0; // unset used bit
+	*block &= ~1; // unset used bit
+
+	memory_block_t* it = block;
+	memory_block_t* next_block = NULL;
 
 	// try to merge with the next free blocks
-	memory_block_t* next_block = (memory_block_t*)
-		((uint8_t*)ptr + sizeof(memory_block_t) + memory_block_get_size(*block));
-	memory_block_t* it = next_block;
-	while ((v_addr_t)it < KHEAP_LIMIT && !memory_block_get_used(*it)) {
-		it = (memory_block_t*)
-			((uint8_t*)it + sizeof(memory_block_t) + memory_block_get_size(*block));
+	while ((v_addr_t)it < kheap_get_end() && !memory_block_get_used(*it)) {
+		next_block = it;
+		it = memory_block_get_next(it);
 	}
 
 	// merge
-	if ((v_addr_t)it < KHEAP_LIMIT && it != next_block) {
-		const size_t size = (size_t)((uint8_t*)it - ((uint8_t*)ptr + sizeof (memory_block_t)));
+	if ((v_addr_t)next_block < kheap_get_end() && next_block != block) {
+		const size_t size = (size_t)((uint8_t*)next_block - (uint8_t*)memory_block_get_data(block));
 		*block = make_memory_block(size, false);
 	}
 
