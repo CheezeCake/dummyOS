@@ -8,7 +8,7 @@
 
 #define TIME_MS_IN_NANOSEC 1000000
 
-struct thread;
+struct timer;
 
 struct time
 {
@@ -54,6 +54,6 @@ void time_init(struct time tick_value);
 void time_tick(void);
 void time_get_current(struct time* time);
 int time_cmp(const struct time* t1, const struct time* t2);
-void time_add_waiting_thread(struct thread* thread);
+void time_add_timer(struct timer* timer);
 
 #endif

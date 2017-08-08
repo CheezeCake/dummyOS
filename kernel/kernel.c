@@ -5,7 +5,7 @@
 #include <kernel/multiboot.h>
 #include <kernel/kassert.h>
 #include <kernel/kernel.h>
-#include <kernel/time.h>
+#include <kernel/time/time.h>
 #include <kernel/thread.h>
 #include <kernel/sched.h>
 #include <kernel/interrupt.h>
@@ -43,7 +43,7 @@ void kernel_main(multiboot_info_t* mbi)
 	sched_init(1000);
 
 	struct thread idle_kthread;
-	kassert(thread_create(&idle_kthread, "[idle]", 256, idle_kthread_do, NULL) == 0);
+	kassert(thread_create(&idle_kthread, "[idle]", 1024, idle_kthread_do, NULL) == 0);
 	sched_add_thread(&idle_kthread);
 
 	sched_start();

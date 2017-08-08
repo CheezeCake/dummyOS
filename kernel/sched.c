@@ -1,6 +1,7 @@
 #include <kernel/sched.h>
 #include <kernel/cpu_context.h>
-#include <kernel/time.h>
+#include <kernel/time/time.h>
+#include <kernel/time/timer.h>
 #include <kernel/kassert.h>
 #include <kernel/libk.h>
 #include <kernel/thread_list.h>
@@ -147,13 +148,19 @@ void sched_yield_current_thread(void)
 	irq_enable();
 }
 
+static void sched_timer_callback(void* data)
+{
+	struct thread* thread = (struct thread*)data;
+	sched_add_thread(thread);
+}
+
 void sched_sleep_current_thread(unsigned int millis)
 {
 	current_thread->state = THREAD_BLOCKED;
 
-	time_get_current(&current_thread->waiting_for.until);
-	time_add_millis(&current_thread->waiting_for.until, millis);
-	time_add_waiting_thread(current_thread);
+	struct timer* timer = timer_create(millis, sched_timer_callback, current_thread);
+	kassert(timer != NULL);
+	time_add_timer(timer);
 
 	irq_disable();
 	sched_preempt();

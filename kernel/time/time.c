@@ -1,17 +1,19 @@
-#include <kernel/time.h>
+#include <kernel/time/time.h>
+#include <kernel/time/timer.h>
 #include <kernel/sched.h>
-#include <kernel/thread_list.h>
+#include <kernel/synced_list.h>
 #include <kernel/kassert.h>
 #include <kernel/log.h>
 
 
 static struct time tick_value;
 static struct time current = { .sec = 0, .milli_sec = 0, .nano_sec = 0 };
+static struct
+{
+	SYNCED_LIST_CREATE(struct timer);
+} timer_list;
 
-static struct thread_list_synced wait_list;
-
-static void time_update_thread_wait_list(void);
-
+static void time_update_timer_list(void);
 
 void time_init(struct time tick_val)
 {
@@ -21,7 +23,7 @@ void time_init(struct time tick_val)
 	tick_value.milli_sec = tick_val.milli_sec;
 	tick_value.nano_sec = tick_val.nano_sec;
 
-	list_init_null_synced(&wait_list);
+	list_init_null_synced(&timer_list);
 }
 
 void time_tick(void)
@@ -39,7 +41,7 @@ void time_tick(void)
 				current.milli_sec, current.nano_sec);
 #endif
 
-	time_update_thread_wait_list();
+	time_update_timer_list();
 }
 
 void time_get_current(struct time* time)
@@ -61,38 +63,43 @@ int time_cmp(const struct time* t1, const struct time* t2)
 	}
 }
 
-static void time_update_thread_wait_list(void)
+static void time_update_timer_list(void)
 {
-	struct thread* erase = NULL;
-	struct thread* it;
+	struct timer* erase = NULL;
+	struct timer* it;
 
-	if (list_empty(&wait_list))
+	if (list_empty(&timer_list))
 		return;
 
-	list_lock_synced(&wait_list); // lock list
-	list_foreach(&wait_list, it) {
+	list_lock_synced(&timer_list); // lock list
+	list_foreach(&timer_list, it) {
 		if (erase) {
-			list_erase(&wait_list, erase); // normal erase
-			sched_add_thread(erase);
+			list_erase(&timer_list, erase); // normal erase
+
+			timer_trigger(erase);
+			timer_destroy(erase);
+
 			erase = NULL;
 		}
 
-		if (time_cmp(&current, &it->waiting_for.until) >= 0)
+		if (time_cmp(&current, &it->time) >= 0)
 			erase = it;
 	}
-	list_unlock_synced(&wait_list); // unlock
+	list_unlock_synced(&timer_list); // unlock
 
 	if (erase) {
-		list_erase_synced(&wait_list, erase); // synced erase
-		sched_add_thread(erase);
+		list_erase_synced(&timer_list, erase); // synced erase
+
+		timer_trigger(erase);
+		timer_destroy(erase);
 	}
 }
 
 // TODO: keep list sorted
-void time_add_waiting_thread(struct thread* thread)
+void time_add_timer(struct timer* timer)
 {
-	if (thread) {
-		log_printf("time add %s\n", thread->name);
-		list_push_back_synced(&wait_list, thread);
+	if (timer) {
+		log_printf("sleep add %s\n", ((struct thread*)timer->data)->name);
+		list_push_back_synced(&timer_list, timer);
 	}
 }

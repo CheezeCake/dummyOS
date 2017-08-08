@@ -9,6 +9,7 @@ KERNEL_ROOT_DEPS=$(subst .o,.d,$(KERNEL_ROOT_OBJS))
 
 all: $(KERNEL_ROOT_OBJS)
 	@$(MAKE) -C locking
+	@$(MAKE) -C time
 
 %.d: %.[csS]
 	@$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
@@ -24,3 +25,4 @@ clean:
 	@rm -f $(KERNEL_ROOT_OBJS)
 	@rm -f $(KERNEL_ROOT_DEPS)
 	@$(MAKE) clean -C locking
+	@$(MAKE) clean -C time

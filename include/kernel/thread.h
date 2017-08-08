@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <arch/cpu_context.h>
 #include <kernel/types.h>
-#include <kernel/time.h>
+#include <kernel/time/time.h>
 #include <kernel/list.h>
 
 #define MAX_THREAD_NAME_LENGTH 16

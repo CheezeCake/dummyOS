@@ -4,7 +4,7 @@
 #include <kernel/paging.h>
 #include <kernel/kmalloc.h>
 #include <kernel/kernel.h>
-#include <kernel/time.h>
+#include <kernel/time/time.h>
 #include <kernel/kernel_image.h>
 #include <arch/irq.h>
 #include "gdt.h"
