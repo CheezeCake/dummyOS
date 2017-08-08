@@ -21,6 +21,6 @@ include $(KERNEL_ROOT_DEPS)
 .PHONY: all clean
 
 clean:
-	@rm -f $(KERNEL_OBJS)
-	@rm -f $(KERNEL_DEPS)
+	@rm -f $(KERNEL_ROOT_OBJS)
+	@rm -f $(KERNEL_ROOT_DEPS)
 	@$(MAKE) clean -C locking
