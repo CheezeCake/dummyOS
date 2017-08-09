@@ -2,7 +2,7 @@
 
 qemu_extra_flags=
 
-if [ $1 = 'debug' ]
+if [ "$1" = 'debug' ]
 then
 	qemu_extra_flags='-s'
 fi
