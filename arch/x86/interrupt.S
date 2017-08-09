@@ -4,7 +4,6 @@
 #include "irq.h"
 
 .macro SAVE_CONTEXT
-	pushl $0 /* eip sentinel for stacktrace */
 	pushl %ebp
 	movl %esp, %ebp
 	pushal
@@ -25,7 +24,6 @@
 	addl $2,%esp
 	popal
 	popl %ebp
-	addl $4, %esp /* remove sentinel */
 .endm
 
 .set NOP, 0x90
@@ -99,6 +97,8 @@
      asm_exception_handler_\nb:
 	.type asm_exception_handler_\nb, @function
 
+	addl $4, %esp /* remove error code from stack */
+
 	SAVE_CONTEXT
 
 	pushl $\nb
@@ -110,7 +110,6 @@
 
 	RESTORE_CONTEXT
 
-	addl $4, %esp /* remove error code from stack */
 	iret
 .endr
 
