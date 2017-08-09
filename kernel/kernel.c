@@ -37,7 +37,6 @@ void kernel_main(multiboot_info_t* mbi)
 			(mbi->mem_upper >> 10) + 1, mbi->mem_upper);
 
 	kassert(arch_init() == 0);
-	irq_disable(); // XXX: ?
 	arch_memory_management_init((mbi->mem_upper << 10) + (1 << 20));
 
 	sched_init(1000);

@@ -53,5 +53,9 @@ static void doublefault_handler(void)
 int exception_init(void)
 {
 	// setup double fault handler
-	return exception_set_handler(EXCEPTION_DOUBLE_FAULT, doublefault_handler);
+	int ret = exception_set_handler(EXCEPTION_DOUBLE_FAULT, doublefault_handler);
+
+	irq_disable();
+
+	return ret;
 }
