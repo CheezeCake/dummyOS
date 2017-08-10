@@ -7,7 +7,6 @@
 	pushl %ebp
 	movl %esp, %ebp
 	pushal
-	subl $2,%esp /* keep the stack aligned */
 	pushw %ss
 	pushw %ds
 	pushw %es
@@ -21,7 +20,6 @@
 	popw %es
 	popw %ds
 	popw %ss
-	addl $2,%esp
 	popal
 	popl %ebp
 .endm
