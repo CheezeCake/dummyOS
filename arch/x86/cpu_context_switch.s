@@ -48,20 +48,21 @@ load:
 	movl 20(%ebp), %esi
 	movl 24(%ebp), %esp # restore stack
 
-#movw 32(%ebp), %cs
 	movw 34(%ebp), %ds
 	movw 36(%ebp), %es
 	movw 38(%ebp), %fs
 	movw 40(%ebp), %gs
 	movw 42(%ebp), %ss
 
-	# restore eflags
-	pushl 48(%ebp)
-	popfl
 
+	pushl 48(%ebp) # eflags
+	pushw $0 # cs high
+	pushw 32(%ebp) # cs
 	pushl 44(%ebp) # push eip on the restored stack
 
 	movl 28(%ebp), %ebp
+
+	iret
 
 return:
 	retl
