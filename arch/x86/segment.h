@@ -1,18 +1,35 @@
 #ifndef _SEGMENT_H_
 #define _SEGMENT_H_
 
-#include <stdint.h>
 #include <stdbool.h>
 
+// indexes in GDT
 #define KCODE 1
 #define KDATA 2
 #define UCODE 3
 #define UDATA 4
+#define TSS 5
 
-#define CODE_SEGMENT 0xb
-#define DATA_SEGMENT 0x3
+// Intel Architecture Software Developer’s Manual Volume 3, section 3.4.3.1
+enum code_data_segment_types
+{
+	CODE_SEGMENT = 11, // Read/Write, accessed
+	DATA_SEGMENT = 3 // Execute/Read, accessed
+};
 
-#define make_segment_register(privilege, in_ldt, index) \
-	((privilege & 0x3) | ((in_ldt ? 1 : 0) << 2) | (index << 3))
+// Intel Architecture Software Developer’s Manual Volume 3, section 3.5
+enum system_segment_types
+{
+	TSS_32BIT = 9
+};
+
+enum privilege_level
+{
+	PRIVILEGE_KERNEL = 0,
+	PRIVILEGE_USER = 3
+};
+
+#define make_segment_register(rpl, in_ldt, index) \
+	((index << 3) | ((in_ldt ? 1 : 0) << 2) | (rpl & 3))
 
 #endif

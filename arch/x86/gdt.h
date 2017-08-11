@@ -5,14 +5,9 @@
 #include "idt.h"
 
 // place the GDT right after the IDT in physical memory
-#define GDT_ADDRESS (IDT_ADDRESS + (IDT_SIZE * sizeof(struct idt_gate_descriptor)))
+#define GDT_ADDRESS (IDT_ADDRESS + IDT_SIZE_BYTES)
 #define GDT_SIZE 5
-
-// indexes in GDT
-#define KCODE 1
-#define KDATA 2
-#define UCODE 3
-#define UDATA 4
+#define GDT_SIZE_BYTES (GDT_SIZE * sizeof(struct gdt_segment_descriptor))
 
 /*
  * 8 byte GDT segment descriptor structure
@@ -46,13 +41,6 @@ struct gdtr
 	uint16_t limit;
 	uint32_t base_address;
 } __attribute__((packed));
-
-
-#define CODE_SEGMENT 0xb
-#define DATA_SEGMENT 0x3
-
-#define PRIVILEGE_KERNEL 0
-#define PRIVILEGE_USER 3
 
 void gdt_init(void);
 

@@ -48,7 +48,7 @@ void idt_init(void)
 	}
 
 	idt_register.base_address = (uint32_t)idt;
-	idt_register.limit = (IDT_SIZE * sizeof(struct idt_gate_descriptor)) - 1;
+	idt_register.limit = IDT_SIZE_BYTES;
 
 	// load the idt register
 	__asm__ __volatile__ (

@@ -6,7 +6,7 @@ static struct gdt_segment_descriptor* gdt =
 	(struct gdt_segment_descriptor*)GDT_ADDRESS;
 
 static inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr,
-		uint8_t dpl, uint8_t type)
+		enum privilege_level dpl, enum code_data_segment_types type)
 {
 	segment_descr->limit_15_0 = 0xffff;
 
@@ -14,15 +14,15 @@ static inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr
 
 	segment_descr->base_23_16 = 0;
 	segment_descr->type = type;
-	segment_descr->descriptor_type = 1;
-	segment_descr->dpl = dpl & 0x3;
+	segment_descr->descriptor_type = 1; // 1 = code or data segment descriptor
+	segment_descr->dpl = dpl;
 	segment_descr->present = 1;
 
 	segment_descr->limit_19_16 = 0xf;
 	segment_descr->avl = 0;
 	segment_descr->zero = 0;
-	segment_descr->operation_size = 1;
-	segment_descr->granularity = 1;
+	segment_descr->operation_size = 1; // 32bit
+	segment_descr->granularity = 1; // 4k pages
 
 	segment_descr->base_31_24 = 0;
 }
@@ -38,7 +38,7 @@ void gdt_init(void)
 	gdt_init_segment(&gdt[UDATA], PRIVILEGE_USER, DATA_SEGMENT);
 
 	gdt_register.base_address = (uint32_t)gdt;
-	gdt_register.limit = (GDT_SIZE * sizeof(struct gdt_segment_descriptor)) - 1;
+	gdt_register.limit = GDT_SIZE_BYTES;
 
 	// load the gdtr register and update the segment registers
 	__asm__ __volatile__ (
