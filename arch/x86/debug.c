@@ -70,6 +70,9 @@ void debug_dump()
 	X(edi, output) \
 	X(ebp, output) \
 	X(esp, output) \
+	log_e_putchar('\n') \
+	X(cs, output) \
+	X(ss, output) \
 	log_e_putchar('\n');
 
 	log_e_putchar('\n');
