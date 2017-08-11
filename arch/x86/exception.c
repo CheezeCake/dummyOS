@@ -11,8 +11,7 @@ interrupt_handler_t exception_handlers[EXCEPTION_NB] = { NULL, };
 
 int exception_set_handler(unsigned int exception, interrupt_handler_t handler)
 {
-	if (exception < 0 || exception > EXCEPTION_MAX ||
-			handler == NULL)
+	if (exception > EXCEPTION_MAX || handler == NULL)
 		return -1;
 
 	// do not change doublefault handler
@@ -32,7 +31,7 @@ int exception_set_handler(unsigned int exception, interrupt_handler_t handler)
 
 int exception_unset_handler(unsigned int exception)
 {
-	if (exception < 0 || exception > EXCEPTION_MAX)
+	if (exception > EXCEPTION_MAX)
 		return -1;
 
 	irq_disable();
