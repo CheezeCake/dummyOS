@@ -137,6 +137,9 @@ void paging_init(void)
 	identity_mapping(page_directory, kernel_image_get_base_page_frame(),
 			kernel_image_get_top_page_frame());
 
+	// enable paging:
+	// cr3 = page directory base address
+	// set PG flag in cr0 (Intel Architecture Software Developer’s Manual Volume 3, section 2.5)
 	__asm__ (
 			"movl %0, %%eax\n"
 			"movl %%eax, %%cr3\n"
@@ -144,7 +147,8 @@ void paging_init(void)
 			"orl $0x80000000, %%eax\n"
 			"movl %%eax, %%cr0\n"
 			:
-			: "m" (page_directory));
+			: "m" (page_directory)
+			: "eax");
 }
 
 static inline struct page_directory_entry* get_page_directory_entry(v_addr_t vaddr)
