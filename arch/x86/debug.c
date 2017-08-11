@@ -66,10 +66,10 @@ void debug_dump()
 	X(ecx, output) \
 	X(edx, output) \
 	log_e_putchar('\n'); \
+	X(esp, output) \
+	X(ebp, output) \
 	X(esi, output) \
 	X(edi, output) \
-	X(ebp, output) \
-	X(esp, output) \
 	log_e_putchar('\n') \
 	X(cs, output) \
 	X(ss, output) \
