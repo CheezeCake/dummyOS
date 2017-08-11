@@ -18,5 +18,5 @@ void cpu_context_create(struct cpu_context* cpu_context, v_addr_t stack_top, v_a
 	cpu_context->gs = make_segment_register(0, false, KDATA);
 	cpu_context->ss = make_segment_register(0, false, KDATA);
 
-	cpu_context->eflags = (1 << 9); // IF = 1
+	cpu_context->eflags = (1 << 9) | (1 << 1); // IF = 1, reserved_1 = 1
 }
