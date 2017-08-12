@@ -52,7 +52,8 @@ void gdt_init(void)
 			"ljmp %2, $next\n"
 			"next:"
 			:
-			: "m" (gdt_register), "i" (make_segment_register(0, false, KDATA)),
-			  "i" (make_segment_register(0, false, KCODE))
+			: "m" (gdt_register),
+			  "i" (make_segment_selector(PRIVILEGE_KERNEL, KDATA)),
+			  "i" (make_segment_selector(PRIVILEGE_KERNEL, KCODE))
 			: "eax", "memory");
 }

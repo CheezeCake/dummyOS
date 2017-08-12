@@ -29,7 +29,8 @@ enum privilege_level
 	PRIVILEGE_USER = 3
 };
 
-#define make_segment_register(rpl, in_ldt, index) \
-	((index << 3) | ((in_ldt ? 1 : 0) << 2) | (rpl & 3))
+// LDT flag in segment selector is always zero
+#define make_segment_selector(rpl, index) \
+	((index << 3) | (rpl & 3))
 
 #endif

@@ -11,12 +11,13 @@ void cpu_context_create(struct cpu_context* cpu_context, v_addr_t stack_top, v_a
 	cpu_context->ebp = stack_top;
 	cpu_context->eip = ip;
 
-	cpu_context->cs = make_segment_register(0, false, KCODE);
-	cpu_context->ds = make_segment_register(0, false, KDATA);
-	cpu_context->es = make_segment_register(0, false, KDATA);
-	cpu_context->fs = make_segment_register(0, false, KDATA);
-	cpu_context->gs = make_segment_register(0, false, KDATA);
-	cpu_context->ss = make_segment_register(0, false, KDATA);
+	const uint16_t data_segment = make_segment_selector(PRIVILEGE_KERNEL, KDATA);
+	cpu_context->cs = make_segment_selector(PRIVILEGE_KERNEL, KCODE);
+	cpu_context->ds = data_segment;
+	cpu_context->es = data_segment;
+	cpu_context->fs = data_segment;
+	cpu_context->gs = data_segment;
+	cpu_context->ss = data_segment;
 
 	cpu_context->eflags = (1 << 9) | (1 << 1); // IF = 1, reserved_1 = 1
 }

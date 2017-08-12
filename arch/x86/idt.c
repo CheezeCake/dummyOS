@@ -38,7 +38,8 @@ void idt_init(void)
 	struct idtr idt_register;
 
 	for (int i = 0; i < IDT_SIZE; i++) {
-		idt[i].segment_selector = make_segment_register(0, false, KCODE);
+		idt[i].segment_selector =
+			make_segment_selector(PRIVILEGE_KERNEL, KCODE);
 		idt[i].reserved = 0;
 		idt[i].flags = 0;
 		idt[i].gate_size = 1;

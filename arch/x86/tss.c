@@ -40,7 +40,7 @@ void tss_update(uint32_t esp)
 void tss_init(void)
 {
 	memset(&tss, 0, sizeof(struct tss));
-	tss.ss0 = make_segment_register(0, false, KDATA);
+	tss.ss0 = make_segment_selector(PRIVILEGE_KERNEL, KDATA);
 
 	tss_init_segment();
 
@@ -48,6 +48,6 @@ void tss_init(void)
 	__asm__ __volatile__ (
 			"ltr %w0"
 			:
-			: "r" (make_segment_register(3, false, TSS))
+			: "r" (make_segment_selector(PRIVILEGE_USER, TSS))
 			: "memory");
 }
