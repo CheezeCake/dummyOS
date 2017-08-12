@@ -6,7 +6,7 @@
 
 // place the GDT right after the IDT in physical memory
 #define GDT_ADDRESS (IDT_ADDRESS + IDT_SIZE_BYTES)
-#define GDT_SIZE 5
+#define GDT_SIZE 6
 #define GDT_SIZE_BYTES (GDT_SIZE * sizeof(struct gdt_segment_descriptor))
 
 /*

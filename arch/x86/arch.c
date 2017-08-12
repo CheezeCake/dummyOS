@@ -12,6 +12,7 @@
 #include "exception.h"
 #include "irq.h"
 #include "i8254.h"
+#include "tss.h"
 
 #include <kernel/log.h>
 
@@ -25,19 +26,20 @@ static void default_exception_handler(unsigned int exception)
 
 int arch_init(void)
 {
-	gdt_init();
-
 	idt_init();
 
 	exception_init();
 
 	irq_init();
 
+	gdt_init();
+
+	tss_init();
+
 	for (unsigned int e = 0; e <= EXCEPTION_MAX; e++)
 		exception_set_handler_generic(e, default_exception_handler);
 
 	irq_set_handler(IRQ_TIMER, clock_tick);
-
 	irq_disable();
 
 	time_init((struct time) { .sec = 0, .milli_sec = TICK_INTERVAL_IN_MS,
