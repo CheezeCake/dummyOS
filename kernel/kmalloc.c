@@ -60,17 +60,15 @@ void* kmalloc(size_t size)
 	spinlock_lock(lock);
 
 	memory_block_t* current_block = (memory_block_t*)kheap_get_start();
+	const v_addr_t kheap_end = kheap_get_end();
 
-	while ((v_addr_t)current_block < KHEAP_LIMIT &&
+	while ((v_addr_t)current_block < kheap_end &&
 			(memory_block_get_size(*current_block) < size
 			|| memory_block_get_used(*current_block))) {
 		current_block = memory_block_get_next(current_block);
 	}
 
-	if ((v_addr_t)current_block >= KHEAP_LIMIT)
-		return NULL;
-
-	if ((v_addr_t)current_block >= kheap_get_end()) {
+	if ((v_addr_t)current_block >= kheap_end) {
 		current_block = (memory_block_t*)kheap_sbrk(size);
 		if (!current_block)
 			return NULL;
@@ -99,8 +97,10 @@ void kfree(void* ptr)
 {
 	spinlock_lock(lock);
 
+	const v_addr_t kheap_end = kheap_get_end();
+
 	if (!ptr || (v_addr_t)ptr < kheap_get_start() ||
-			(v_addr_t)ptr > kheap_get_end())
+			(v_addr_t)ptr > kheap_end)
 		return;
 
 	memory_block_t* block = memory_block_get_header(ptr);
@@ -114,13 +114,13 @@ void kfree(void* ptr)
 	memory_block_t* next_block = NULL;
 
 	// try to merge with the next free blocks
-	while ((v_addr_t)it < kheap_get_end() && !memory_block_get_used(*it)) {
+	while ((v_addr_t)it < kheap_end && !memory_block_get_used(*it)) {
 		next_block = it;
 		it = memory_block_get_next(it);
 	}
 
 	// merge
-	if ((v_addr_t)next_block < kheap_get_end() && next_block != block) {
+	if ((v_addr_t)next_block < kheap_end && next_block != block) {
 		const size_t size = (size_t)((uint8_t*)next_block - (uint8_t*)memory_block_get_data(block));
 		*block = make_memory_block(size, false);
 	}
