@@ -22,11 +22,6 @@ struct thread
 
 	enum thread_state state;
 
-	union
-	{
-		struct time until;
-	} waiting_for;
-
 	LIST_NODE_CREATE(struct thread);
 };
 
