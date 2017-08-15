@@ -2,7 +2,7 @@
 #include "gdt.h"
 #include "segment.h"
 
-static struct gdt_segment_descriptor* gdt =
+static struct gdt_segment_descriptor* const gdt =
 	(struct gdt_segment_descriptor*)GDT_ADDRESS;
 
 static inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr,

@@ -7,7 +7,7 @@
 // defined in interrupt.S
 extern uint32_t asm_interrupt_handlers[INTERRUPT_MAX];
 
-static struct idt_gate_descriptor* idt = IDT_ADDRESS;
+static struct idt_gate_descriptor* const idt = IDT_ADDRESS;
 
 int idt_set_handler(uint8_t index, enum gate_type type)
 {
