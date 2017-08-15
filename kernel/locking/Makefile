@@ -10,7 +10,7 @@ KERNEL_LOCKING_DEPS=$(subst .o,.d,$(KERNEL_LOCKING_OBJS))
 
 all: $(KERNEL_LOCKING_OBJS)
 
-%.d: %.[csS]
+%.d: %.[cS]
 	@$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
 include $(KERNEL_LOCKING_DEPS)

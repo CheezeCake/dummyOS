@@ -10,7 +10,7 @@ LIBK_DEPS=$(subst .o,.d,$(LIBK_OBJS))
 
 all: $(LIBK_OBJS)
 
-%.d: %.[csS]
+%.d: %.[cS]
 	@$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
 include $(LIBK_DEPS)

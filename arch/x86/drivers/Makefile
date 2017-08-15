@@ -10,7 +10,7 @@ ARCH_DRIVERS_DEPS=$(subst .o,.d,$(ARCH_DRIVERS_OBJS))
 
 all: $(ARCH_DRIVERS_OBJS)
 
-%.d: %.[csS]
+%.d: %.[cS]
 	@$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
 include $(ARCH_DRIVERS_DEPS)

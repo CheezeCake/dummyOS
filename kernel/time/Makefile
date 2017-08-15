@@ -10,7 +10,7 @@ KERNEL_TIME_DEPS=$(subst .o,.d,$(KERNEL_TIME_OBJS))
 
 all: $(KERNEL_TIME_OBJS)
 
-%.d: %.[csS]
+%.d: %.[cS]
 	@$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
 include $(KERNEL_TIME_DEPS)

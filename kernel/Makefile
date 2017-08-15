@@ -11,7 +11,7 @@ all: $(KERNEL_ROOT_OBJS)
 	@$(MAKE) -C locking
 	@$(MAKE) -C time
 
-%.d: %.[csS]
+%.d: %.[cS]
 	@$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
 include $(KERNEL_ROOT_DEPS)
