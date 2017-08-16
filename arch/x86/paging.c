@@ -73,7 +73,7 @@ static inline unsigned int paging_unref_page_table(p_addr_t page_table)
 	return --page_tables_page_frame_refs[index];
 }
 
-static inline void invlpg(p_addr_t addr)
+static inline void invlpg(v_addr_t addr)
 {
 	__asm__ __volatile__ ("invlpg %0" : :"m" (addr) : "memory");
 }
@@ -184,7 +184,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 		pde->user = (vaddr < MIRRORING_VADDR_BEGIN) ? 0 : 1;
 		pde->address = p_addr2pd_addr(page_table);
 
-		invlpg((p_addr_t)pte);
+		invlpg((v_addr_t)pte);
 
 		memset((void*)pte, 0, PAGE_SIZE);
 	}
@@ -226,7 +226,7 @@ int paging_unmap(v_addr_t vaddr)
 	if (paging_unref_page_table(page_table) == 0) {
 		memory_page_frame_free(page_table);
 		memset(pde, 0, sizeof(struct page_directory_entry));
-		invlpg((p_addr_t)pte);
+		invlpg((v_addr_t)pte);
 	}
 
 	return 0;
