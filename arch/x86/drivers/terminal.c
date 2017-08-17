@@ -14,7 +14,7 @@
 static uint8_t terminal_line = 0;
 static uint8_t terminal_column = 0;
 static uint8_t terminal_color = 0;
-static volatile uint16_t* terminal = (volatile uint16_t*)VGA_MEMORY;
+static volatile uint16_t* const terminal = (volatile uint16_t*)VGA_MEMORY;
 
 
 void terminal_putchar(char c)

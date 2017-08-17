@@ -6,13 +6,14 @@ KERNEL_INCLUDE_DIR=../../include/
 
 CPPFLAGS+=-I$(KERNEL_INCLUDE_DIR) -I$(ARCH_INCLUDE_DIR)
 
-ARCH_ROOT_DEPS=$(subst .o,.d,$(ARCH_ROOT_OBJS))
+TMP_ARCH_ROOT_DEPS:=$(subst .o,.d,$(ARCH_ROOT_OBJS))
+ARCH_ROOT_DEPS=$(filter-out cpu_context_switch.d, $(TMP_ARCH_ROOT_DEPS))
 
 all: $(ARCH_ROOT_OBJS)
 	@$(MAKE) -C boot
 	@$(MAKE) -C drivers
 
-%.d: %.[csS]
+%.d: %.[cS]
 	@$(CC) -MM -MF $@ $< $(CFLAGS) $(CPPFLAGS)
 
 include $(ARCH_ROOT_DEPS)
@@ -20,7 +21,6 @@ include $(ARCH_ROOT_DEPS)
 .PHONY: all clean
 
 %.o: %.s
-	@touch $(subst .s,.d,$<)
 	$(AS) $^ -o $@
 
 %.o: %.c
