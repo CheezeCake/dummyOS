@@ -95,6 +95,9 @@ void* kmalloc(size_t size)
 
 void kfree(void* ptr)
 {
+	if (!ptr)
+		return;
+
 	spinlock_lock(lock);
 
 	const v_addr_t kheap_end = kheap_get_end();
