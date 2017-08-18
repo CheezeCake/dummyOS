@@ -41,7 +41,7 @@ run: iso
 	$(SUPPORTDIR)qemu.sh
 
 debug: iso
-	$(SUPPORTDIR)qemu.sh debug
+	QEMU_EXTRA_FLAGS='-s' $(SUPPORTDIR)qemu.sh
 
 clean:
 	@$(MAKE) clean -C $(ARCHDIR)
