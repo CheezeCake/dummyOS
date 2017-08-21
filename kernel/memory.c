@@ -80,7 +80,7 @@ void memory_init(size_t ram_size_bytes)
 		if (stat == -1 || status != stat) {
 			const char* status_str[] = { "reserved", "kernel", "hw map", "free" };
 			stat = status;
-			if (status >= 0 && status <= 3)
+			if (status <= 3)
 				log_printf("[0x%x]\n %s\n", (unsigned int)paddr, status_str[status]);
 			else
 				log_printf("[0x%x]\n %d\n", (unsigned int)paddr, status);
