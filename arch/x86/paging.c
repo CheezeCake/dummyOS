@@ -186,7 +186,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 
 		invlpg((v_addr_t)pte);
 
-		memset((void*)pte, 0, PAGE_SIZE);
+		memset((void*)page_frame_align_inf((v_addr_t)pte), 0, PAGE_SIZE);
 	}
 
 
