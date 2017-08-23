@@ -62,17 +62,18 @@ static int _kheap_sbrk(unsigned int page_number, v_addr_t addr)
 
 v_addr_t kheap_sbrk(size_t increment)
 {
-	if (kheap_get_end() + increment >= KHEAP_LIMIT)
-		return (v_addr_t)NULL;
+	if (kheap_end + increment >= KHEAP_LIMIT)
+		return -1;
 
+	const v_addr_t previous_kheap_end = kheap_end;
 	unsigned int nb_pages = increment >> PAGE_SIZE_SHIFT; // increment / PAGE_SIZE
 
 	if (_kheap_sbrk(nb_pages, kheap_end) == 0) {
 		kheap_end += nb_pages << PAGE_SIZE_SHIFT; // nb_pages * PAGE_SIZE
-		return 0;
+		return previous_kheap_end;
 	}
 
-	return (v_addr_t)NULL;
+	return -1;
 }
 
 v_addr_t kheap_get_start(void)

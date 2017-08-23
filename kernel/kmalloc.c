@@ -70,7 +70,7 @@ void* kmalloc(size_t size)
 
 	if ((v_addr_t)current_block >= kheap_end) {
 		current_block = (memory_block_t*)kheap_sbrk(size);
-		if (!current_block)
+		if (current_block == (memory_block_t*)-1)
 			return NULL;
 	}
 
