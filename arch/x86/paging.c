@@ -223,7 +223,8 @@ int paging_unmap(v_addr_t vaddr)
 	// if this was the last reference, free the page frame and reset the
 	// page directory entry
 	const p_addr_t page_table = pd_addr2p_addr(pde->address);
-	if (paging_unref_page_table(page_table) == 0) {
+	const int pd_index = index_in_pd(vaddr);
+	if (paging_unref_page_table(pd_index) == 0) {
 		memory_page_frame_free(page_table);
 		memset(pde, 0, sizeof(struct page_directory_entry));
 		invlpg((v_addr_t)pte);
