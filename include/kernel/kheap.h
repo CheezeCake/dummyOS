@@ -6,7 +6,7 @@
 #include <arch/virtual_memory.h>
 
 #define KHEAP_INITIAL_SIZE 0x80000 // 512kB
-#define KHEAP_LIMIT MIRRORING_VADDR_BEGIN
+#define KHEAP_LIMIT KERNEL_VADDR_SPACE_LIMIT
 
 /*
  * kheap_init:
