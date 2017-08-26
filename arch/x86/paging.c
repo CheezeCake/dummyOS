@@ -75,7 +75,7 @@ static inline unsigned int paging_unref_page_table(p_addr_t page_table)
 
 static inline void invlpg(v_addr_t addr)
 {
-	__asm__ __volatile__ ("invlpg %0" : :"m" (addr) : "memory");
+	__asm__ __volatile__ ("invlpg %0" : : "m" (addr) : "memory");
 }
 
 static void identity_mapping(p_addr_t page_directory, p_addr_t from, p_addr_t to)
