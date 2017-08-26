@@ -2,7 +2,7 @@
 
 # void cpu_context_switch(struct cpu_context* from, const struct cpu_context* to)
 cpu_context_switch:
-	cmpl $0, 8(%esp)
+	cmpl $0, 4(%esp)
 	je load
 
 	pushl %eax
