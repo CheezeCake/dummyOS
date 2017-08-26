@@ -205,7 +205,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 	return 0;
 }
 
-int paging_unmap(v_addr_t vaddr)
+static int _paging_unmap(v_addr_t vaddr, bool free_page_frame)
 {
 	struct page_directory_entry* pde = get_page_directory_entry(vaddr);
 	struct page_table_entry* pte = get_page_table_entry(vaddr);
@@ -213,8 +213,10 @@ int paging_unmap(v_addr_t vaddr)
 	if (!pde->present || !pte->present)
 		return -1;
 
-	// free the page frame and reset the page table entry
-	memory_page_frame_free(pt_addr2p_addr(pte->address));
+	// free the page frame
+	if (free_page_frame)
+		memory_page_frame_free(pt_addr2p_addr(pte->address));
+	// reset the page table entry
 	memset(pte, 0, sizeof(struct page_table_entry));
 
 	invlpg(vaddr);
@@ -226,9 +228,16 @@ int paging_unmap(v_addr_t vaddr)
 	const int pd_index = index_in_pd(vaddr);
 	if (paging_unref_page_table(pd_index) == 0) {
 		memory_page_frame_free(page_table);
+
 		memset(pde, 0, sizeof(struct page_directory_entry));
+
 		invlpg((v_addr_t)pte);
 	}
 
 	return 0;
+}
+
+int paging_unmap(v_addr_t vaddr)
+{
+	return _paging_unmap(vaddr, true);
 }
