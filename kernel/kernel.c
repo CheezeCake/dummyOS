@@ -9,8 +9,9 @@
 #include <kernel/thread.h>
 #include <kernel/sched.h>
 #include <kernel/interrupt.h>
+#include <kernel/process.h>
 
-void idle_kthread_do(void)
+void idle_kthread_do(void* args)
 {
 	while (1)
 		thread_yield();
@@ -41,9 +42,9 @@ void kernel_main(multiboot_info_t* mbi)
 
 	sched_init(1000);
 
-	struct thread idle_kthread;
-	kassert(thread_create(&idle_kthread, "[idle]", 1024, idle_kthread_do, NULL) == 0);
-	sched_add_thread(&idle_kthread);
+	struct process kthreadd;
+	kassert(process_kprocess_create(&kthreadd, "[idle]", idle_kthread_do) == 0);
+	sched_add_process(&kthreadd);
 
 	sched_start();
 

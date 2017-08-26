@@ -15,9 +15,9 @@ int semaphore_create(sem_t* sem, int n)
 
 int semaphore_destroy(sem_t* sem)
 {
-	struct thread* it;
+	struct thread_list_node* it;
 	list_foreach(&sem->wait_queue, it) {
-		sched_add_thread(it);
+		sched_add_thread_node(it);
 	}
 
 	memset(sem, 0, sizeof(sem_t));
@@ -32,12 +32,12 @@ int semaphore_up(sem_t* sem)
 	if (!list_empty(&sem->wait_queue)) {
 		list_lock_synced(&sem->wait_queue);
 
-		struct thread* first = list_front(&sem->wait_queue);
+		struct thread_list_node* first = list_front(&sem->wait_queue);
 		list_pop_front(&sem->wait_queue);
 
 		list_unlock_synced(&sem->wait_queue);
 
-		sched_add_thread(first);
+		sched_add_thread_node(first);
 	}
 
 	return 0;
@@ -48,7 +48,8 @@ int semaphore_down(sem_t* sem)
 	atomic_dec_int(sem->value);
 
 	if (sem->value < 0) {
-		list_push_front_synced(&sem->wait_queue, sched_get_current_thread());
+		list_push_front_synced(&sem->wait_queue,
+				sched_get_current_thread_node());
 		sched_block_current_thread();
 	}
 

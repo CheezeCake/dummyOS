@@ -8,7 +8,7 @@ void cpu_context_create(struct cpu_context* cpu_context, v_addr_t stack_top, v_a
 {
 	memset(cpu_context, 0, sizeof(struct cpu_context));
 	cpu_context->esp = stack_top;
-	cpu_context->ebp = stack_top;
+	cpu_context->ebp = stack_top + 1;
 	cpu_context->eip = ip;
 
 	const uint16_t data_segment = make_segment_selector(PRIVILEGE_KERNEL, KDATA);

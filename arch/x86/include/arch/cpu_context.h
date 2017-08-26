@@ -27,4 +27,6 @@ struct cpu_context
 	uint32_t eflags;
 }; // __attribute__((packed));
 
+extern void cpu_context_switch(struct cpu_context* from, const struct cpu_context* to);
+
 #endif
