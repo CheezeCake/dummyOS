@@ -17,10 +17,8 @@ int vm_context_create(struct vm_context* vm_context)
 	return 0;
 }
 
-#include <kernel/log.h>
 void vm_context_switch(struct vm_context* vm_context)
 {
-	log_print("[vm_context_switch]\n");
 	paging_switch_cr3(vm_context->cr3, vm_context->init);
 	vm_context->init = false;
 }
