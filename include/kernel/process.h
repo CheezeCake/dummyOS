@@ -25,7 +25,7 @@ struct process
 };
 
 void process_init(void);
-int process_create(struct process* proc, const char* name);
+int process_uprocess_create(struct process* proc, const char* name);
 int process_kprocess_create(struct process* proc, const char* name,
 		start_func_t start);
 void process_destroy(struct process* proc);

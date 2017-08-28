@@ -15,7 +15,7 @@ void process_init(void)
 	list_init_null(&process_list);
 }
 
-static int process_create_generic(struct process* proc, const char* name)
+static int process_create(struct process* proc, const char* name)
 {
 	memset(proc, 0, sizeof(struct process));
 
@@ -46,9 +46,9 @@ static int process_create_generic(struct process* proc, const char* name)
 	return 0;
 }
 
-int process_create(struct process* proc, const char* name)
+int process_uprocess_create(struct process* proc, const char* name)
 {
-	if (process_create_generic(proc, name) != 0)
+	if (process_create(proc, name) != 0)
 		return -1;
 
 	struct thread* thread = list_front(&proc->threads)->thread;
@@ -70,7 +70,7 @@ int process_create(struct process* proc, const char* name)
 int process_kprocess_create(struct process* proc, const char* name,
 		start_func_t start)
 {
-	if (process_create_generic(proc, name) != 0)
+	if (process_create(proc, name) != 0)
 		return -1;
 
 	struct thread* thread = list_front(&proc->threads)->thread;
