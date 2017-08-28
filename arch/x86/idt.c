@@ -1,27 +1,36 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <kernel/interrupt.h>
+#include <kernel/kassert.h>
 #include "idt.h"
 #include "segment.h"
 
 // defined in interrupt.S
-extern uint32_t asm_interrupt_handlers[INTERRUPT_MAX];
+extern uint32_t asm_interrupt_handlers[INTERRUPTS_DEFINED];
 
 static struct idt_gate_descriptor* const idt = IDT_ADDRESS;
 
-int idt_set_handler(uint8_t index, enum gate_type type)
+
+static int set_handler(uint8_t index, enum gate_type type, uint32_t handler)
 {
-	uint32_t handler = asm_interrupt_handlers[index];
-	if (handler == 0)
+	if (handler == 0 || idt[index].present)
 		return -1;
 
 	idt[index].offset_15_0 = handler & 0xffff;
-	idt[index].offset_31_16 = (handler >> 16) & 0xffff;
+	idt[index].offset_31_16 = handler >> 16;
 	idt[index].type = type;
-	idt[index].dpl = (type == INTGATE) ? 0 : 3;
+	idt[index].dpl = (type == INTGATE) ? PRIVILEGE_KERNEL : PRIVILEGE_USER;
 	idt[index].present = 1;
 
 	return 0;
+}
+
+int idt_set_direct_handler(uint8_t int_number, enum gate_type type, interrupt_handler_t handler)
+{
+	kassert(int_number < INTERRUPTS_DEFINED); // do not use a irq/exception number
+	return set_handler(int_number, type, (uint32_t)handler);
+}
+
+int idt_set_handler(uint8_t index, enum gate_type type)
+{
+	return set_handler(index, type, asm_interrupt_handlers[index]);
 }
 
 void idt_unset_handler(uint8_t index)
