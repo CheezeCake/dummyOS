@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include <kernel/interrupt.h>
+#include "segment.h"
 
 #define INTERRUPT_MAX 256
 // asm_interrupt_hanlders size in interrupt.S
@@ -51,7 +52,8 @@ struct idtr
 } __attribute__ ((packed));
 
 int idt_set_handler(uint8_t index, enum gate_type type);
-int idt_set_direct_handler(uint8_t int_number, enum gate_type type, interrupt_handler_t handler);
+int idt_set_syscall_handler(uint8_t int_number, enum gate_type type,
+		interrupt_handler_t handler);
 void idt_unset_handler(uint8_t index);
 void idt_init(void);
 
