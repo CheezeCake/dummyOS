@@ -6,6 +6,7 @@
 #include <kernel/kernel.h>
 #include <kernel/time/time.h>
 #include <kernel/kernel_image.h>
+#include <kernel/kassert.h>
 #include <arch/irq.h>
 #include "gdt.h"
 #include "idt.h"
@@ -17,6 +18,8 @@
 #include <kernel/log.h>
 
 #define TICK_INTERVAL_IN_MS 10
+
+extern uint32_t syscall_handler;
 
 static void default_exception_handler(unsigned int exception)
 {
@@ -44,6 +47,8 @@ int arch_init(void)
 
 	time_init((struct time) { .sec = 0, .milli_sec = TICK_INTERVAL_IN_MS,
 			.nano_sec = 0 });
+
+	kassert(idt_set_syscall_handler(0x80, INTGATE, (interrupt_handler_t)&syscall_handler) == 0);
 
 	return i8254_set_tick_interval(TICK_INTERVAL_IN_MS);
 }
