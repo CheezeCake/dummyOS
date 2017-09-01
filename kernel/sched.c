@@ -113,6 +113,11 @@ struct thread* sched_get_current_thread(void)
 	return current_thread_node->thread;
 }
 
+struct process* sched_get_current_process(void)
+{
+	return sched_get_current_thread()->process;
+}
+
 struct thread_list_node* sched_get_current_thread_node(void)
 {
 	return current_thread_node;

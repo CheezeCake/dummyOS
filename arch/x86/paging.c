@@ -72,7 +72,7 @@ static inline void paging_ref_page_table(int pd_index)
 	}
 	else {
 		// icrement reference count in current vm_context
-		++sched_get_current_thread()->process->vm_ctx.page_tables_page_frame_refs[pd_index - KERNEL_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES];
+		++sched_get_current_process()->vm_ctx.page_tables_page_frame_refs[pd_index - KERNEL_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES];
 	}
 }
 
@@ -84,7 +84,7 @@ static inline unsigned int paging_unref_page_table(int pd_index)
 	}
 	else {
 		// fetch reference count in current vm_context
-		ref_count = &sched_get_current_thread()->process->vm_ctx.page_tables_page_frame_refs[pd_index - KERNEL_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES];
+		ref_count = &sched_get_current_process()->vm_ctx.page_tables_page_frame_refs[pd_index - KERNEL_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES];
 	}
 
 	kassert(ref_count != NULL);
