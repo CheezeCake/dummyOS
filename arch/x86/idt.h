@@ -19,7 +19,7 @@ enum gate_type
 {
 	TASKGATE = 0x5, // 101b [unused]
 	INTGATE = 0x6, // 110b
-	TRAPGATE = 0x7 // 111b  [unused]
+	TRAPGATE = 0x7 // 111b
 };
 
 /*
@@ -52,8 +52,7 @@ struct idtr
 } __attribute__ ((packed));
 
 int idt_set_handler(uint8_t index, enum gate_type type);
-int idt_set_syscall_handler(uint8_t int_number, enum gate_type type,
-		interrupt_handler_t handler);
+int idt_set_syscall_handler(uint8_t int_number, interrupt_handler_t handler);
 void idt_unset_handler(uint8_t index);
 void idt_init(void);
 

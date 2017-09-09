@@ -22,11 +22,10 @@ static int set_handler(uint8_t index, enum gate_type type,
 	return 0;
 }
 
-int idt_set_syscall_handler(uint8_t int_number, enum gate_type type,
-		interrupt_handler_t handler)
+int idt_set_syscall_handler(uint8_t int_number, interrupt_handler_t handler)
 {
 	kassert(int_number >= INTERRUPTS_DEFINED); // do not use a irq/exception number
-	return set_handler(int_number, type, PRIVILEGE_USER, (uint32_t)handler);
+	return set_handler(int_number, TRAPGATE, PRIVILEGE_USER, (uint32_t)handler);
 }
 
 int idt_set_handler(uint8_t index, enum gate_type type)
