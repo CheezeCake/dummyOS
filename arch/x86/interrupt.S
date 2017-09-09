@@ -129,7 +129,7 @@
 		SAVE_CONTEXT
 
 		/* send EOI */
-		movb $0x20,%al
+		movb $0x20, %al
 		outb %al, PIC_MASTER
 
 		leal irq_handlers, %edi
@@ -157,9 +157,9 @@
 		SAVE_CONTEXT
 
 		/* send EOI */
-		movb $0x20,%al
-		outb %al, PIC_MASTER
+		movb $0x20, %al
 		outb %al, PIC_SLAVE
+		outb %al, PIC_MASTER
 
 		leal irq_handlers, %edi
 		call *\nb * 4(%edi) /* call C handler */
