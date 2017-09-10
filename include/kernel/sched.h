@@ -8,6 +8,7 @@
 
 void sched_init(unsigned int quantum_in_ms);
 void sched_start(void);
+
 void sched_schedule(void);
 
 void sched_add_process(struct process* proc);

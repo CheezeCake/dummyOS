@@ -1,10 +1,10 @@
-#include <kernel/sched.h>
 #include <kernel/context_switch.h>
-#include <kernel/time/time.h>
-#include <kernel/time/timer.h>
 #include <kernel/kassert.h>
 #include <kernel/libk.h>
-#include <arch/irq.h>
+#include <kernel/locking/spinlock.h>
+#include <kernel/sched.h>
+#include <kernel/time/time.h>
+#include <kernel/time/timer.h>
 
 #include <kernel/log.h>
 
@@ -14,9 +14,10 @@ static unsigned int quantum;
 static struct thread_list_node* current_thread_node = NULL;
 static struct time current_thread_start = { .sec = 0, .nano_sec = 0 };
 
-static struct thread_list ready_queue;
+static struct thread_list_synced ready_queue;
 
-static void sched_preempt(void)
+
+static void preempt(void)
 {
 	kassert(!list_empty(&ready_queue));
 
@@ -25,6 +26,8 @@ static void sched_preempt(void)
 
 	current_thread_node = list_front(&ready_queue);
 	list_pop_front(&ready_queue);
+
+	list_unlock_synced(&ready_queue);
 
 	struct thread* to = current_thread_node->thread;
 	to->state = THREAD_RUNNING;
@@ -45,6 +48,9 @@ void sched_schedule(void)
 	if (current_thread_node->thread->type == KTHREAD)
 		return;
 
+	if (list_locked(&ready_queue))
+		return;
+
 	struct time current_time;
 	time_get_current(&current_time);
 	if (time_diff_ms(&current_time, &current_thread_start) > quantum) {
@@ -54,19 +60,13 @@ void sched_schedule(void)
 			list_push_back(&ready_queue, current_thread_node);
 		}
 
-		sched_preempt();
+		preempt();
 	}
 }
 
-void sched_start(void)
-{
-	log_puts("sched_start()\n");
-
-	kassert(current_thread_node == NULL);
-
-	sched_preempt();
-}
-
+/*
+ * add
+ */
 void sched_add_thread_node(struct thread_list_node* node)
 {
 	log_printf("sched add %s (%p)\n", node->thread->name, node->thread);
@@ -95,6 +95,10 @@ void sched_add_process(struct process* proc)
 	}
 }
 
+
+/*
+ * accessors
+ */
 struct thread* sched_get_current_thread(void)
 {
 	return current_thread_node->thread;
@@ -110,11 +114,31 @@ struct thread_list_node* sched_get_current_thread_node(void)
 	return current_thread_node;
 }
 
+
+/*
+ * sched operations
+ */
+void sched_yield_current_thread(void)
+{
+	if (list_empty(&ready_queue))
+		return;
+
+	list_lock_synced(&ready_queue); // unlocked in preempt()
+
+	current_thread_node->thread->state = THREAD_READY;
+	list_push_back(&ready_queue, current_thread_node);
+
+	preempt();
+}
+
 void sched_block_current_thread(void)
 {
 	log_printf("sched blocking %s\n", current_thread_node->thread->name);
+
+	list_lock_synced(&ready_queue); // unlocked in preempt()
+
 	current_thread_node->thread->state = THREAD_BLOCKED;
-	sched_preempt();
+	preempt();
 }
 
 void sched_remove_current_thread(void)
@@ -122,42 +146,46 @@ void sched_remove_current_thread(void)
 	if (!current_thread_node)
 		return;
 
+	list_lock_synced(&ready_queue); // unlocked in preempt()
+
 	thread_destroy(current_thread_node->thread);
 	current_thread_node = NULL;
 
-	sched_preempt();
-}
-
-void sched_yield_current_thread(void)
-{
-	if (list_empty(&ready_queue))
-		return;
-
-	current_thread_node->thread->state = THREAD_READY;
-	list_push_back(&ready_queue, current_thread_node);
-
-	irq_disable();
-	sched_preempt();
-	irq_enable();
+	preempt();
 }
 
 static void sched_timer_callback(void* data)
 {
+	list_lock_synced(&ready_queue); // unlocked in preempt()
+
 	struct thread_list_node* node = (struct thread_list_node*)data;
 	sched_add_thread_node(node);
 }
 
 void sched_sleep_current_thread(unsigned int millis)
 {
+	list_lock_synced(&ready_queue); // unlocked in preempt()
+
 	current_thread_node->thread->state = THREAD_BLOCKED;
 
 	struct timer* timer = timer_create(millis, sched_timer_callback, current_thread_node);
 	kassert(timer != NULL);
 	timer_register(timer);
 
-	irq_disable();
-	sched_preempt();
-	irq_enable();
+	preempt();
+}
+
+
+/*
+ * start, init
+ */
+void sched_start(void)
+{
+	log_puts("sched_start()\n");
+
+	kassert(current_thread_node == NULL);
+
+	preempt();
 }
 
 void sched_init(unsigned int quantum_in_ms)
