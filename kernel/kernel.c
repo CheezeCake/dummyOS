@@ -23,8 +23,6 @@ void clock_tick(void)
 	sched_schedule();
 }
 
-}
-
 void kernel_main(multiboot_info_t* mbi)
 {
 	terminal_init();
