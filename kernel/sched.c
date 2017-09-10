@@ -14,44 +14,10 @@ static unsigned int quantum;
 static struct thread_list_node* current_thread_node = NULL;
 static struct time current_thread_start = { .sec = 0, .nano_sec = 0 };
 
-// ready queue & ready buffer
 static struct thread_list ready_list;
-static struct thread_list_synced ready_buffer;
-
-static inline void copy_buffer_to_ready_queue()
-{
-	if (list_locked(&ready_buffer))
-		return;
-
-	struct thread_list_node* it;
-
-	list_lock_synced(&ready_buffer);
-
-	it = list_begin(&ready_buffer);
-	while (it) {
-		struct thread_list_node* tmp = it;
-		it = list_it_next(it);
-
-		list_push_back(&ready_list, tmp); // add to ready queue
-	}
-
-	list_clear(&ready_buffer); // clear ready buffer
-
-	list_unlock_synced(&ready_buffer);
-}
-
-void sched_init(unsigned int quantum_in_ms)
-{
-	quantum = quantum_in_ms;
-
-	list_init_null(&ready_list);
-	list_init_null_synced(&ready_buffer);
-}
 
 static void sched_preempt(void)
 {
-	copy_buffer_to_ready_queue();
-
 	kassert(!list_empty(&ready_list));
 
 	struct thread* from = (current_thread_node) ? current_thread_node->thread : NULL;
@@ -59,14 +25,37 @@ static void sched_preempt(void)
 
 	current_thread_node = list_front(&ready_list);
 	list_pop_front(&ready_list);
-	struct thread* to =  current_thread_node->thread;
 
+	struct thread* to = current_thread_node->thread;
 	to->state = THREAD_RUNNING;
-	time_get_current(&current_thread_start);
-
 	log_printf("to %s\n", to->name);
 
 	context_switch(from, to);
+}
+
+/*
+ * called from time tick interrupt handler
+ */
+void sched_schedule(void)
+{
+	if (list_empty(&ready_list))
+		return;
+
+	// kernel threads are non-interruptible
+	if (current_thread_node->thread->type == KTHREAD)
+		return;
+
+	struct time current_time;
+	time_get_current(&current_time);
+	if (time_diff_ms(&current_time, &current_thread_start) > quantum) {
+		if (current_thread_node) {
+			current_thread_node->thread->state = THREAD_READY;
+			current_thread_start = current_time;
+			list_push_back(&ready_list, current_thread_node);
+		}
+
+		sched_preempt();
+	}
 }
 
 void sched_start(void)
@@ -78,25 +67,23 @@ void sched_start(void)
 	sched_preempt();
 }
 
+void sched_add_thread_node(struct thread_list_node* node)
+{
+	log_printf("sched add %s (%p)\n", node->thread->name, node->thread);
+
+	node->thread->state = THREAD_READY;
+	list_push_back(&ready_list, node);
+}
+
 int sched_add_thread(struct thread* thread)
 {
 	kassert(thread != NULL);
 
-	log_printf("sched add %s (%p)\n", thread->name, thread);
-	thread->state = THREAD_READY;
-
-	// add to synced buffer
 	struct thread_list_node* const node = thread_list_node_create(thread);
 	if (node)
-		list_push_back_synced(&ready_buffer, node);
+		sched_add_thread_node(node);
 
 	return (!node);
-}
-
-void sched_add_thread_node(struct thread_list_node* node)
-{
-	// XXX: list_push_back ?
-	list_push_back_synced(&ready_buffer, node);
 }
 
 void sched_add_process(struct process* proc)
@@ -141,39 +128,13 @@ void sched_remove_current_thread(void)
 	sched_preempt();
 }
 
-/*
- * called from time tick interrupt handler
- */
-void sched_schedule(void)
-{
-	copy_buffer_to_ready_queue();
-
-	if (list_empty(&ready_list))
-		return;
-
-	// kernel threads are non-interruptible
-	if (current_thread_node->thread->type == KTHREAD)
-		return;
-
-	struct time current_time;
-	time_get_current(&current_time);
-	if (time_diff_ms(&current_time, &current_thread_start) > quantum) {
-		if (current_thread_node) {
-			current_thread_node->thread->state = THREAD_READY;
-			list_push_back(&ready_list, current_thread_node);
-		}
-
-		sched_preempt();
-	}
-}
-
 void sched_yield_current_thread(void)
 {
 	if (list_empty(&ready_list))
 		return;
 
 	current_thread_node->thread->state = THREAD_READY;
-	list_push_back_synced(&ready_buffer, current_thread_node);
+	list_push_back(&ready_list, current_thread_node);
 
 	irq_disable();
 	sched_preempt();
@@ -197,4 +158,10 @@ void sched_sleep_current_thread(unsigned int millis)
 	irq_disable();
 	sched_preempt();
 	irq_enable();
+}
+
+void sched_init(unsigned int quantum_in_ms)
+{
+	quantum = quantum_in_ms;
+	list_init_null(&ready_list);
 }
