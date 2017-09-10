@@ -19,12 +19,10 @@ void idle_kthread_do(void* args)
 
 void clock_tick(void)
 {
-	irq_disable();
-
 	time_tick();
 	sched_schedule();
+}
 
-	irq_enable();
 }
 
 void kernel_main(multiboot_info_t* mbi)
