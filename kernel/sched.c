@@ -14,17 +14,17 @@ static unsigned int quantum;
 static struct thread_list_node* current_thread_node = NULL;
 static struct time current_thread_start = { .sec = 0, .nano_sec = 0 };
 
-static struct thread_list ready_list;
+static struct thread_list ready_queue;
 
 static void sched_preempt(void)
 {
-	kassert(!list_empty(&ready_list));
+	kassert(!list_empty(&ready_queue));
 
 	struct thread* from = (current_thread_node) ? current_thread_node->thread : NULL;
 	log_printf("switching from %s ", (from) ? from->name : NULL);
 
-	current_thread_node = list_front(&ready_list);
-	list_pop_front(&ready_list);
+	current_thread_node = list_front(&ready_queue);
+	list_pop_front(&ready_queue);
 
 	struct thread* to = current_thread_node->thread;
 	to->state = THREAD_RUNNING;
@@ -38,7 +38,7 @@ static void sched_preempt(void)
  */
 void sched_schedule(void)
 {
-	if (list_empty(&ready_list))
+	if (list_empty(&ready_queue))
 		return;
 
 	// kernel threads are non-interruptible
@@ -51,7 +51,7 @@ void sched_schedule(void)
 		if (current_thread_node) {
 			current_thread_node->thread->state = THREAD_READY;
 			current_thread_start = current_time;
-			list_push_back(&ready_list, current_thread_node);
+			list_push_back(&ready_queue, current_thread_node);
 		}
 
 		sched_preempt();
@@ -72,7 +72,7 @@ void sched_add_thread_node(struct thread_list_node* node)
 	log_printf("sched add %s (%p)\n", node->thread->name, node->thread);
 
 	node->thread->state = THREAD_READY;
-	list_push_back(&ready_list, node);
+	list_push_back(&ready_queue, node);
 }
 
 int sched_add_thread(struct thread* thread)
@@ -130,11 +130,11 @@ void sched_remove_current_thread(void)
 
 void sched_yield_current_thread(void)
 {
-	if (list_empty(&ready_list))
+	if (list_empty(&ready_queue))
 		return;
 
 	current_thread_node->thread->state = THREAD_READY;
-	list_push_back(&ready_list, current_thread_node);
+	list_push_back(&ready_queue, current_thread_node);
 
 	irq_disable();
 	sched_preempt();
@@ -163,5 +163,5 @@ void sched_sleep_current_thread(unsigned int millis)
 void sched_init(unsigned int quantum_in_ms)
 {
 	quantum = quantum_in_ms;
-	list_init_null(&ready_list);
+	list_init_null(&ready_queue);
 }
