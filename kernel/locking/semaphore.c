@@ -5,6 +5,12 @@
 #include <kernel/sched.h>
 #include <kernel/libk.h>
 
+struct sem_t
+{
+	int value;
+	thread_queue wait_queue;
+};
+
 int semaphore_create(sem_t* sem, int n)
 {
 	sem->value = n;
