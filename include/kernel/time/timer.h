@@ -17,15 +17,9 @@ struct timer
 };
 
 struct timer* timer_create(unsigned int delay_ms, timer_callback_t cb, void* data);
+void timer_destroy(struct timer* timer);
 
-static inline void timer_destroy(struct timer* timer)
-{
-	kfree(timer);
-}
-
-static inline void timer_trigger(struct timer* timer)
-{
-	timer->cb(timer->data);
-}
+void timer_register(struct timer* timer);
+void timer_trigger(struct timer* timer);
 
 #endif

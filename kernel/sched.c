@@ -192,7 +192,7 @@ void sched_sleep_current_thread(unsigned int millis)
 
 	struct timer* timer = timer_create(millis, sched_timer_callback, current_thread_node);
 	kassert(timer != NULL);
-	time_add_timer(timer);
+	timer_register(timer);
 
 	irq_disable();
 	sched_preempt();
