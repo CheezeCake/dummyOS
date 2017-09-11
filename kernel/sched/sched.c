@@ -28,8 +28,6 @@ static void preempt(void)
 	current_thread_node = list_front(&ready_queue);
 	list_pop_front(&ready_queue);
 
-	list_unlock_synced(&ready_queue);
-
 	struct thread* to = current_thread_node->thread;
 	to->state = THREAD_RUNNING;
 	log_printf("to %s\n", to->name);
@@ -124,10 +122,12 @@ void sched_yield_current_thread(void)
 	if (list_empty(&ready_queue))
 		return;
 
-	list_lock_synced(&ready_queue); // unlocked in preempt()
+	list_lock_synced(&ready_queue);
 
 	current_thread_node->thread->state = THREAD_READY;
 	list_push_back(&ready_queue, current_thread_node);
+
+	list_unlock_synced(&ready_queue);
 
 	preempt();
 }
@@ -136,9 +136,12 @@ void sched_block_current_thread(void)
 {
 	log_printf("sched blocking %s\n", current_thread_node->thread->name);
 
-	list_lock_synced(&ready_queue); // unlocked in preempt()
+	list_lock_synced(&ready_queue);
 
 	current_thread_node->thread->state = THREAD_BLOCKED;
+
+	list_unlock_synced(&ready_queue);
+
 	preempt();
 }
 
@@ -147,10 +150,12 @@ void sched_remove_current_thread(void)
 	if (!current_thread_node)
 		return;
 
-	list_lock_synced(&ready_queue); // unlocked in preempt()
+	list_lock_synced(&ready_queue);
 
 	thread_destroy(current_thread_node->thread);
 	current_thread_node = NULL;
+
+	list_unlock_synced(&ready_queue);
 
 	preempt();
 }
@@ -167,13 +172,15 @@ static void sched_timer_callback(void* data)
 
 void sched_sleep_current_thread(unsigned int millis)
 {
-	list_lock_synced(&ready_queue); // unlocked in preempt()
+	list_lock_synced(&ready_queue);
 
 	current_thread_node->thread->state = THREAD_BLOCKED;
 
 	struct timer* timer = timer_create(millis, sched_timer_callback, current_thread_node);
 	kassert(timer != NULL);
 	timer_register(timer);
+
+	list_unlock_synced(&ready_queue);
 
 	preempt();
 }
