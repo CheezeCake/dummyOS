@@ -2,7 +2,8 @@
 #include <kernel/kassert.h>
 #include <kernel/libk.h>
 #include <kernel/locking/spinlock.h>
-#include <kernel/sched.h>
+#include <kernel/sched/idle.h>
+#include <kernel/sched/sched.h>
 #include <kernel/time/time.h>
 #include <kernel/time/timer.h>
 
@@ -192,4 +193,6 @@ void sched_init(unsigned int quantum_in_ms)
 {
 	quantum = quantum_in_ms;
 	list_init_null(&ready_queue);
+
+	idle_init();
 }

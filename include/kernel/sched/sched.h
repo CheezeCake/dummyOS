@@ -1,5 +1,5 @@
-#ifndef _KERNEL_SCHED_H_
-#define _KERNEL_SCHED_H_
+#ifndef _KERNEL_SCHED_SCHED_H_
+#define _KERNEL_SCHED_SCHED_H_
 
 #include <stddef.h>
 #include <kernel/thread.h>
@@ -23,4 +23,5 @@ void sched_remove_current_thread(void);
 void sched_yield_current_thread(void);
 void sched_sleep_current_thread(unsigned int millis);
 void sched_block_current_thread(void);
+
 #endif

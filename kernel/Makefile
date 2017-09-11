@@ -9,6 +9,7 @@ KERNEL_ROOT_DEPS=$(subst .o,.d,$(KERNEL_ROOT_OBJS))
 
 all: $(KERNEL_ROOT_OBJS)
 	@$(MAKE) -C locking
+	@$(MAKE) -C sched
 	@$(MAKE) -C time
 
 %.d: %.[cS]
@@ -25,4 +26,5 @@ clean:
 	@rm -f $(KERNEL_ROOT_OBJS)
 	@rm -f $(KERNEL_ROOT_DEPS)
 	@$(MAKE) clean -C locking
+	@$(MAKE) clean -C sched
 	@$(MAKE) clean -C time

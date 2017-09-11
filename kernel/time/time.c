@@ -1,9 +1,9 @@
-#include <kernel/time/time.h>
-#include <kernel/time/timer.h>
-#include <kernel/sched.h>
-#include <kernel/synced_list.h>
 #include <kernel/kassert.h>
 #include <kernel/log.h>
+#include <kernel/sched/sched.h>
+#include <kernel/synced_list.h>
+#include <kernel/time/time.h>
+#include <kernel/time/timer.h>
 
 
 static struct time tick_value;

@@ -7,15 +7,10 @@
 #include <kernel/kernel.h>
 #include <kernel/time/time.h>
 #include <kernel/thread.h>
-#include <kernel/sched.h>
+#include <kernel/sched/sched.h>
 #include <kernel/interrupt.h>
 #include <kernel/process.h>
 
-void idle_kthread_do(void* args)
-{
-	while (1)
-		thread_yield();
-}
 
 void clock_tick(void)
 {
@@ -36,9 +31,8 @@ void kernel_main(multiboot_info_t* mbi)
 	kassert(arch_init() == 0);
 	arch_memory_management_init((mbi->mem_upper << 10) + (1 << 20));
 
-	sched_init(1000);
-
 	process_init();
+	sched_init(1000);
 
 	struct process kthreadd;
 	kassert(process_kprocess_create(&kthreadd, "[idle]", idle_kthread_do) == 0);
