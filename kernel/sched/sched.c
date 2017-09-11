@@ -157,10 +157,12 @@ void sched_remove_current_thread(void)
 
 static void sched_timer_callback(void* data)
 {
-	list_lock_synced(&ready_queue); // unlocked in preempt()
+	list_lock_synced(&ready_queue);
 
 	struct thread_list_node* node = (struct thread_list_node*)data;
 	sched_add_thread_node(node);
+
+	list_unlock_synced(&ready_queue);
 }
 
 void sched_sleep_current_thread(unsigned int millis)
