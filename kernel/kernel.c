@@ -34,9 +34,6 @@ void kernel_main(multiboot_info_t* mbi)
 	process_init();
 	sched_init(1000);
 
-	struct process kthreadd;
-	kassert(process_kprocess_create(&kthreadd, "[idle]", idle_kthread_do) == 0);
-	sched_add_process(&kthreadd);
 
 	sched_start();
 
