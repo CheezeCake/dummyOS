@@ -5,12 +5,12 @@
 #include <arch/virtual_memory.h>
 #include <kernel/kassert.h>
 #include <kernel/kernel_image.h>
-#include <kernel/libk.h>
 #include <kernel/memory.h>
 #include <kernel/paging.h>
 #include <kernel/process.h>
 #include <kernel/sched/sched.h>
 #include <kernel/types.h>
+#include <libk/libk.h>
 
 #define index_in_pd(addr) (addr >> 22)
 #define index_in_pt(addr) ((addr >> 12) & 0x3ff)

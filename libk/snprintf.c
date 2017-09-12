@@ -1,4 +1,4 @@
-#include <kernel/libk.h>
+#include <libk/libk.h>
 
 int snprintf(char* str, size_t size, const char* format, ...)
 {

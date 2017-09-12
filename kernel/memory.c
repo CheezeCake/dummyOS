@@ -1,15 +1,15 @@
 #include <limits.h>
 #include <stdbool.h>
 
+#include <arch/memory.h>
+#include <kernel/kassert.h>
+#include <kernel/kernel_image.h>
+#include <kernel/kmalloc.h>
+#include <kernel/log.h>
 #include <kernel/memory.h>
 #include <kernel/page_frame_status.h>
-#include <kernel/libk.h>
 #include <kernel/sz_list.h>
-#include <kernel/kassert.h>
-#include <kernel/kmalloc.h>
-#include <kernel/kernel_image.h>
-#include <arch/memory.h>
-#include <kernel/log.h>
+#include <libk/libk.h>
 
 /*
  * describes a physical page

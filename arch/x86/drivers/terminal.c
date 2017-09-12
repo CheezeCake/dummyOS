@@ -1,8 +1,9 @@
 #include <stddef.h>
 #include <stdint.h>
-#include <kernel/vga.h>
+
 #include <kernel/terminal.h>
-#include <kernel/libk.h>
+#include <kernel/vga.h>
+#include <libk/libk.h>
 
 #define VGA_MEMORY 0xb8000
 

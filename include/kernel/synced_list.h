@@ -1,8 +1,8 @@
 #ifndef _KERNEL_SYNCED_LIST_H_
 #define _KERNEL_SYNCED_LIST_H_
 
-#include <kernel/list.h>
 #include <kernel/locking/spinlock.h>
+#include <libk/list.h>
 
 #define SYNCED_LIST_CREATE(node_type)	\
 	LIST_CREATE(node_type);				\

@@ -1,4 +1,4 @@
-#include <kernel/libk.h>
+#include <libk/libk.h>
 #include "ioport_0xe9.h"
 
 int ioport_0xe9_printf(const char* format, ...)

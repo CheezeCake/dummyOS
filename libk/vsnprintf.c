@@ -1,4 +1,4 @@
-#include <kernel/libk.h>
+#include <libk/libk.h>
 
 #define PUTSTR(str)				\
 	do {						\

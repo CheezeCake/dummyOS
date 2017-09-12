@@ -1,4 +1,4 @@
-#include <kernel/libk.h>
+#include <libk/libk.h>
 
 char* strncat(char* str, const char* append, size_t count)
 {

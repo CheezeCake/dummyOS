@@ -5,7 +5,7 @@
 #include <kernel/thread.h>
 #include <kernel/thread_list.h>
 #include <kernel/vm_context.h>
-#include <kernel/list.h>
+#include <libk/list.h>
 
 #define PROCESS_NAME_MAX_LENGTH 16
 

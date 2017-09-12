@@ -1,8 +1,8 @@
-#include <kernel/vm_context.h>
-#include <kernel/memory.h>
 #include <arch/paging.h>
+#include <kernel/memory.h>
 #include <kernel/paging.h>
-#include <kernel/libk.h>
+#include <kernel/vm_context.h>
+#include <libk/libk.h>
 
 int vm_context_create(struct vm_context* vm_context)
 {

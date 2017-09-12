@@ -1,4 +1,4 @@
-#include <kernel/libk.h>
+#include <libk/libk.h>
 
 char* strncpy(char* dest, const char* src, size_t size)
 {

@@ -1,8 +1,7 @@
-#include <stdbool.h>
-#include <kernel/cpu_context.h>
-#include <kernel/libk.h>
 #include "gdt.h"
 #include "segment.h"
+#include <kernel/cpu_context.h>
+#include <libk/libk.h>
 
 void cpu_context_create(struct cpu_context* cpu_context, v_addr_t stack_top, v_addr_t ip)
 {

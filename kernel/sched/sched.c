@@ -1,11 +1,11 @@
 #include <kernel/context_switch.h>
 #include <kernel/kassert.h>
-#include <kernel/libk.h>
 #include <kernel/locking/spinlock.h>
 #include <kernel/sched/idle.h>
 #include <kernel/sched/sched.h>
 #include <kernel/time/time.h>
 #include <kernel/time/timer.h>
+#include <libk/libk.h>
 
 #include <kernel/log.h>
 

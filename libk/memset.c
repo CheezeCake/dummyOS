@@ -1,4 +1,4 @@
-#include <kernel/libk.h>
+#include <libk/libk.h>
 
 void* memset(void *s, int c, size_t size)
 {

@@ -1,7 +1,7 @@
-#include <kernel/libk.h>
-#include "tss.h"
+#include <libk/libk.h>
 #include "gdt.h"
 #include "segment.h"
+#include "tss.h"
 
 static struct gdt_segment_descriptor* const gdt =
 	(struct gdt_segment_descriptor*)GDT_ADDRESS;

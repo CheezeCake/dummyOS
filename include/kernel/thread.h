@@ -2,10 +2,11 @@
 #define _KERNEL_THREAD_H_
 
 #include <stddef.h>
+
 #include <arch/cpu_context.h>
-#include <kernel/types.h>
 #include <kernel/time/time.h>
-#include <kernel/list.h>
+#include <kernel/types.h>
+#include <libk/list.h>
 
 struct process;
 

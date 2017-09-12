@@ -1,4 +1,4 @@
-#include <kernel/libk.h>
+#include <libk/libk.h>
 
 size_t strnlen(const char* str, size_t maxsize)
 {

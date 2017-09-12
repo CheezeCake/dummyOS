@@ -1,9 +1,9 @@
 #include <stdint.h>
 
 #include <kernel/atomic.h>
-#include <kernel/libk.h>
 #include <kernel/locking/semaphore.h>
 #include <kernel/sched/sched.h>
+#include <libk/libk.h>
 
 struct sem_t
 {

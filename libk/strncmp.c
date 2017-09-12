@@ -1,4 +1,4 @@
-#include <kernel/libk.h>
+#include <libk/libk.h>
 
 int strncmp(const char* s1, const char* s2, size_t size)
 {

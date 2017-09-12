@@ -1,9 +1,9 @@
 #include <kernel/cpu_context.h>
 #include <kernel/kmalloc.h>
-#include <kernel/libk.h>
 #include <kernel/sched/sched.h>
 #include <kernel/thread.h>
 #include <kernel/usermode.h>
+#include <libk/libk.h>
 
 static int create_stack(v_addr_t* sp, size_t* size, size_t  stack_size)
 {

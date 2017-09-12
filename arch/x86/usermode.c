@@ -1,9 +1,9 @@
-#include <kernel/usermode.h>
-#include <kernel/memory.h>
-#include <kernel/paging.h>
 #include <arch/virtual_memory.h>
 #include <kernel/kassert.h>
-#include <kernel/libk.h>
+#include <kernel/memory.h>
+#include <kernel/paging.h>
+#include <kernel/usermode.h>
+#include <libk/libk.h>
 #include "segment.h"
 
 void usermode_entry(void* _args)

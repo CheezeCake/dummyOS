@@ -1,7 +1,7 @@
 #ifndef _KERNEL_SZ_LIST_H_
 #define _KERNEL_SZ_LIST_H_
 
-#include <kernel/list.h>
+#include <libk/list.h>
 #include <stdint.h>
 
 /*
