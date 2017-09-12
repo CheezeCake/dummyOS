@@ -4,7 +4,7 @@
 #include <arch/cpu_context.h>
 #include "tss.h"
 
-void context_switch(struct thread* from, const struct thread* to)
+void context_switch(const struct thread* from, const struct thread* to)
 {
 	struct cpu_context* from_cpu_ctx = (from) ? from->cpu_context : NULL;
 

@@ -3,7 +3,7 @@
 
 #include <kernel/thread.h>
 
-void context_switch(struct thread* from, const struct thread* to);
+void context_switch(const struct thread* from, const struct thread* to);
 
 #endif
 
