@@ -8,8 +8,8 @@
 #include <kernel/log.h>
 #include <kernel/memory.h>
 #include <kernel/page_frame_status.h>
-#include <kernel/sz_list.h>
 #include <libk/libk.h>
+#include <libk/sz_list.h>
 
 /*
  * describes a physical page
