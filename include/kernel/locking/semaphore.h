@@ -5,8 +5,11 @@
 
 typedef struct thread_list_synced thread_queue;
 
-struct sem_t;
-typedef struct sem_t sem_t;
+typedef struct sem_t
+{
+	int value;
+	thread_queue wait_queue;
+} sem_t;
 
 int semaphore_create(sem_t* sem, int n);
 int semaphore_destroy(sem_t* sem);

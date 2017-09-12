@@ -5,7 +5,7 @@
 #include <kernel/kmalloc.h>
 #include <libk/list.h>
 
-typedef void (*timer_callback_t)(void* data);
+typedef int (*timer_callback_t)(void* data);
 
 struct timer
 {

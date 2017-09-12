@@ -14,20 +14,27 @@ static int create_stack(v_addr_t* sp, size_t* size, size_t  stack_size)
 	return 0;
 }
 
-static int thread_create(struct thread* thread, const char* name,
+static struct thread* thread_create(const char* name,
 		struct process* proc, size_t stack_size, start_func_t start,
 		void* start_args, exit_func_t exit, enum thread_type type)
 {
+	struct thread* thread = kmalloc(sizeof(struct thread));
+	if (!thread)
+		return NULL;
+
 	memset(thread, 0, sizeof(struct thread));
 
 	strncpy(thread->name, name, MAX_THREAD_NAME_LENGTH);
 
-	if (create_stack(&thread->stack.sp, &thread->stack.size, stack_size) == -1)
-		return -1;
+	if (create_stack(&thread->stack.sp, &thread->stack.size, stack_size) == -1) {
+		kfree(thread);
+		return NULL;
+	}
 
 	if (!(thread->cpu_context = kmalloc(sizeof(struct cpu_context)))) {
 		kfree((void*)thread->stack.sp);
-		return -1;
+		kfree(thread);
+		return NULL;
 	}
 
 	thread->process = proc;
@@ -43,18 +50,20 @@ static int thread_create(struct thread* thread, const char* name,
 	thread->state = THREAD_READY;
 	thread->type = type;
 
-	return 0;
+	refcount_init(&thread->refcnt);
+
+	return thread;
 }
 
-int thread_kthread_create(struct thread* thread, const char* name,
+struct thread* thread_kthread_create(const char* name,
 		struct process* proc, size_t stack_size, start_func_t start,
 		void* start_args, exit_func_t exit)
 {
-	return thread_create(thread, name, proc, stack_size, start, start_args,
+	return thread_create(name, proc, stack_size, start, start_args,
 			exit, KTHREAD);
 }
 
-int thread_uthread_create(struct thread* thread, const char* name,
+struct thread* thread_uthread_create(const char* name,
 		struct process* proc, size_t stack_size, size_t kstack_size,
 		start_func_t start, void* start_args, exit_func_t exit)
 {
@@ -64,26 +73,49 @@ int thread_uthread_create(struct thread* thread, const char* name,
 	// user function and arguments
 	void** usermode_entry_args = kmalloc(2 * sizeof(void*));
 	if (!usermode_entry_args)
-		return -1;
+		return NULL;
 	usermode_entry_args[0] = start;
 	usermode_entry_args[1] = start_args;
 
-	const int ret = thread_create(thread, name, proc, stack_size,
+	struct thread* thread = thread_create(name, proc, stack_size,
 			usermode_entry_func, usermode_entry_args, exit, UTHREAD);
+	if (!thread)
+		return NULL;
+
 	if (create_stack(&thread->kstack.sp, &thread->kstack.size, kstack_size) == -1) {
 		thread_destroy(thread);
-		return -1;
+		return NULL;
 	}
 
-	return ret;
+	return thread;
+}
+
+void thread_ref(struct thread* thread)
+{
+	refcount_inc(&thread->refcnt);
+}
+
+void thread_unref(struct thread* thread)
+{
+	thread_destroy(thread);
+}
+
+int thread_get_ref(struct thread* thread)
+{
+	return refcount_get(&thread->refcnt);
 }
 
 void thread_destroy(struct thread* thread)
 {
-	kfree(thread->cpu_context);
-	kfree((void*)thread->stack.sp);
-	if (thread->kstack.sp != (v_addr_t)NULL)
-		kfree((void*)thread->kstack.sp);
+	refcount_dec(&thread->refcnt);
+
+	if (refcount_get(&thread->refcnt) == 0) {
+		kfree(thread->cpu_context);
+		kfree((void*)thread->stack.sp);
+		if (thread->kstack.sp != (v_addr_t)NULL)
+			kfree((void*)thread->kstack.sp);
+		kfree(thread);
+	}
 }
 
 void thread_yield(void)

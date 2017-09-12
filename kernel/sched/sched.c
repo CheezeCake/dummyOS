@@ -66,11 +66,13 @@ void sched_schedule(void)
 /*
  * add
  */
-void sched_add_thread_node(struct thread_list_node* node)
+static void add_thread_node(struct thread_list_node* node)
 {
 	log_printf("sched add %s (%p)\n", node->thread->name, node->thread);
 
+	thread_ref(node->thread);
 	node->thread->state = THREAD_READY;
+
 	list_push_back(&ready_queue, node);
 }
 
@@ -80,7 +82,7 @@ int sched_add_thread(struct thread* thread)
 
 	struct thread_list_node* const node = thread_list_node_create(thread);
 	if (node)
-		sched_add_thread_node(node);
+		add_thread_node(node);
 
 	return (!node);
 }
@@ -108,11 +110,6 @@ struct process* sched_get_current_process(void)
 	return sched_get_current_thread()->process;
 }
 
-struct thread_list_node* sched_get_current_thread_node(void)
-{
-	return current_thread_node;
-}
-
 
 /*
  * sched operations
@@ -134,11 +131,17 @@ void sched_yield_current_thread(void)
 
 void sched_block_current_thread(void)
 {
-	log_printf("sched blocking %s\n", current_thread_node->thread->name);
+	log_printf("sched_block %s\n", current_thread_node->thread->name);
 
 	list_lock_synced(&ready_queue);
 
-	current_thread_node->thread->state = THREAD_BLOCKED;
+	struct thread* current_thread = current_thread_node->thread;
+	current_thread->state = THREAD_BLOCKED;
+
+	kassert(thread_get_ref(current_thread) > 1 &&
+			"blocking thread without taking ownership");
+	thread_unref(current_thread);
+	kfree(current_thread_node);
 
 	list_unlock_synced(&ready_queue);
 
@@ -160,25 +163,35 @@ void sched_remove_current_thread(void)
 	preempt();
 }
 
-static void sched_timer_callback(void* data)
+static int sched_timer_callback(void* data)
 {
 	list_lock_synced(&ready_queue);
 
-	struct thread_list_node* node = (struct thread_list_node*)data;
-	sched_add_thread_node(node);
+	struct thread* thread = (struct thread*)data;
+	sched_add_thread(thread);
+	// timer drops ownership
+	thread_unref(thread);
 
 	list_unlock_synced(&ready_queue);
+
+	return 0;
 }
 
 void sched_sleep_current_thread(unsigned int millis)
 {
+	log_printf("sched_sleep %s\n", current_thread_node->thread->name);
+
 	list_lock_synced(&ready_queue);
 
-	current_thread_node->thread->state = THREAD_BLOCKED;
+	current_thread_node->thread->state = THREAD_SLEEPING;
 
-	struct timer* timer = timer_create(millis, sched_timer_callback, current_thread_node);
+	struct timer* timer = timer_create(millis, sched_timer_callback,
+			current_thread_node->thread);
 	kassert(timer != NULL);
 	timer_register(timer);
+
+	// don't unref the thread, the ownership is transfered to the timer
+	kfree(current_thread_node);
 
 	list_unlock_synced(&ready_queue);
 

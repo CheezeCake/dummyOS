@@ -5,11 +5,17 @@
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
 
-struct sem_t
+static int release_thread(struct thread_list_node* n)
 {
-	int value;
-	thread_queue wait_queue;
-};
+	int ret = 0;
+
+	if (n->thread->state != THREAD_DEAD)
+		ret = sched_add_thread(n->thread);
+	thread_unref(n->thread);
+	kfree(n);
+
+	return ret;
+}
 
 int semaphore_create(sem_t* sem, int n)
 {
@@ -21,9 +27,12 @@ int semaphore_create(sem_t* sem, int n)
 
 int semaphore_destroy(sem_t* sem)
 {
-	struct thread_list_node* it;
-	list_foreach(&sem->wait_queue, it) {
-		sched_add_thread_node(it);
+	struct thread_list_node* it = list_begin(&sem->wait_queue);
+
+	while (it) {
+		struct thread_list_node* next = list_it_next(it);
+		release_thread(it);
+		it = next;
 	}
 
 	memset(sem, 0, sizeof(sem_t));
@@ -38,12 +47,17 @@ int semaphore_up(sem_t* sem)
 	if (!list_empty(&sem->wait_queue)) {
 		list_lock_synced(&sem->wait_queue);
 
-		struct thread_list_node* first = list_front(&sem->wait_queue);
-		list_pop_front(&sem->wait_queue);
+		struct thread_list_node* first;
+		bool dead = false;
+		do {
+			first = list_front(&sem->wait_queue);
+			list_pop_front(&sem->wait_queue);
+
+			dead = (first->thread->state == THREAD_DEAD);
+			release_thread(first);
+		} while (dead);
 
 		list_unlock_synced(&sem->wait_queue);
-
-		sched_add_thread_node(first);
 	}
 
 	return 0;
@@ -54,8 +68,16 @@ int semaphore_down(sem_t* sem)
 	atomic_dec_int(sem->value);
 
 	if (sem->value < 0) {
+
+		struct thread_list_node* current_thread_node = thread_list_node_create(sched_get_current_thread());
+
+		if (!current_thread_node)
+			return -1;
+
+		thread_ref(current_thread_node->thread);
 		list_push_front_synced(&sem->wait_queue,
-				sched_get_current_thread_node());
+				current_thread_node);
+
 		sched_block_current_thread();
 	}
 
@@ -64,5 +86,7 @@ int semaphore_down(sem_t* sem)
 
 int semaphore_get_value(const sem_t* sem)
 {
-	return sem->value;
+	int val;
+	atomic_get_int(sem->value, val);
+	return val;
 }
