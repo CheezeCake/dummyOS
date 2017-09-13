@@ -11,8 +11,10 @@ void sched_start(void);
 
 void sched_schedule(void);
 
-void sched_add_process(struct process* proc);
+int sched_add_process(const struct process* proc);
 int sched_add_thread(struct thread* thread);
+
+int sched_remove_thread(struct thread* thread);
 
 struct thread* sched_get_current_thread(void);
 struct process* sched_get_current_process(void);

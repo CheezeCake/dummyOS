@@ -64,6 +64,16 @@ void sched_schedule(void)
 }
 
 /*
+ * utils
+ */
+static void free_node(struct thread_list_node* node)
+{
+	thread_unref(node->thread);
+	kfree(node);
+}
+
+
+/*
  * add
  */
 static void add_thread_node(struct thread_list_node* node)
@@ -87,13 +97,45 @@ int sched_add_thread(struct thread* thread)
 	return (!node);
 }
 
-void sched_add_process(struct process* proc)
+static int add_process_threads(struct thread_list_node* it)
+{
+	if (!it)
+		return 0;
+
+	if (sched_add_thread(it->thread) != 0)
+		return -1;
+
+	if (add_process_threads(list_it_next(it)) != 0) {
+		sched_remove_thread(it->thread);
+		return -1;
+	}
+
+	return 0;
+}
+
+int sched_add_process(const struct process* proc)
+{
+	return add_process_threads(list_begin(&proc->threads));
+}
+
+
+/*
+ * remove
+ */
+int sched_remove_thread(struct thread* thread)
 {
 	struct thread_list_node* it;
 
-	list_foreach(&proc->threads, it) {
-		sched_add_thread(it->thread);
+	list_foreach(&ready_queue, it) {
+		if (it->thread == thread) {
+			list_erase(&ready_queue, it);
+			free_node(it);
+
+			return 0;
+		}
 	}
+
+	return -1;
 }
 
 
@@ -140,8 +182,7 @@ void sched_block_current_thread(void)
 
 	kassert(thread_get_ref(current_thread) > 1 &&
 			"blocking thread without taking ownership");
-	thread_unref(current_thread);
-	kfree(current_thread_node);
+	free_node(current_thread_node);
 
 	list_unlock_synced(&ready_queue);
 
@@ -155,7 +196,7 @@ void sched_remove_current_thread(void)
 
 	list_lock_synced(&ready_queue);
 
-	thread_destroy(current_thread_node->thread);
+	thread_unref(current_thread_node->thread);
 	current_thread_node = NULL;
 
 	list_unlock_synced(&ready_queue);
