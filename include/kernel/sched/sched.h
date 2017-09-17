@@ -6,7 +6,7 @@
 #include <kernel/process.h>
 #include <kernel/thread_list.h>
 
-void sched_init(unsigned int quantum_in_ms);
+void sched_init(void);
 void sched_start(void);
 
 void sched_schedule(void);

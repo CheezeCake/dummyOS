@@ -50,6 +50,8 @@ static struct thread* thread_create(const char* name,
 	thread->state = THREAD_READY;
 	thread->type = type;
 
+	thread->priority = 0;
+
 	refcount_init(&thread->refcnt);
 
 	return thread;

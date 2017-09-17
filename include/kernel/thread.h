@@ -13,6 +13,7 @@ struct process;
 
 typedef void (*start_func_t)(void* data);
 typedef void (*exit_func_t)(void);
+typedef unsigned int thread_priority_t;
 
 #define MAX_THREAD_NAME_LENGTH 16
 
@@ -42,6 +43,8 @@ struct thread
 
 	enum thread_state state;
 	enum thread_type type;
+
+	thread_priority_t priority;
 
 	refcount_t refcnt;
 };
