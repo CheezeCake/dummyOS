@@ -11,7 +11,6 @@
 #include <kernel/interrupt.h>
 #include <kernel/process.h>
 
-
 void clock_tick(void)
 {
 	time_tick();
@@ -32,7 +31,7 @@ void kernel_main(multiboot_info_t* mbi)
 	arch_memory_management_init((mbi->mem_upper << 10) + (1 << 20));
 
 	process_init();
-	sched_init(1000);
+	sched_init();
 
 
 	sched_start();
