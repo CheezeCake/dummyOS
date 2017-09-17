@@ -5,7 +5,7 @@ LDFLAGS:=-lgcc
 ARCHDIR=arch/$(TARGET_ARCH)/
 LIBKDIR=libk/
 KERNELDIR=kernel/
-SUPPORTDIR=support/
+SCRIPTSDIR=scripts/
 ISODIR=isodir/
 
 include $(ARCHDIR)make.config
@@ -25,7 +25,7 @@ $(KERNEL_BIN): $(OBJECTS)
 	$(CC) -T $(ARCHDIR)kernel.ld -o $@ -ffreestanding -nostdlib $(OBJECTS) $(LDFLAGS)
 
 $(KERNEL_ISO): $(KERNEL_BIN)
-	GRUB_MKRESCUE=$(GRUB_MKRESCUE) ISODIR=$(ISODIR) $(SUPPORTDIR)iso.sh
+	GRUB_MKRESCUE=$(GRUB_MKRESCUE) ISODIR=$(ISODIR) $(SCRIPTSDIR)iso.sh
 
 arch:
 	@$(MAKE) -C $(ARCHDIR)
@@ -41,13 +41,13 @@ bin: arch libk kernel $(KERNEL_BIN)
 iso: bin $(KERNEL_ISO)
 
 run: bin
-	$(SUPPORTDIR)qemu.sh $(KERNEL_BIN)
+	$(SCRIPTSDIR)qemu.sh $(KERNEL_BIN)
 
 run-iso: iso
-	$(SUPPORTDIR)qemu.sh $(KERNEL_ISO)
+	$(SCRIPTSDIR)qemu.sh $(KERNEL_ISO)
 
 debug: iso
-	QEMU_EXTRA_FLAGS='-s' $(SUPPORTDIR)qemu.sh
+	QEMU_EXTRA_FLAGS='-s' $(SCRIPTSDIR)qemu.sh
 
 clean:
 	@$(MAKE) clean -C $(ARCHDIR)
