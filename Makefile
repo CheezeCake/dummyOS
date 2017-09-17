@@ -13,15 +13,18 @@ include $(LIBKDIR)make.config
 include $(KERNELDIR)make.config
 OBJECTS=$(ARCH_OBJS) $(LIBK_OBJS) $(KERNEL_OBJS)
 
+KERNEL_BIN=dummy_os.bin
+KERNEL_ISO=dummy_os.iso
+
 .PHONY: all arch libk kernel clean mrproper rebuild bin iso run debug
 
 
 all: bin
 
-dummy_os.bin: $(OBJECTS)
-	$(CC) -T $(ARCHDIR)kernel.ld -o dummy_os.bin -ffreestanding -nostdlib $(OBJECTS) $(LDFLAGS)
+$(KERNEL_BIN): $(OBJECTS)
+	$(CC) -T $(ARCHDIR)kernel.ld -o $@ -ffreestanding -nostdlib $(OBJECTS) $(LDFLAGS)
 
-dummy_os.iso: dummy_os.bin
+$(KERNEL_ISO): $(KERNEL_BIN)
 	GRUB_MKRESCUE=$(GRUB_MKRESCUE) ISODIR=$(ISODIR) $(SUPPORTDIR)iso.sh
 
 arch:
@@ -33,12 +36,15 @@ libk:
 kernel: arch libk
 	@$(MAKE) -C $(KERNELDIR)
 
-bin: arch libk kernel dummy_os.bin
+bin: arch libk kernel $(KERNEL_BIN)
 
-iso: bin dummy_os.iso
+iso: bin $(KERNEL_ISO)
 
-run: iso
-	$(SUPPORTDIR)qemu.sh
+run: bin
+	$(SUPPORTDIR)qemu.sh $(KERNEL_BIN)
+
+run-iso: iso
+	$(SUPPORTDIR)qemu.sh $(KERNEL_ISO)
 
 debug: iso
 	QEMU_EXTRA_FLAGS='-s' $(SUPPORTDIR)qemu.sh
@@ -49,7 +55,7 @@ clean:
 	@$(MAKE) clean -C $(KERNELDIR)
 
 mrproper: clean
-	@rm -f dummy_os.bin dummy_os.iso
+	@rm -f $(KERNEL_BIN) $(KERNEL_ISO)
 	@rm -rf $(ISODIR)
 
 rebuild: mrproper all
