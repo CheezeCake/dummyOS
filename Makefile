@@ -46,8 +46,8 @@ run: bin
 run-iso: iso
 	$(SCRIPTSDIR)qemu.sh $(KERNEL_ISO)
 
-debug: iso
-	QEMU_EXTRA_FLAGS='-s' $(SCRIPTSDIR)qemu.sh
+debug: bin
+	QEMU_EXTRA_FLAGS='-s -S' $(SCRIPTSDIR)qemu.sh $(KERNEL_BIN)
 
 clean:
 	@$(MAKE) clean -C $(ARCHDIR)
