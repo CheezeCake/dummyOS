@@ -29,3 +29,8 @@ void cpu_context_pass_arg(struct cpu_context* cpu_context, unsigned int arg_nb,
 	*arg_stack_addr = arg;
 	cpu_context->esp = (v_addr_t)arg_stack_addr;
 }
+
+void cpu_context_set_ret_ip(struct cpu_context* cpu_context, v_addr_t ret_ip)
+{
+	cpu_context_pass_arg(cpu_context, 0, ret_ip);
+}

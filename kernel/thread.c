@@ -51,9 +51,9 @@ static struct thread* thread_create(const char* name,
 	const v_addr_t stack_top = thread->stack.sp + stack_size;
 
 	cpu_context_create(thread->cpu_context, stack_top, (v_addr_t)start);
-	cpu_context_pass_arg(thread->cpu_context, 0, 0);
-	cpu_context_pass_arg(thread->cpu_context, 0, (v_addr_t)start_args);
-	cpu_context_pass_arg(thread->cpu_context, 0, (v_addr_t)exit);
+	cpu_context_pass_arg(thread->cpu_context, 2, 0);
+	cpu_context_pass_arg(thread->cpu_context, 1, (v_addr_t)start_args);
+	cpu_context_set_ret_ip(thread->cpu_context, (v_addr_t)exit);
 
 	thread->state = THREAD_READY;
 	thread->type = type;
