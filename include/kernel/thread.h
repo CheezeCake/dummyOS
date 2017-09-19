@@ -36,7 +36,8 @@ struct thread
 	struct process* process;
 
 	// kernel stack and user stack
-	struct {
+	struct
+	{
 		v_addr_t sp;
 		size_t size;
 	} stack, kstack;
