@@ -3,12 +3,12 @@
 
 #include <kernel/thread_list.h>
 
-typedef struct thread_list_synced thread_queue;
+typedef struct thread_list_synced thread_queue_t;
 
 typedef struct sem_t
 {
 	int value;
-	thread_queue wait_queue;
+	thread_queue_t wait_queue;
 } sem_t;
 
 int semaphore_create(sem_t* sem, int n);
