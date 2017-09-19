@@ -3,7 +3,8 @@
 #include <kernel/cpu_context.h>
 #include <libk/libk.h>
 
-void cpu_context_create(struct cpu_context* cpu_context, v_addr_t stack_top, v_addr_t ip)
+void cpu_context_create(struct cpu_context* cpu_context, v_addr_t stack_top,
+		v_addr_t ip)
 {
 	memset(cpu_context, 0, sizeof(struct cpu_context));
 	cpu_context->esp = stack_top;
@@ -19,4 +20,12 @@ void cpu_context_create(struct cpu_context* cpu_context, v_addr_t stack_top, v_a
 	cpu_context->ss = data_segment;
 
 	cpu_context->eflags = (1 << 9) | (1 << 1); // IF = 1, reserved_1 = 1
+}
+
+void cpu_context_pass_arg(struct cpu_context* cpu_context, unsigned int arg_nb,
+		v_addr_t arg)
+{
+	v_addr_t* arg_stack_addr = (v_addr_t*)cpu_context->esp - 1;
+	*arg_stack_addr = arg;
+	cpu_context->esp = (v_addr_t)arg_stack_addr;
 }
