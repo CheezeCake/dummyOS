@@ -8,6 +8,6 @@ typedef struct refcount {
 void refcount_init(refcount_t* r);
 void refcount_inc(refcount_t* r);
 void refcount_dec(refcount_t* r);
-int refcount_get(refcount_t* r);
+int refcount_get(const refcount_t* r);
 
 #endif

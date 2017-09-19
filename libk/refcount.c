@@ -16,7 +16,7 @@ void refcount_dec(refcount_t* r)
 	atomic_dec_int(r->cnt);
 }
 
-int refcount_get(refcount_t* r)
+int refcount_get(const refcount_t* r)
 {
 	int cnt;
 	atomic_get_int(r->cnt, cnt);
