@@ -18,7 +18,7 @@ struct page_frame
 {
 	p_addr_t addr;
 
-	LIST_NODE_CREATE(struct page_frame);
+	struct list_node pf_list;
 };
 
 /*
@@ -26,9 +26,7 @@ struct page_frame
  */
 struct page_frame_list
 {
-	LIST_CREATE(struct page_frame);
-
-	size_t size;
+	SZ_LIST_CREATE
 };
 
 
@@ -91,10 +89,10 @@ void memory_init(size_t ram_size_bytes)
 		pf_descriptor->addr = paddr;
 
 		if (status == PAGE_FRAME_FREE) {
-			sz_list_push_back(&free_page_frames, pf_descriptor);
+			sz_list_push_back(&free_page_frames, &pf_descriptor->pf_list);
 		}
 		else if (status == PAGE_FRAME_KERNEL || status == PAGE_FRAME_HW_MAP) {
-			sz_list_push_back(&used_page_frames, pf_descriptor);
+			sz_list_push_back(&used_page_frames, &pf_descriptor->pf_list);
 		}
 	}
 }
@@ -119,10 +117,11 @@ p_addr_t memory_page_frame_alloc()
 	if (sz_list_empty(&free_page_frames))
 		return (p_addr_t)NULL;
 
-	struct page_frame* new_page_frame = sz_list_front(&free_page_frames);
+	struct page_frame* new_page_frame =
+		list_entry(sz_list_front(&free_page_frames), struct page_frame, pf_list);
 	sz_list_pop_front(&free_page_frames);
 
-	sz_list_push_back(&used_page_frames, new_page_frame);
+	sz_list_push_back(&used_page_frames, &new_page_frame->pf_list);
 
 	return new_page_frame->addr;
 }
@@ -133,8 +132,8 @@ int memory_page_frame_free(p_addr_t addr)
 	if (!pf)
 		return -1;
 
-	sz_list_erase(&used_page_frames, pf);
-	sz_list_push_front(&free_page_frames, pf);
+	sz_list_erase(&used_page_frames, &pf->pf_list);
+	sz_list_push_front(&free_page_frames, &pf->pf_list);
 
 	return 0;
 }

@@ -5,14 +5,14 @@
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
 
-static int release_thread(struct thread_list_node* n)
+static int release_thread(struct list_node* n)
 {
 	int ret = 0;
 
-	if (n->thread->state != THREAD_DEAD)
-		ret = sched_add_thread(n->thread);
-	thread_unref(n->thread);
-	kfree(n);
+	struct thread* thread = list_entry(n, struct thread, sem_wq);
+	if (thread->state != THREAD_DEAD)
+		ret = sched_add_thread(thread);
+	thread_unref(thread);
 
 	return ret;
 }
@@ -27,10 +27,10 @@ int semaphore_create(sem_t* sem, int n)
 
 int semaphore_destroy(sem_t* sem)
 {
-	struct thread_list_node* it = list_begin(&sem->wait_queue);
+	struct list_node* it = list_begin(&sem->wait_queue);
 
 	while (it) {
-		struct thread_list_node* next = list_it_next(it);
+		struct list_node* next = list_it_next(it);
 		release_thread(it);
 		it = next;
 	}
@@ -47,14 +47,15 @@ int semaphore_up(sem_t* sem)
 	if (!list_empty(&sem->wait_queue)) {
 		list_lock_synced(&sem->wait_queue);
 
-		struct thread_list_node* first;
+		struct list_node* first;
 		bool dead = false;
 		do {
 			first = list_front(&sem->wait_queue);
 			list_pop_front(&sem->wait_queue);
 
-			dead = (first->thread->state == THREAD_DEAD);
-			release_thread(first);
+			const struct thread* thread = list_entry(first, struct thread, sem_wq);
+			dead = (thread->state == THREAD_DEAD);
+			release_thread(first); // TODO: check for error
 		} while (dead);
 
 		list_unlock_synced(&sem->wait_queue);
@@ -68,15 +69,10 @@ int semaphore_down(sem_t* sem)
 	atomic_dec_int(sem->value);
 
 	if (sem->value < 0) {
+		struct thread* current_thread = sched_get_current_thread();
 
-		struct thread_list_node* current_thread_node = thread_list_node_create(sched_get_current_thread());
-
-		if (!current_thread_node)
-			return -1;
-
-		thread_ref(current_thread_node->thread);
-		list_push_front_synced(&sem->wait_queue,
-				current_thread_node);
+		thread_ref(current_thread);
+		list_push_front_synced(&sem->wait_queue, &current_thread->sem_wq);
 
 		sched_block_current_thread();
 	}

@@ -13,7 +13,7 @@ struct timer
 	timer_callback_t cb;
 	void* data;
 
-	LIST_NODE_CREATE(struct timer);
+	struct list_node t_list; // timer_list node
 };
 
 struct timer* timer_create(unsigned int delay_ms, timer_callback_t cb, void* data);

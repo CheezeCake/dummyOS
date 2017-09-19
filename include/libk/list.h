@@ -1,25 +1,21 @@
 #ifndef _LIBK_LIST_H_
 #define _LIBK_LIST_H_
 
-/*
- * struct node {
- *		struct node* next;
- *		struct node* prev;
- * };
- *
- * struct list {
- *		struct node head;
- *		struct node tail;
- * };
- */
+#include <libk/utils.h>
 
-#define LIST_NODE_CREATE(node_type)	\
-	node_type* prev;				\
-	node_type* next
+struct list_node {
+	struct list_node* next;
+	struct list_node* prev;
+};
 
-#define LIST_CREATE(node_type)	\
-	node_type* head;			\
-	node_type* tail
+struct list {
+	struct list_node* head;
+	struct list_node* tail;
+};
+
+#define LIST_CREATE			\
+	struct list_node* head;	\
+	struct list_node* tail;
 
 
 /*
@@ -33,8 +29,8 @@
 
 #define list_init(list, value)	\
 	do {						\
-		value->prev = NULL;		\
-		value->next = NULL;		\
+		(value)->prev = NULL;	\
+		(value)->next = NULL;	\
 		(list)->head = value;	\
 		(list)->tail = value;	\
 	} while (0)
@@ -46,6 +42,13 @@
 #define list_front(list) ((list)->head)
 
 #define list_back(list) ((list)->tail)
+
+/*
+ * get enclosing struct
+ */
+#define list_entry(ptr, type, member) \
+		container_of(ptr, type, member)
+
 
 /*
  * iterators
@@ -68,30 +71,30 @@
 /*
  * modifiers
  */
-#define list_push_front(list, value)	\
-	do {								\
-		if (list_empty(list)) {			\
-			list_init(list, value);		\
-		}								\
-		else {							\
-			value->prev = NULL;			\
-			value->next = (list)->head;	\
-			(list)->head->prev = value;	\
-			(list)->head = value;		\
-		}								\
+#define list_push_front(list, value)		\
+	do {									\
+		if (list_empty(list)) {				\
+			list_init(list, value);			\
+		}									\
+		else {								\
+			(value)->prev = NULL;			\
+			(value)->next = (list)->head;	\
+			(list)->head->prev = value;		\
+			(list)->head = value;			\
+		}									\
 	} while (0)
 
-#define list_push_back(list, value)		\
-	do {								\
-		if (list_empty(list)) {			\
-			list_init(list, value);		\
-		}								\
-		else {							\
-			value->prev = (list)->tail;	\
-			value->next = NULL;			\
-			(list)->tail->next = value;	\
-			(list)->tail = value;		\
-		}								\
+#define list_push_back(list, value)			\
+	do {									\
+		if (list_empty(list)) {				\
+			list_init(list, value);			\
+		}									\
+		else {								\
+			(value)->prev = (list)->tail;	\
+			(value)->next = NULL;			\
+			(list)->tail->next = value;		\
+			(list)->tail = value;			\
+		}									\
 	} while (0)
 
 #define list_pop_front(list)				\
@@ -108,16 +111,16 @@
 		(list)->tail = (list)->tail->prev;	\
 	} while(0)
 
-#define list_erase(list, value)					\
-	do {										\
-		if ((list)->head == value)				\
-			(list)->head = (list)->head->next;	\
-		if ((list)->tail == value)				\
-			(list)->tail = (list)->tail->prev;	\
-		if (value->prev)						\
-			value->prev->next = value->next;	\
-		if (value->next)						\
-			value->next->prev = value->prev;	\
+#define list_erase(list, value)						\
+	do {											\
+		if ((list)->head == value)					\
+			(list)->head = (list)->head->next;		\
+		if ((list)->tail == value)					\
+			(list)->tail = (list)->tail->prev;		\
+		if ((value)->prev)							\
+			(value)->prev->next = (value)->next;	\
+		if ((value)->next)							\
+			(value)->next->prev = (value)->prev;	\
 	} while (0)
 
 #define list_clear(list) list_init_null(list)

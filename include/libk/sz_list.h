@@ -10,9 +10,9 @@
  * **************
  */
 
-#define SZ_LIST_CREATE(node_type)	\
-	LIST_CREATE(node_type);			\
-	size_t size
+#define SZ_LIST_CREATE	\
+	LIST_CREATE			\
+	size_t size;
 
 /*
  * init

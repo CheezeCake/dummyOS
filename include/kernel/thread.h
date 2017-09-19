@@ -48,6 +48,10 @@ struct thread
 	thread_priority_t priority;
 
 	refcount_t refcnt;
+
+	struct list_node p_thr_list; // process.threads node
+	struct list_node s_ready_queue; // sched ready_queue node
+	struct list_node sem_wq; // sem wait_queue node
 };
 
 struct thread* thread_kthread_create(const char* name,

@@ -5,7 +5,7 @@
 
 struct
 {
-	LIST_CREATE(struct process);
+	LIST_CREATE
 } process_list;
 
 pid_t last_pid = 0;
@@ -23,7 +23,7 @@ static int process_create(struct process* proc, const char* name)
 		return -1;
 
 	proc->pid = ++last_pid;
-	strlcpy(proc->name, name, strlen(name));
+	strlcpy(proc->name, name, strlen(name) + 1);
 	proc->parent = NULL;
 
 	list_init_null(&proc->threads);
@@ -42,7 +42,7 @@ static inline int process_create_initial_thread(struct process* proc, struct thr
 
 	thread_unref(thread);
 
-	list_push_back(&process_list, proc);
+	list_push_back(&process_list, &proc->p_list);
 
 	return 0;
 }
@@ -75,15 +75,15 @@ int process_kprocess_create(struct process* proc, const char* name,
 
 int process_add_thread(struct process* proc, struct thread* thread)
 {
-	if (!list_empty(&proc->threads))
-			kassert(list_front(&proc->threads)->thread->type == thread->type);
+	if (!list_empty(&proc->threads)) {
+		const struct thread* head =
+			list_entry(list_front(&proc->threads), struct thread, p_thr_list);
+		kassert(head->type == thread->type);
+	}
 
 	thread->process = proc;
-	struct thread_list_node* node = thread_list_node_create(thread);
-	if (!node)
-		return -1;
 
-	list_push_back(&proc->threads, node);
+	list_push_back(&proc->threads, &thread->p_thr_list);
 	thread_ref(thread);
 
 	return 0;
@@ -91,17 +91,17 @@ int process_add_thread(struct process* proc, struct thread* thread)
 
 void process_destroy(struct process* proc)
 {
-	struct thread_list_node* it = list_begin(&proc->threads);
+	struct list_node* it = list_begin(&proc->threads);
 
 	while (it) {
-		struct thread_list_node* tmp = it;
+		struct list_node* tmp = it;
 		it = list_it_next(it);
 
-		thread_destroy(tmp->thread);
-		kfree(tmp->thread);
-		kfree(tmp);
+		struct thread* thread = list_entry(tmp, struct thread, p_thr_list);
+		thread_destroy(thread);
+		kfree(thread);
 	}
 	list_clear(&proc->threads);
 
-	list_erase(&process_list, proc);
+	list_erase(&process_list, &proc->p_list);
 }

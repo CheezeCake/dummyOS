@@ -10,7 +10,7 @@ static struct time tick_value;
 static struct time current = { .sec = 0, .milli_sec = 0, .nano_sec = 0 };
 static struct
 {
-	SYNCED_LIST_CREATE(struct timer);
+	SYNCED_LIST_CREATE
 } timer_list;
 
 static void time_update_timer_list(void);
@@ -65,8 +65,8 @@ int time_cmp(const struct time* t1, const struct time* t2)
 
 static void time_update_timer_list(void)
 {
-	struct timer* erase = NULL;
-	struct timer* it;
+	struct list_node* erase = NULL;
+	struct list_node* it;
 
 	if (list_empty(&timer_list))
 		return;
@@ -76,13 +76,15 @@ static void time_update_timer_list(void)
 		if (erase) {
 			list_erase(&timer_list, erase); // normal erase
 
-			timer_trigger(erase);
-			timer_destroy(erase);
+			struct timer* timer_erase = list_entry(erase, struct timer, t_list);
+			timer_trigger(timer_erase);
+			timer_destroy(timer_erase);
 
 			erase = NULL;
 		}
 
-		if (time_cmp(&current, &it->time) >= 0)
+		const struct timer* timer_it = list_entry(it, struct timer, t_list);
+		if (time_cmp(&current, &timer_it->time) >= 0)
 			erase = it;
 	}
 	list_unlock_synced(&timer_list); // unlock
@@ -90,8 +92,9 @@ static void time_update_timer_list(void)
 	if (erase) {
 		list_erase_synced(&timer_list, erase); // synced erase
 
-		timer_trigger(erase);
-		timer_destroy(erase);
+		struct timer* timer_erase = list_entry(erase, struct timer, t_list);
+		timer_trigger(timer_erase);
+		timer_destroy(timer_erase);
 	}
 }
 
@@ -100,6 +103,6 @@ void time_add_timer(struct timer* timer)
 {
 	if (timer) {
 		log_printf("sleep add %s\n", ((struct thread*)timer->data)->name);
-		list_push_back_synced(&timer_list, timer);
+		list_push_back_synced(&timer_list, &timer->t_list);
 	}
 }

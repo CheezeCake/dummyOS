@@ -4,9 +4,9 @@
 #include <kernel/locking/spinlock.h>
 #include <libk/list.h>
 
-#define SYNCED_LIST_CREATE(node_type)	\
-	LIST_CREATE(node_type);				\
-	spinlock_t lock
+#define SYNCED_LIST_CREATE	\
+	LIST_CREATE				\
+	spinlock_t lock;
 
 #define list_lock_synced(list) spinlock_lock((list)->lock)
 

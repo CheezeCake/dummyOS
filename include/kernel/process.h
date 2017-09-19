@@ -21,7 +21,7 @@ struct process
 
 	struct thread_list threads;
 
-	LIST_NODE_CREATE(struct process);
+	struct list_node p_list; // process_list node
 };
 
 void process_init(void);
