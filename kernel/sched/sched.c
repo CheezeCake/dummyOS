@@ -240,6 +240,7 @@ void sched_sleep_current_thread(unsigned int millis)
 			current_thread);
 	kassert(timer != NULL);
 	timer_register(timer);
+	timer_unref(timer);
 
 	spinlock_unlock(access_lock);
 

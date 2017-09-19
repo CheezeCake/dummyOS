@@ -63,6 +63,13 @@ int time_cmp(const struct time* t1, const struct time* t2)
 	}
 }
 
+static void release_timer(struct list_node* n)
+{
+	struct timer* timer = list_entry(n, struct timer, t_list);
+	timer_trigger(timer);
+	timer_unref(timer);
+}
+
 static void time_update_timer_list(void)
 {
 	struct list_node* erase = NULL;
@@ -75,11 +82,7 @@ static void time_update_timer_list(void)
 	list_foreach(&timer_list, it) {
 		if (erase) {
 			list_erase(&timer_list, erase); // normal erase
-
-			struct timer* timer_erase = list_entry(erase, struct timer, t_list);
-			timer_trigger(timer_erase);
-			timer_destroy(timer_erase);
-
+			release_timer(erase);
 			erase = NULL;
 		}
 
@@ -91,10 +94,7 @@ static void time_update_timer_list(void)
 
 	if (erase) {
 		list_erase_synced(&timer_list, erase); // synced erase
-
-		struct timer* timer_erase = list_entry(erase, struct timer, t_list);
-		timer_trigger(timer_erase);
-		timer_destroy(timer_erase);
+		release_timer(erase);
 	}
 }
 
