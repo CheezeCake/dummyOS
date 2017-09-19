@@ -59,7 +59,7 @@ void thread_destroy(struct thread* thread);
 
 void thread_ref(struct thread* thread);
 void thread_unref(struct thread* thread);
-int thread_get_ref(struct thread* thread);
+int thread_get_ref(const struct thread* thread);
 
 void thread_yield(void);
 void thread_sleep(unsigned int millis);

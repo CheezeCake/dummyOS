@@ -102,7 +102,7 @@ void thread_unref(struct thread* thread)
 	thread_destroy(thread);
 }
 
-int thread_get_ref(struct thread* thread)
+int thread_get_ref(const struct thread* thread)
 {
 	return refcount_get(&thread->refcnt);
 }
