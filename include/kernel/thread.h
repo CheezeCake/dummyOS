@@ -60,7 +60,6 @@ struct thread* thread_kthread_create(const char* name,
 struct thread* thread_uthread_create(const char* name,
 		struct process* proc, size_t stack_size, size_t kstack_size,
 		start_func_t start, void* start_args, exit_func_t exit);
-void thread_destroy(struct thread* thread);
 
 void thread_ref(struct thread* thread);
 void thread_unref(struct thread* thread);

@@ -5,6 +5,15 @@
 #include <kernel/usermode.h>
 #include <libk/libk.h>
 
+static void thread_destroy(struct thread* thread)
+{
+	kfree(thread->cpu_context);
+	kfree((void*)thread->stack.sp);
+	if (thread->kstack.sp != (v_addr_t)NULL)
+		kfree((void*)thread->kstack.sp);
+	kfree(thread);
+}
+
 static int create_stack(v_addr_t* sp, size_t* size, size_t  stack_size)
 {
 	if (!(*sp = (v_addr_t)kmalloc(stack_size)))
@@ -99,25 +108,15 @@ void thread_ref(struct thread* thread)
 
 void thread_unref(struct thread* thread)
 {
-	thread_destroy(thread);
+	refcount_dec(&thread->refcnt);
+
+	if (refcount_get(&thread->refcnt) == 0)
+		thread_destroy(thread);
 }
 
 int thread_get_ref(const struct thread* thread)
 {
 	return refcount_get(&thread->refcnt);
-}
-
-void thread_destroy(struct thread* thread)
-{
-	refcount_dec(&thread->refcnt);
-
-	if (refcount_get(&thread->refcnt) == 0) {
-		kfree(thread->cpu_context);
-		kfree((void*)thread->stack.sp);
-		if (thread->kstack.sp != (v_addr_t)NULL)
-			kfree((void*)thread->kstack.sp);
-		kfree(thread);
-	}
 }
 
 void thread_yield(void)

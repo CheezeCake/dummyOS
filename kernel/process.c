@@ -35,7 +35,7 @@ static inline int process_create_initial_thread(struct process* proc, struct thr
 {
 	if (!thread || process_add_thread(proc, thread) != 0) {
 		if (thread)
-			thread_destroy(thread);
+			thread_unref(thread);
 		process_destroy(proc);
 		return -1;
 	}
@@ -98,7 +98,7 @@ void process_destroy(struct process* proc)
 		it = list_it_next(it);
 
 		struct thread* thread = list_entry(tmp, struct thread, p_thr_list);
-		thread_destroy(thread);
+		thread_unref(thread);
 		kfree(thread);
 	}
 	list_clear(&proc->threads);
