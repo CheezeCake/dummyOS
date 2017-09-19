@@ -110,7 +110,7 @@ void thread_unref(struct thread* thread)
 {
 	refcount_dec(&thread->refcnt);
 
-	if (refcount_get(&thread->refcnt) == 0)
+	if (thread_get_ref(thread) == 0)
 		thread_destroy(thread);
 }
 
