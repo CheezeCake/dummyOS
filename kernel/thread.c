@@ -59,7 +59,7 @@ static struct thread* thread_create(const char* name,
 	thread->state = THREAD_READY;
 	thread->type = type;
 
-	thread->priority = 0;
+	thread->priority = SCHED_PRIORITY_LEVEL_DEFAULT;
 
 	refcount_init(&thread->refcnt);
 

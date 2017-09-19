@@ -9,20 +9,18 @@
 
 #include <kernel/log.h>
 
-#define PRIORITY_LEVELS 5
-
 typedef struct thread_list sched_queue_t;
 typedef unsigned int quantum_ms_t;
 
-/* static unsigned int quantums[PRIORITY_LEVELS] = { 100, 80, 60, 40, 20 }; */
-static quantum_ms_t quantums[PRIORITY_LEVELS] = { 1000, 1000, 1000, 1000, 1000 };
+/* static unsigned int quantums[SCHED_PRIORITY_LEVELS] = { 100, 80, 60, 40, 20 }; */
+static quantum_ms_t quantums[SCHED_PRIORITY_LEVELS] = { 1000, 1000, 1000, 1000, 1000 };
 #define get_thread_quantum(thread) quantums[(thread)->priority]
 
 // current thread
 static struct thread* current_thread = NULL;
 static struct time current_thread_start = { .sec = 0, .nano_sec = 0 };
 
-static sched_queue_t ready_queues[PRIORITY_LEVELS];
+static sched_queue_t ready_queues[SCHED_PRIORITY_LEVELS];
 #define get_thread_queue(thread) ready_queues[(thread)->priority]
 #define get_thread_list_entry(node) list_entry(node, struct thread, s_ready_queue)
 
@@ -32,20 +30,20 @@ static spinlock_declare_lock(access_lock);
 static inline thread_priority_t first_non_empty_queue_priority(void)
 {
 	thread_priority_t i = 0;
-	while (list_empty(&ready_queues[i]) && i < PRIORITY_LEVELS)
+	while (list_empty(&ready_queues[i]) && i < SCHED_PRIORITY_LEVELS)
 			++i;
 	return i;
 }
 
 static inline bool idle(void)
 {
-	return (first_non_empty_queue_priority() >= PRIORITY_LEVELS);
+	return (first_non_empty_queue_priority() >= SCHED_PRIORITY_LEVELS);
 }
 
 static void preempt(void)
 {
 	const thread_priority_t p = first_non_empty_queue_priority();
-	kassert(p < PRIORITY_LEVELS); // every queue is empty
+	kassert(p < SCHED_PRIORITY_LEVELS); // every queue is empty
 	sched_queue_t* ready_queue = &ready_queues[p];
 
 
@@ -247,6 +245,25 @@ void sched_sleep_current_thread(unsigned int millis)
 	preempt();
 }
 
+/*
+ * priority
+ */
+thread_priority_t sched_get_priority(void)
+{
+	return current_thread->priority;
+}
+
+int sched_set_priority(thread_priority_t priority)
+{
+	if (priority >= SCHED_PRIORITY_LEVEL_MIN &&
+			priority <= SCHED_PRIORITY_LEVEL_MAX) {
+		current_thread->priority = priority;
+		return 0;
+	}
+
+	return -1;
+}
+
 
 /*
  * start, init
@@ -261,7 +278,7 @@ void sched_start(void)
 
 void sched_init()
 {
-	for (unsigned int i = 0; i < PRIORITY_LEVELS; ++i)
+	for (unsigned int i = 0; i < SCHED_PRIORITY_LEVELS; ++i)
 		list_init_null(&ready_queues[i]);
 
 	idle_init();
