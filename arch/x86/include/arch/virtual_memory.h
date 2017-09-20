@@ -1,6 +1,8 @@
 #ifndef _ARCH_VIRTUAL_MEMORY_H_
 #define _ARCH_VIRTUAL_MEMORY_H_
 
+#include <stdbool.h>
+
 #include <arch/memory.h>
 
 /*
@@ -60,5 +62,10 @@
 	(KERNEL_VADDR_SPACE_SIZE / VM_COVERED_PER_PD_ENTRY) // 256
 #define USER_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES \
 	(USER_VADDR_SPACE_SIZE / VM_COVERED_PER_PD_ENTRY) // 768
+
+static inline bool virtual_memory_is_userspace_address(v_addr_t address)
+{
+	return (address >= KERNEL_VADDR_SPACE_TOP);
+}
 
 #endif

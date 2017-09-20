@@ -30,7 +30,12 @@ __stack_top:
 .text
 .globl _start
 _start:
+	# setup stack
 	movl $__stack_top, %esp
+
+	# stacktrace sentinel
+	pushl $0 # ret eip
+	pushl $0 # old ebp
 	movl %esp, %ebp
 
 	# set EFLAGS register to 0
