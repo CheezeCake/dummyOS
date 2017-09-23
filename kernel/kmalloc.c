@@ -38,6 +38,7 @@ static inline memory_block_t make_memory_block(size_t size, bool used)
 
 static bool kmalloc_init_done = false;
 static spinlock_declare_lock(lock);
+static memory_block_t* next_free_block = NULL;
 
 void kmalloc_init(void)
 {
@@ -52,45 +53,71 @@ void kmalloc_init(void)
 
 	memory_block_t* kheap = (memory_block_t*)kheap_get_start();
 	*kheap = make_memory_block(size - sizeof(memory_block_t), false);
+	next_free_block = kheap;
 	kmalloc_init_done = true;
+}
+
+static inline memory_block_t* __find_free_block(memory_block_t* start, v_addr_t end, size_t size)
+{
+	memory_block_t* current_block = start;
+
+	while ((v_addr_t)current_block < end &&
+			(memory_block_get_size(*current_block) < size
+			 || memory_block_get_used(*current_block))) {
+		current_block = memory_block_get_next(current_block);
+	}
+
+	return ((v_addr_t)current_block < end) ? current_block : NULL;
+}
+
+static memory_block_t* find_free_block(size_t size)
+{
+	// search for a free block between next_free_block and kheap_end
+	memory_block_t* free_block = __find_free_block(next_free_block, kheap_get_end(), size);
+
+	if (!free_block) {
+		// search between start of kheap and next_free_block
+		free_block = __find_free_block((memory_block_t*)kheap_get_start(),
+				(v_addr_t)next_free_block, size);
+
+		if (!free_block) {
+			// increase kheap
+			free_block = (memory_block_t*)kheap_sbrk(size);
+			if (free_block == (memory_block_t*)-1)
+				return NULL;
+		}
+	}
+
+	return free_block;
 }
 
 void* kmalloc(size_t size)
 {
 	spinlock_lock(lock);
 
-	memory_block_t* current_block = (memory_block_t*)kheap_get_start();
-	const v_addr_t kheap_end = kheap_get_end();
+	memory_block_t* free_block = find_free_block(size);
+	if (!free_block)
+		return NULL;
 
-	while ((v_addr_t)current_block < kheap_end &&
-			(memory_block_get_size(*current_block) < size
-			|| memory_block_get_used(*current_block))) {
-		current_block = memory_block_get_next(current_block);
-	}
-
-	if ((v_addr_t)current_block >= kheap_end) {
-		current_block = (memory_block_t*)kheap_sbrk(size);
-		if (current_block == (memory_block_t*)-1)
-			return NULL;
-	}
-
-	size_t original_size = memory_block_get_size(*current_block);
+	size_t original_size = memory_block_get_size(*free_block);
 	// is the block is large enough to be split?
 	if (original_size - size > sizeof(memory_block_t)) {
-		*current_block = make_memory_block(size, true);
+		*free_block = make_memory_block(size, true);
 
 		memory_block_t* second_part =
-			(memory_block_t*)(memory_block_get_data(current_block) + size);
+			(memory_block_t*)(memory_block_get_data(free_block) + size);
 		*second_part = make_memory_block(
 				original_size - size - sizeof(memory_block_t), false);
 	}
 	else {
-		*current_block |= 1; // set used bit
+		*free_block |= 1; // set used bit
 	}
+
+	next_free_block = memory_block_get_next(free_block);
 
 	spinlock_unlock(lock);
 
-	return (void*)memory_block_get_data(current_block);
+	return (void*)memory_block_get_data(free_block);
 }
 
 void kfree(void* ptr)
