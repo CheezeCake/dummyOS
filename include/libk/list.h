@@ -13,9 +13,15 @@ struct list {
 	struct list_node* tail;
 };
 
-#define LIST_CREATE			\
-	struct list_node* head;	\
-	struct list_node* tail;
+#define LIST_NODE_T_CREATE(T)	\
+	T* next;					\
+	T* prev
+
+#define LIST_T_CREATE(T)	\
+	T* head;				\
+	T* tail
+
+#define LIST_CREATE LIST_T_CREATE(struct list_node);
 
 
 /*
