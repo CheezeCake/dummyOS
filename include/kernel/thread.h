@@ -8,6 +8,7 @@
 #include <kernel/types.h>
 #include <libk/list.h>
 #include <libk/refcount.h>
+#include <kernel/sched/wait.h>
 
 struct process;
 
@@ -52,6 +53,8 @@ struct thread
 	struct list_node p_thr_list; // process.threads node
 	struct list_node s_ready_queue; // sched ready_queue node
 	struct list_node sem_wq; // sem wait_queue node
+
+	wait_queue_entry_t wqe; // wait_queue entry
 };
 
 struct thread* thread_kthread_create(const char* name,

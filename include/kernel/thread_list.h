@@ -4,8 +4,6 @@
 #include <kernel/kmalloc.h>
 #include <kernel/locking/spinlock.h>
 #include <kernel/synced_list.h>
-#include <kernel/thread.h>
-#include <libk/libk.h>
 #include <libk/list.h>
 
 struct thread_list
