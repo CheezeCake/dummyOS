@@ -1,14 +1,12 @@
 #ifndef _KERNEL_LOCKING_SEMAPHORE_H_
 #define _KERNEL_LOCKING_SEMAPHORE_H_
 
-#include <kernel/thread_list.h>
-
-typedef struct thread_list_synced thread_queue_t;
+#include <kernel/sched/wait.h>
 
 typedef struct sem_t
 {
 	int value;
-	thread_queue_t wait_queue;
+	wait_queue_t wait_queue;
 } sem_t;
 
 int semaphore_create(sem_t* sem, int n);
