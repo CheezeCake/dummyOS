@@ -30,7 +30,4 @@ void sched_yield_current_thread(void);
 void sched_sleep_current_thread(unsigned int millis);
 void sched_block_current_thread(void);
 
-thread_priority_t sched_get_priority(void);
-int sched_set_priority(thread_priority_t priority);
-
 #endif

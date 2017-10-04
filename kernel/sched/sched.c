@@ -245,25 +245,6 @@ void sched_sleep_current_thread(unsigned int millis)
 	preempt();
 }
 
-/*
- * priority
- */
-thread_priority_t sched_get_priority(void)
-{
-	return current_thread->priority;
-}
-
-int sched_set_priority(thread_priority_t priority)
-{
-	if (priority >= SCHED_PRIORITY_LEVEL_MIN &&
-			priority <= SCHED_PRIORITY_LEVEL_MAX) {
-		current_thread->priority = priority;
-		return 0;
-	}
-
-	return -1;
-}
-
 
 /*
  * start, init

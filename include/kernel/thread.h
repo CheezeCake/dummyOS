@@ -71,4 +71,7 @@ int thread_get_ref(const struct thread* thread);
 void thread_yield(void);
 void thread_sleep(unsigned int millis);
 
+thread_priority_t thread_get_priority(void);
+int thread_set_priority(thread_priority_t priority);
+
 #endif
