@@ -4,10 +4,15 @@
 #include <arch/memory.h>
 #include <kernel/kassert.h>
 
-#include <kernel/log.h>
-
 static v_addr_t kheap_start;
 static v_addr_t kheap_end;
+
+#define KHEAP_SBRK_MAX_SIZE_IN_PAGES 16
+static struct
+{
+	p_addr_t page_frame;
+	v_addr_t mapping_address;
+} mapped_pages[KHEAP_SBRK_MAX_SIZE_IN_PAGES] = { {0, 0} };
 
 size_t kheap_init(v_addr_t start, size_t initial_size)
 {
@@ -36,28 +41,15 @@ size_t kheap_init(v_addr_t start, size_t initial_size)
 	return (addr - start);
 }
 
-/*
- * Recursive function that allocates a physical page and maps it.
- * If one of the calls "below" fails, unmap and free the physical
- * pages previously allocated
- */
-static int _kheap_sbrk(unsigned int page_number, v_addr_t addr)
+static void sbrk_cleanup(unsigned int nb_pages)
 {
-	if (page_number == 0)
-		return 0;
+	for (int i = 0; i < nb_pages; ++i) {
+		paging_unmap(mapped_pages[i].mapping_address);
+		memory_page_frame_free(mapped_pages[i].page_frame);
 
-	p_addr_t page_frame = memory_page_frame_alloc();
-
-	if (!page_frame || paging_map(page_frame, addr, VM_OPT_WRITE) != 0)
-		return -1;
-
-	if (_kheap_sbrk(page_number - 1, addr + PAGE_SIZE) != 0) {
-		paging_unmap(addr);
-		memory_page_frame_free(page_frame);
-		return -1;
+		mapped_pages[i].page_frame = 0;
+		mapped_pages[i].mapping_address = 0;
 	}
-
-	return 0;
 }
 
 v_addr_t kheap_sbrk(size_t increment)
@@ -66,14 +58,35 @@ v_addr_t kheap_sbrk(size_t increment)
 		return -1;
 
 	const v_addr_t previous_kheap_end = kheap_end;
-	unsigned int nb_pages = increment >> PAGE_SIZE_SHIFT; // increment / PAGE_SIZE
+	const unsigned int nb_pages = increment >> PAGE_SIZE_SHIFT; // increment / PAGE_SIZE
 
-	if (_kheap_sbrk(nb_pages, kheap_end) == 0) {
-		kheap_end += nb_pages << PAGE_SIZE_SHIFT; // nb_pages * PAGE_SIZE
-		return previous_kheap_end;
+	if (nb_pages > KHEAP_SBRK_MAX_SIZE_IN_PAGES)
+		return -1;
+
+	v_addr_t mapping_address = kheap_end;
+	for (int i = 0; i < nb_pages; ++i) {
+		p_addr_t page_frame = memory_page_frame_alloc();
+
+		if (!page_frame) {
+			memory_page_frame_free(page_frame);
+			sbrk_cleanup(i);
+			return -1;
+		}
+
+		if (paging_map(page_frame, mapping_address, VM_OPT_WRITE) != 0) {
+			sbrk_cleanup(i + 1);
+			return -1;
+		}
+
+		mapped_pages[i].page_frame = page_frame;
+		mapped_pages[i].mapping_address = mapping_address;
+
+		mapping_address += PAGE_SIZE;
 	}
 
-	return -1;
+	kheap_end += nb_pages << PAGE_SIZE_SHIFT; // nb_pages * PAGE_SIZE
+
+	return previous_kheap_end;
 }
 
 v_addr_t kheap_get_start(void)
