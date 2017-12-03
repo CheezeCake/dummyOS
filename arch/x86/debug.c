@@ -93,8 +93,7 @@ void debug_dump()
 
 	__asm__ (
 			"pushfl\n"
-			"movl (%%esp), %0\n"
-			"addl $4, %%esp"
+			"popl %0\n"
 			: "=r" (reg));
 	debug_print_eflags(reg);
 
