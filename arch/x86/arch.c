@@ -7,7 +7,6 @@
 #include <kernel/time/time.h>
 #include <kernel/kernel_image.h>
 #include <kernel/kassert.h>
-#include <arch/irq.h>
 #include "gdt.h"
 #include "idt.h"
 #include "exception.h"
@@ -43,7 +42,6 @@ int arch_init(void)
 		exception_set_handler_generic(e, default_exception_handler);
 
 	irq_set_handler(IRQ_TIMER, clock_tick);
-	irq_disable();
 
 	time_init((struct time) { .sec = 0, .milli_sec = TICK_INTERVAL_IN_MS,
 			.nano_sec = 0 });

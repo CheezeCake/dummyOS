@@ -18,13 +18,15 @@ int exception_set_handler(unsigned int exception, interrupt_handler_t handler)
 	if (exception == EXCEPTION_DOUBLE_FAULT)
 		return -1;
 
+	irq_state_t state;
+	irq_save_state(state);
 	irq_disable();
 
 	int ret = idt_set_handler(EXCEPTION_IDT_INDEX(exception), INTGATE);
 	if (ret == 0)
 		exception_handlers[exception] = handler;
 
-	irq_enable();
+	irq_restore_state(state);
 
 	return ret;
 }
@@ -34,12 +36,14 @@ int exception_unset_handler(unsigned int exception)
 	if (exception > EXCEPTION_MAX)
 		return -1;
 
+	irq_state_t state;
+	irq_save_state(state);
 	irq_disable();
 
 	idt_unset_handler(EXCEPTION_IDT_INDEX(exception));
 	exception_handlers[exception] = NULL;
 
-	irq_enable();
+	irq_restore_state(state);
 
 	return 0;
 }
@@ -53,8 +57,6 @@ int exception_init(void)
 {
 	// setup double fault handler
 	int ret = exception_set_handler(EXCEPTION_DOUBLE_FAULT, doublefault_handler);
-
-	irq_disable();
 
 	return ret;
 }
