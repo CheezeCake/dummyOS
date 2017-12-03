@@ -4,10 +4,7 @@
 #include <stdint.h>
 #include "idt.h"
 
-// place the GDT right after the IDT in physical memory
-#define GDT_ADDRESS (IDT_ADDRESS + IDT_SIZE_BYTES)
 #define GDT_SIZE 6
-#define GDT_SIZE_BYTES (GDT_SIZE * sizeof(struct gdt_segment_descriptor))
 
 /*
  * 8 byte GDT segment descriptor structure
@@ -42,6 +39,11 @@ struct gdtr
 	uint32_t base_address;
 } __attribute__((packed));
 
+
 void gdt_init(void);
+void gdt_init_system_segment(unsigned int segment_index,
+							 uint32_t base, uint32_t limit,
+							 enum privilege_level dpl,
+							 enum system_segment_types type);
 
 #endif

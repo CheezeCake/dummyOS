@@ -10,10 +10,7 @@
 // asm_interrupt_hanlders size in interrupt.S
 #define INTERRUPTS_DEFINED 48
 
-// place the IDT at adress 0 in physical memory
-#define IDT_ADDRESS 0
 #define IDT_SIZE INTERRUPT_MAX
-#define IDT_SIZE_BYTES (IDT_SIZE * sizeof(struct idt_gate_descriptor))
 
 enum gate_type
 {

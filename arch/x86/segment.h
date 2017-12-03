@@ -10,6 +10,10 @@
 #define UDATA 4
 #define TSS 5
 
+// Intel Architecture Software Developer’s Manual Volume 3, section 3.4.3
+#define SYSTEM_SEGMENT 0
+#define CODE_DATA_SEGMENT 1
+
 // Intel Architecture Software Developer’s Manual Volume 3, section 3.4.3.1
 enum code_data_segment_types
 {

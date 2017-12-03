@@ -138,8 +138,6 @@ static void identity_map(p_addr_t page_directory, p_addr_t from, p_addr_t to)
 
 static void setup_identity_mapping(p_addr_t page_directory)
 {
-	// the IDT and GDT are in the first page frame
-	identity_map(page_directory, 0, PAGE_SIZE);
 	identity_map(page_directory, X86_MEMORY_HARDWARE_MAP_BEGIN,
 			X86_MEMORY_HARDWARE_MAP_END);
 	identity_map(page_directory, kernel_image_get_base_page_frame(),
