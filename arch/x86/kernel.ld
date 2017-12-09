@@ -3,12 +3,21 @@ ENTRY(_start)
 
 SECTIONS
 {
-	/* load the kernel at 0x100000 */
-	. = 0X100000;
+	/*
+	 * VMA:
+	 * the kernel will live at 0xc0100000 (3GB + 1MB) in virtual memory
+	 * the 1st MB of physical memory (hardware map) will be mapped to 0xc0000000
+	 * */
+	. = 0xc0100000;
 
-	/* put the multiboot header first, then the .text section*/
-	.text BLOCK(4K) :
+
+	/*
+	 * sections LMA: load AT VMA - 0xc0000000
+	 */
+
+	.text BLOCK(4K) : AT(ADDR(.text) - 0xc0000000) ALIGN(4K)
 	{
+		/* put the multiboot header first, then the .text section */
 		*(.multiboot)
 		. = ALIGN(4K);
 		__begin_kernel = .;
@@ -16,23 +25,22 @@ SECTIONS
 	}
 
 	/* read-only data. */
-	.rodata BLOCK(4K) : ALIGN(4K)
+	.rodata BLOCK(4K) : AT(ADDR(.rodata) - 0xc0000000) ALIGN(4K)
 	{
 		*(.rodata)
 	}
 
 	/* read-write data (initialized) */
-	.data BLOCK(4K) : ALIGN(4K)
+	.data BLOCK(4K) : AT(ADDR(.data) - 0xc0000000) ALIGN(4K)
 	{
 		*(.data)
 	}
 
 	/* read-write data (uninitialized) and stack */
-	.bss BLOCK(4K) : ALIGN(4K)
+	.bss BLOCK(4K) : AT(ADDR(.bss) - 0xc0000000) ALIGN(4K)
 	{
 		*(COMMON)
 		*(.bss)
-		*(.bootstrap_stack)
 		__end_kernel = .;
 	}
 
