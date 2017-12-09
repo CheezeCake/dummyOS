@@ -3,15 +3,15 @@
 
 #include <libk/utils.h>
 
-struct list_node {
+typedef struct list_node {
 	struct list_node* next;
 	struct list_node* prev;
-};
+} list_node_t;
 
-struct list {
+typedef struct list {
 	struct list_node* head;
 	struct list_node* tail;
-};
+} list_t;
 
 #define LIST_NODE_T_CREATE(T)	\
 	T* next;					\
