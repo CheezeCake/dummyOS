@@ -12,7 +12,7 @@ SECTIONS
 
 
 	/*
-	 * sections LMA: load AT VMA - 0xc0000000
+	 * sections LMA: load AT VMA - 0xc0000000 (i.e. starting at 1M)
 	 */
 
 	.text BLOCK(4K) : AT(ADDR(.text) - 0xc0000000) ALIGN(4K)
