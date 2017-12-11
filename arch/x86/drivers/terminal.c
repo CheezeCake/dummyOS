@@ -5,8 +5,7 @@
 #include <kernel/vga.h>
 #include <libk/libk.h>
 
-#define VGA_MEMORY 0xb8000
-
+#define VGA_MEMORY 0xc00b8000
 #define TERMINAL_LINES 25
 #define TERMINAL_COLUMNS 80
 
