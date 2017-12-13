@@ -5,7 +5,6 @@
 #include <kernel/kmalloc.h>
 #include <kernel/kernel.h>
 #include <kernel/time/time.h>
-#include <kernel/kernel_image.h>
 #include <kernel/kassert.h>
 #include "gdt.h"
 #include "idt.h"

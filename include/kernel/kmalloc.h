@@ -1,7 +1,9 @@
 #ifndef _KERNEL_KMALLOC_H_
 #define _KERNEL_KMALLOC_H_
 
-#include <kernel/kernel_image.h>
+#include <stddef.h>
+
+#include <kernel/types.h>
 
 p_addr_t kmalloc_early(size_t size);
 void kmalloc_init(void);
