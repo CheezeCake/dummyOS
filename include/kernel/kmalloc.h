@@ -5,7 +5,7 @@
 
 #include <kernel/types.h>
 
-p_addr_t kmalloc_early(size_t size);
+v_addr_t kmalloc_early(size_t size);
 void kmalloc_init(void);
 void* kmalloc(size_t size);
 void kfree(void* ptr);

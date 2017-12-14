@@ -45,7 +45,7 @@ static memory_block_t* next_free_block = NULL;
 
 void kmalloc_init(void)
 {
-	size_t size = kheap_init(kernel_image_get_top_page_frame(), KHEAP_INITIAL_SIZE);
+	size_t size = kheap_init(kernel_image_get_top_page(), KHEAP_INITIAL_SIZE);
 	if (size < KHEAP_INITIAL_SIZE)
 		PANIC("not enough memory for kernel heap");
 
@@ -163,13 +163,13 @@ void kfree(void* ptr)
 	spinlock_unlock(lock);
 }
 
-p_addr_t kmalloc_early(size_t size)
+v_addr_t kmalloc_early(size_t size)
 {
 	if (kmalloc_init_done)
 		PANIC("kmalloc_early was called after the initialization of the"
 			  " kmalloc subsytem!");
 
-	const p_addr_t kernel_end = kernel_image_get_end();
+	const v_addr_t kernel_end = kernel_image_get_virt_end();
 	kernel_image_shift_kernel_end(size);
 
 	return kernel_end;
