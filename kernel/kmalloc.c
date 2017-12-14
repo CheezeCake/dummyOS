@@ -60,7 +60,8 @@ void kmalloc_init(void)
 	kmalloc_init_done = true;
 }
 
-static inline memory_block_t* __find_free_block(memory_block_t* start, v_addr_t end, size_t size)
+static inline memory_block_t* __find_free_block(memory_block_t* start,
+												v_addr_t end, size_t size)
 {
 	memory_block_t* current_block = start;
 
@@ -76,7 +77,8 @@ static inline memory_block_t* __find_free_block(memory_block_t* start, v_addr_t 
 static memory_block_t* find_free_block(size_t size)
 {
 	// search for a free block between next_free_block and kheap_end
-	memory_block_t* free_block = __find_free_block(next_free_block, kheap_get_end(), size);
+	memory_block_t* free_block = __find_free_block(next_free_block,
+												   kheap_get_end(), size);
 
 	if (!free_block) {
 		// search between start of kheap and next_free_block
@@ -153,7 +155,8 @@ void kfree(void* ptr)
 
 	// merge
 	if ((v_addr_t)next_block < kheap_end && next_block != block) {
-		const size_t size = (size_t)((uint8_t*)next_block - (uint8_t*)memory_block_get_data(block));
+		const size_t size = (size_t)((uint8_t*)next_block -
+									 (uint8_t*)memory_block_get_data(block));
 		make_memory_block(block, size, false);
 	}
 
@@ -163,7 +166,8 @@ void kfree(void* ptr)
 p_addr_t kmalloc_early(size_t size)
 {
 	if (kmalloc_init_done)
-		PANIC("kmalloc_early was called after the initialization of the kmalloc subsytem!");
+		PANIC("kmalloc_early was called after the initialization of the"
+			  " kmalloc subsytem!");
 
 	const p_addr_t kernel_end = kernel_image_get_end();
 	kernel_image_shift_kernel_end(size);
