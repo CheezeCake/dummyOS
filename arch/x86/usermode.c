@@ -6,17 +6,40 @@
 #include <libk/libk.h>
 #include "segment.h"
 
+void usermode_function()
+{
+	unsigned int i = 0;
+	while (i < 100 * 1000)
+		++i;
+
+	/* __asm__ __volatile__ ( */
+	/*              "mov $0, %%eax\n" */
+	/*              "mov $0xdeadbeef, %%ebx\n" */
+	/*              "mov $0x8BADF00D, %%ecx\n" */
+	/*              "mov $0xBAAAAAAD, %%edx\n" */
+	/*              "mov $0xBAADF00D, %%esi\n" */
+	/*              "mov $0xBADDCAFE, %%edi\n" */
+	/*              /1* "mov $0xCAFED00D, %%ebp\n" *1/ */
+	/*              "int $0x80" */
+	/*              : */
+	/*              : */
+	/*              : "eax", "ebx", "ecx", "edx", "esi", "edi" */
+	/*              ); */
+
+	while (1);
+}
+
 void usermode_entry(void* _args)
 {
 	void** args = _args;
-	void* usermode_function = args[0];
+	/* void* usermode_function = args[0]; */
 	/* void* usermode_function_args = args[1]; */
 
 	p_addr_t page = memory_page_frame_alloc();
-	kassert(paging_map(page, KERNEL_VADDR_SPACE_TOP, VM_OPT_USER | VM_OPT_WRITE) == 0);
+	kassert(paging_map(page, 4096, VM_OPT_USER | VM_OPT_WRITE) == 0);
 
-	memcpy((void*)KERNEL_VADDR_SPACE_TOP, usermode_function, 176);
-	const uint32_t esp = KERNEL_VADDR_SPACE_TOP + 4096 - 4;
+	memcpy((void*)4096, usermode_function, 65);
+	const uint32_t esp = 4096 + 4096 - 4;
 
 	__asm__ __volatile__ (
 			"movw %0, %%ax\n"
@@ -34,7 +57,7 @@ void usermode_entry(void* _args)
 			:
 			: "i" (make_segment_selector(PRIVILEGE_USER, UDATA)),
 			  "i" (make_segment_selector(PRIVILEGE_USER, UCODE)),
-			  "i" (KERNEL_VADDR_SPACE_TOP),
+			  "i" (4096),
 			  "r" (esp)
 			: "eax", "memory");
 }

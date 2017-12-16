@@ -21,6 +21,8 @@
 #define pd_addr2p_addr(pd_addr) (pd_addr << 12)
 #define pt_addr2p_addr(pt_addr) pd_addr2p_addr(pt_addr)
 
+#define PAGE_DIRECTORY_ENTRY_COUNT	1024
+#define PAGE_TABLE_ENTRY_COUNT		1024
 struct page_directory_entry
 {
 	uint8_t present:1;
@@ -54,11 +56,14 @@ struct page_table_entry
 } __attribute__((packed));
 
 
-/** page directory located in .data define in boot.s */
+/*
+ * boot page directory and boot page table symbols
+ * defined in boot.s
+ */
 extern uint8_t __boot_page_directory_phys;
-extern uint8_t __boot_page_directory_virt;
+extern uint8_t __boot_page_directory;
 extern uint8_t __boot_page_table_phys;
-/* static const p_addr_t page_directory_frame = (p_addr_t)&__boot_page_directory_phys; */
+extern uint8_t __boot_page_table;
 
 /*
  * saves how many times a page table is referenced i.e. how many entries
@@ -102,51 +107,6 @@ static inline void invlpg(v_addr_t addr)
 	__asm__ __volatile__ ("invlpg %0" : : "m" (addr) : "memory");
 }
 
-static void identity_map(p_addr_t page_directory, p_addr_t from, p_addr_t to)
-{
-	/*
-	 * paging is not enabled here, we are still working with physical adresses
-	 */
-	kassert(from <= to);
-	for (p_addr_t addr = from; addr < to; addr += PAGE_SIZE) {
-		int index_pd = index_in_pd(addr);
-		int index_pt = index_in_pt(addr);
-
-		struct page_directory_entry* pde =
-			(struct page_directory_entry*)page_directory + index_pd;
-		p_addr_t page_table = (p_addr_t)NULL;
-		struct page_table_entry* pte = NULL;
-
-		if (pde->present) {
-			page_table = pd_addr2p_addr(pde->address);
-		}
-		else {
-			page_table = memory_page_frame_alloc();
-			kassert(page_table != (p_addr_t)NULL);
-			memset((void*)page_table, 0, PAGE_SIZE);
-
-			pde->present = 1;
-			pde->read_write = 1;
-			pde->address = p_addr2pd_addr(page_table);
-		}
-
-		pte = (struct page_table_entry*)page_table + index_pt;
-		pte->present = 1;
-		pte->read_write = 1;
-		pte->address = p_addr2pt_addr(addr);
-
-		paging_ref_page_table(index_pd);
-	}
-}
-
-static void setup_identity_mapping(p_addr_t page_directory)
-{
-	identity_map(page_directory, X86_MEMORY_HARDWARE_MAP_BEGIN,
-			X86_MEMORY_HARDWARE_MAP_END);
-	identity_map(page_directory, kernel_image_get_base_page_frame(),
-			kernel_image_get_top_page_frame());
-}
-
 static void setup_mirroring(v_addr_t page_directory, p_addr_t page_directory_phys)
 {
 	struct page_directory_entry* mirroring_entry =
@@ -160,51 +120,53 @@ static void setup_mirroring(v_addr_t page_directory, p_addr_t page_directory_phy
 	invlpg(MIRRORING_VADDR_BEGIN);
 }
 
-void paging_init(void)
+/**
+ * The kernel was loaded at 1MB and the first 4MB of physical memory were
+ * mapped to KERNEL_VADDR_SPACE_START in boot.s
+ * Unmap the "extra" pages that were map so only the frames were the kernel
+ * actually lives are mapped.
+ */
+static void map_to_fit_kernel(void)
 {
-	log_printf("pd[0] = 0x%x\n", *(unsigned int*)&__boot_page_directory_phys);
+	// kernel top virtual page
+	const v_addr_t kernel_top = kernel_image_get_top_page();
+	const int pt_index = index_in_pt(kernel_top);
+	struct page_table_entry* const pt = (struct page_table_entry*)&__boot_page_table;
 
-	// map to fit kernel
-	v_addr_t page = kernel_image_get_top_page();
-	log_e_printf("page = %p\n", (void*)page);
-	struct page_table_entry* pt = (struct page_table_entry*)&__boot_page_table_phys;
-	while (1) {
-		int kernel_top_pt_index = index_in_pt(page);
-		if (kernel_top_pt_index == 0)
-			break;
-
-		memset(&pt[kernel_top_pt_index], 0, sizeof(struct page_table_entry));
+	// Clear every entry in the kernel page table starting at the entry for the
+	// kernel_top page
+	v_addr_t page = kernel_top;
+	for (int i = pt_index; i < PAGE_TABLE_ENTRY_COUNT; ++i, page += PAGE_SIZE) {
+		memset(&pt[i], 0, sizeof(struct page_table_entry));
 		invlpg(page);
-
-		page += PAGE_SIZE;
 	}
+}
 
-	setup_mirroring((v_addr_t)&__boot_page_directory_virt, (p_addr_t)&__boot_page_directory_phys);
-
-	// unmap 0->4MB
-	struct page_directory_entry* pd = (struct page_directory_entry*)&__boot_page_directory_virt;
-	log_printf("pd[0] = 0x%x\n", *(unsigned int*)pd);
-	log_printf("pd[1] = 0x%x\n", *(unsigned int*)&pd[1]);
-	log_printf("pd[768] = 0x%x\n", *(unsigned int*)&pd[768]);
+/**
+ * The first 4MB of physical memory were identity mapped to avoid a crash,
+ * we can now remove this mapping.
+ */
+static void unmap_identity_map(void)
+{
+	struct page_directory_entry* pd = (struct page_directory_entry*)&__boot_page_directory;
+	// clear the page directory entry
 	memset(&pd[0], 0, sizeof(struct page_directory_entry));
+
+	// invalidate the translations for the first 4MB/4KB = 1024 pages
 	v_addr_t p = 0;
 	for (int i = 0; i < 1024; ++i) {
 		invlpg(p);
-		p += 4096;
+		p += PAGE_SIZE;
 	}
+}
 
-	// enable paging:
-	// cr3 = page directory base address
-	// set PG flag in cr0 (Intel Architecture Software Developer’s Manual Volume 3, section 2.5)
-	/* __asm__ ( */
-	/* 		"movl %0, %%eax\n" */
-	/* 		"movl %%eax, %%cr3\n" */
-	/* 		"movl %%cr0, %%eax\n" */
-	/* 		"orl $0x80000000, %%eax\n" */
-	/* 		"movl %%eax, %%cr0\n" */
-	/* 		: */
-	/* 		: "m" (page_directory) */
-	/* 		: "eax"); */
+void paging_init(void)
+{
+	map_to_fit_kernel();
+
+	setup_mirroring((v_addr_t)&__boot_page_directory, (p_addr_t)&__boot_page_directory_phys);
+
+	unmap_identity_map();
 }
 
 static inline struct page_directory_entry* get_page_directory_entry(v_addr_t vaddr)
@@ -225,7 +187,6 @@ static inline struct page_table_entry* get_page_table_entry(v_addr_t vaddr)
 
 int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 {
-	/* log_e_printf("map(%p, %p)\n", (void*)paddr, (void*)vaddr); */
 	struct page_directory_entry* pde = get_page_directory_entry(vaddr);
 	struct page_table_entry* pte = get_page_table_entry(vaddr);
 
@@ -236,10 +197,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 
 		pde->present = 1;
 		pde->read_write = 1;
-		// vaddr < MIRRORING_VADDR_BEGIN => kernel page table
-		// XXX: check
-		/* pde->user = (vaddr < MIRRORING_VADDR_BEGIN) ? 0 : 1; */
-		pde->user = virtual_memory_is_userspace_address(vaddr) ? 0 : 1;
+		pde->user = virtual_memory_is_userspace_address(vaddr);
 		pde->address = p_addr2pd_addr(page_table);
 
 		invlpg((v_addr_t)pte);
