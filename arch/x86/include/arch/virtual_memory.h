@@ -6,7 +6,18 @@
 #include <arch/memory.h>
 
 /*
- * +----------------------+ 4GB
+ * +---+------------------+ 4GB - 1 (0xffffffff)
+ * |   |                  |
+ * |   |  mirroring zone  |
+ * |   |                  |
+ * |   +------------------+ 4GB - 4MB (0xffc00000)
+ * |   |  reserved page   |
+ * |   +------------------+ 4GB - 4MB - 4kB (0xffbff000)
+ * |                      |
+ * | kernel address space |
+ * |                      |
+ * |                      |
+ * +----------------------+ 3GB (0xc0000000)
  * |                      |
  * |                      |
  * |                      |
@@ -24,17 +35,6 @@
  * |                      |
  * |                      |
  * |                      |
- * +---+------------------+ 1GB (0x40000000)
- * |   |                  |
- * |   |  mirroring zone  |
- * |   |                  |
- * |   +------------------+ 1GB - 4MB (0x3fc00000)
- * |   |  reserved page   |
- * |   +------------------+ 1GB - 4MB - 4kB (0x3fbff000)
- * |                      |
- * | kernel address space |
- * |                      |
- * |                      |
  * +----------------------+
  */
 
@@ -42,16 +42,17 @@
 /*
  * address space sizes
  */
-#define VADDR_SPACE_SIZE 0xffffffff // 4GB
+#define VADDR_SPACE_SIZE		0xffffffff // 4GB - 1
 #define KERNEL_VADDR_SPACE_SIZE 0x40000000 // 1GB
-#define USER_VADDR_SPACE_SIZE 0xC0000000 // 3GB
+#define USER_VADDR_SPACE_SIZE	0xc0000000 // 3GB
 
 /*
  * limits
  */
-#define KERNEL_VADDR_SPACE_TOP 0x40000000 // 1GB
-#define MIRRORING_VADDR_BEGIN (KERNEL_VADDR_SPACE_TOP - 0x400000) // 1GB - 4MB
-#define KERNEL_VADDR_SPACE_LIMIT (MIRRORING_VADDR_BEGIN - PAGE_SIZE) // 1GB - 4MB - 4kB
+#define KERNEL_VADDR_SPACE_START	0xc0000000 // 3GB
+#define KERNEL_VADDR_SPACE_END		0xffffffff // 4GB
+#define MIRRORING_VADDR_BEGIN		0xffc00000 // 4GB - 1 - 4MB
+#define KERNEL_VADDR_SPACE_LIMIT	0xffbff000 // 4GB - 1 - 4MB - 4kB
 #define KERNEL_VADDR_SPACE_RESERVED KERNEL_VADDR_SPACE_LIMIT
 
 /*
@@ -65,7 +66,7 @@
 
 static inline bool virtual_memory_is_userspace_address(v_addr_t address)
 {
-	return (address >= KERNEL_VADDR_SPACE_TOP);
+	return (address < KERNEL_VADDR_SPACE_START);
 }
 
 #endif

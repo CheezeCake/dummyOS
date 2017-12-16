@@ -11,6 +11,16 @@
 .set KERNEL_PAGE_DIRECTORY_INDEX, (KERNEL_VMA >> 22) # 3GB / 4MB
 .set PAGE_DIRECTORY_SIZE, 1024
 
+# page directory physical address
+.globl __boot_page_directory_phys
+.set __boot_page_directory_phys, boot_page_directory - KERNEL_VMA
+# page directory virtual address
+.globl __boot_page_directory_virt
+.set __boot_page_directory_virt, boot_page_directory
+
+.globl __boot_page_table_phys
+.set __boot_page_table_phys, boot_page_table - KERNEL_VMA
+
 
 # Multiboot header. We will force the .multiboot section to come first in
 # the kernel in the linker script. It must be in the first 8192 bytes.
@@ -29,21 +39,16 @@ __stack_bottom:
 __stack_top:
 .globl __stack_top
 
+
+
 .section .data
 .align 0x1000
-__boot_page_directory:
-# Use 4MB pages to identity map the first 4MB of physical memory and map them
-# again at 3GB (0xc0000000)
-#
-# Intel Architecture Software Developer’s Manual Volume 3, section 3.6.4
-# bit 7: page size = 4MB
-# bit 1: read/write
-# bit 0: present
-.long 0x83
-.fill KERNEL_PAGE_DIRECTORY_INDEX - 1, 4, 0
-.long 0x83
-.fill PAGE_DIRECTORY_SIZE - KERNEL_PAGE_DIRECTORY_INDEX - 1, 4, 0
+boot_page_directory:
+.fill 1024, 4, 0
+
 .align 0x1000
+boot_page_table:
+.fill 1024, 4, 0
 
 
 .text
@@ -52,15 +57,33 @@ __boot_page_directory:
 .globl _start
 .set _start, start - 0xc0000000
 start:
-	# page directory physical address
-	movl $__boot_page_directory - KERNEL_VMA, %eax
+	# page directory
+	movl $(boot_page_directory - KERNEL_VMA), %edi
+	xorl %ecx, %ecx
+
+	# 0x1003: address=0x4000, r/w, present
+	movl $(boot_page_table - KERNEL_VMA), %eax
+	orl $3, %eax
+	movl %eax, (%edi)
+	movl $KERNEL_PAGE_DIRECTORY_INDEX, %ecx
+	movl %eax, (%edi, %ecx, 4)
+
+	# page table
+	movl $(boot_page_table - KERNEL_VMA), %edi
+	xorl %ecx, %ecx
+	xorl %eax, %eax
+repeat:
+	movl %eax, %edx
+	orl $3, %edx
+	movl %edx, (%edi, %ecx, 4)
+	addl $0x1000, %eax
+	incl %ecx
+	cmpl $1024, %ecx
+	jne repeat
+
+	movl $(boot_page_directory - KERNEL_VMA), %eax
 	movl %eax, %cr3
 
-	# Intel Architecture Software Developer’s Manual Volume 3, section 3.6.1
-	# enable PSE
-	movl %cr4, %eax
-	orl $0x10, %eax
-	movl %eax, %cr4
 
 	# enable paging
 	movl %cr0, %eax
