@@ -7,7 +7,7 @@ SECTIONS
 	 * VMA:
 	 * the kernel will live at 0xc0100000 (3GB + 1MB) in virtual memory
 	 * the 1st MB of physical memory (hardware map) will be mapped to 0xc0000000
-	 * */
+	 */
 	. = 0xc0100000;
 
 
@@ -15,7 +15,7 @@ SECTIONS
 	 * sections LMA: load AT VMA - 0xc0000000 (i.e. starting at 1M)
 	 */
 
-	.text BLOCK(4K) : AT(ADDR(.text) - 0xc0000000) ALIGN(4K)
+	.text ALIGN(4K) : AT(ADDR(.text) - 0xc0000000)
 	{
 		__kernel_v_start = .;
 		__kernel_p_start = . - 0xc0000000;
@@ -25,19 +25,19 @@ SECTIONS
 	}
 
 	/* read-only data. */
-	.rodata BLOCK(4K) : AT(ADDR(.rodata) - 0xc0000000) ALIGN(4K)
+	.rodata ALIGN(4K) : AT(ADDR(.rodata) - 0xc0000000)
 	{
 		*(.rodata)
 	}
 
 	/* read-write data (initialized) */
-	.data BLOCK(4K) : AT(ADDR(.data) - 0xc0000000) ALIGN(4K)
+	.data ALIGN(4K) : AT(ADDR(.data) - 0xc0000000)
 	{
 		*(.data)
 	}
 
 	/* read-write data (uninitialized) */
-	.bss BLOCK(4K) : AT(ADDR(.bss) - 0xc0000000) ALIGN(4K)
+	.bss ALIGN(4K) : AT(ADDR(.bss) - 0xc0000000)
 	{
 		*(COMMON)
 		*(.bss)
