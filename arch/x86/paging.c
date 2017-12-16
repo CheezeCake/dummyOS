@@ -23,6 +23,7 @@
 
 #define PAGE_DIRECTORY_ENTRY_COUNT	1024
 #define PAGE_TABLE_ENTRY_COUNT		1024
+
 struct page_directory_entry
 {
 	uint8_t present:1;
@@ -60,10 +61,10 @@ struct page_table_entry
  * boot page directory and boot page table symbols
  * defined in boot.s
  */
-extern uint8_t __boot_page_directory_phys;
-extern uint8_t __boot_page_directory;
-extern uint8_t __boot_page_table_phys;
-extern uint8_t __boot_page_table;
+extern const uint8_t __boot_page_directory_phys;
+extern const uint8_t __boot_page_directory;
+extern const uint8_t __boot_page_table_phys;
+extern const uint8_t __boot_page_table;
 
 /*
  * saves how many times a page table is referenced i.e. how many entries
@@ -164,7 +165,8 @@ void paging_init(void)
 {
 	map_to_fit_kernel();
 
-	setup_mirroring((v_addr_t)&__boot_page_directory, (p_addr_t)&__boot_page_directory_phys);
+	setup_mirroring((v_addr_t)&__boot_page_directory,
+					(p_addr_t)&__boot_page_directory_phys);
 
 	unmap_identity_map();
 }
