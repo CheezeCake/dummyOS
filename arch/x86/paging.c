@@ -21,6 +21,9 @@
 #define pd_addr2p_addr(pd_addr) (pd_addr << 12)
 #define pt_addr2p_addr(pt_addr) pd_addr2p_addr(pt_addr)
 
+#define PAGE_DIRECTORY_ENTRY_COUNT	1024
+#define PAGE_TABLE_ENTRY_COUNT		1024
+
 struct page_directory_entry
 {
 	uint8_t present:1;
@@ -311,4 +314,28 @@ void paging_switch_cr3(p_addr_t cr3, bool init_userspace)
 			:
 			: "m" (cr3)
 			: "eax", "memory");
+}
+
+int paging_free_userspace(void)
+{
+	v_addr_t userspace_page = USER_VADDR_SPACE_START;
+	while (userspace_page < USER_VADDR_SPACE_END) {
+		struct page_directory_entry* pde = get_page_directory_entry(userspace_page);
+
+		if (pde->present) {
+			struct page_table_entry* pte = get_page_table_entry(userspace_page);
+
+			for (int i = 0; i < PAGE_TABLE_ENTRY_COUNT; ++i) {
+				if (pte[i].present)
+					paging_unmap(userspace_page);
+
+				userspace_page += PAGE_SIZE;
+			}
+		}
+		else {
+			userspace_page += VM_COVERED_PER_PD_ENTRY;
+		}
+	}
+
+	return 0;
 }
