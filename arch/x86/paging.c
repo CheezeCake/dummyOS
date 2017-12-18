@@ -277,7 +277,7 @@ int paging_unmap(v_addr_t vaddr)
 
 void paging_switch_cr3(p_addr_t cr3, bool init_userspace)
 {
-	const v_addr_t cr3_map = KERNEL_VADDR_SPACE_LIMIT;
+	const v_addr_t cr3_map = KERNEL_VADDR_SPACE_RESERVED;
 	const struct page_directory_entry* pd =
 		(struct page_directory_entry*)(MIRRORING_VADDR_BEGIN +
 			(index_in_pd(MIRRORING_VADDR_BEGIN) << PAGE_SIZE_SHIFT));
