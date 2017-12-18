@@ -10,14 +10,13 @@
  * |   |                  |
  * |   |  mirroring zone  |
  * |   |                  |
- * |   +------------------+ 4GB - 4MB (0xffc00000)
- * |   |  reserved page   |
- * |   +------------------+ 4GB - 4MB - 4kB (0xffbff000)
+ * |   +------------------+ 4GB - 1 - 4MB (0xffc00000)
  * |                      |
  * | kernel address space |
  * |                      |
- * |                      |
- * +----------------------+ 3GB (0xc0000000)
+ * |   +------------------+ 3GB + 0xa0000 (0xc00a0000)
+ * |   |  reserved pages  |
+ * +---+------------------+ 3GB (0xc0000000)
  * |                      |
  * |                      |
  * |                      |
@@ -52,8 +51,8 @@
 #define KERNEL_VADDR_SPACE_START	0xc0000000 // 3GB
 #define KERNEL_VADDR_SPACE_END		0xffffffff // 4GB
 #define MIRRORING_VADDR_BEGIN		0xffc00000 // 4GB - 1 - 4MB
-#define KERNEL_VADDR_SPACE_LIMIT	0xffbff000 // 4GB - 1 - 4MB - 4kB
-#define KERNEL_VADDR_SPACE_RESERVED KERNEL_VADDR_SPACE_LIMIT
+#define KERNEL_VADDR_SPACE_LIMIT	MIRRORING_VADDR_BEGIN
+#define KERNEL_VADDR_SPACE_RESERVED KERNEL_VADDR_SPACE_START
 
 /*
  * page directory entry count

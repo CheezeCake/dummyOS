@@ -128,10 +128,22 @@ static void setup_mirroring(v_addr_t page_directory, p_addr_t page_directory_phy
  */
 static void map_to_fit_kernel(void)
 {
+	struct page_table_entry* const pt = (struct page_table_entry*)&__boot_page_table;
+
+	// 0 to X86_MEMORY_HARDWARE_MAP_BEGIN
+	for (v_addr_t low_mem = KERNEL_VADDR_SPACE_START;
+		 low_mem < KERNEL_VADDR_SPACE_START + X86_MEMORY_HARDWARE_MAP_BEGIN;
+		 low_mem += PAGE_SIZE)
+	{
+		const int pt_index = index_in_pt(low_mem);
+
+		memset(&pt[pt_index], 0, sizeof(struct page_table_entry));
+		invlpg(low_mem);
+	}
+
 	// kernel top virtual page
 	const v_addr_t kernel_top = kernel_image_get_top_page();
 	const int pt_index = index_in_pt(kernel_top);
-	struct page_table_entry* const pt = (struct page_table_entry*)&__boot_page_table;
 
 	// Clear every entry in the kernel page table starting at the entry for the
 	// kernel_top page
@@ -275,12 +287,10 @@ void paging_switch_cr3(p_addr_t cr3, bool init_userspace)
 		   pd + kernel_vaddr_space_start_pd_index,
 		   KERNEL_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES *
 		   sizeof(struct page_directory_entry));
-	// clear reserved entry
-	memset((struct page_directory_entry*)cr3_map +
-			index_in_pd(KERNEL_VADDR_SPACE_RESERVED), 0,
-			sizeof(struct page_directory_entry));
+
 	// mirroring
 	setup_mirroring(cr3_map, cr3);
+
 	if (init_userspace) {
 		// clear user space entries
 		memset((void*)cr3_map, 0,
