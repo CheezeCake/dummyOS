@@ -24,4 +24,16 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 int snprintf(char* str, size_t size, const char* format, ...)
 	__attribute__((format(printf, 3, 4)));
 
+long int strtol(const char *nptr, char **endptr, int base);
+long int strntol(const char *nptr, size_t size, char **endptr, int base);
+
+// ctype
+int isalnum(int c);
+int isalpha(int c);
+int isdigit(int c);
+int isupper(int c);
+int islower(int c);
+int isblank(int c);
+int isspace(int c);
+
 #endif
