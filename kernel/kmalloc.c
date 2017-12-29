@@ -96,11 +96,13 @@ static memory_block_t* find_free_block(size_t size)
 
 void* kmalloc(size_t size)
 {
+	void* ret = NULL;
+
 	spinlock_lock(lock);
 
 	memory_block_t* free_block = find_free_block(size);
 	if (!free_block)
-		return NULL;
+		goto end;
 
 	size_t original_size = free_block->size;
 	// is the block is large enough to be split?
@@ -118,9 +120,12 @@ void* kmalloc(size_t size)
 
 	next_free_block = memory_block_get_next(free_block);
 
+	ret = (void*)memory_block_get_data(free_block);
+
+end:
 	spinlock_unlock(lock);
 
-	return (void*)memory_block_get_data(free_block);
+	return ret;
 }
 
 void kfree(void* ptr)
@@ -133,12 +138,12 @@ void kfree(void* ptr)
 	const v_addr_t kheap_end = kheap_get_end();
 
 	if (!ptr || (v_addr_t)ptr < kheap_get_start() || (v_addr_t)ptr > kheap_end)
-		return;
+		goto end;
 
 	memory_block_t* block = memory_block_get_header(ptr);
 
 	if (!block->used)
-		return;
+		goto end;
 
 	block->used = false;
 
@@ -157,6 +162,7 @@ void kfree(void* ptr)
 		make_memory_block(block, size, false);
 	}
 
+end:
 	spinlock_unlock(lock);
 }
 
