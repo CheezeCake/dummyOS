@@ -19,7 +19,7 @@ long int strntol(const char *nptr, size_t size, char **endptr, int base)
 		return 0;
 
 	// ignore leading spaces
-	while (i < size && nptr[i] == ' ')
+	while (i < size && isspace(nptr[i]))
 		++i;
 
 	if (i >= size)
