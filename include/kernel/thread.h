@@ -20,11 +20,12 @@ typedef unsigned int thread_priority_t;
 
 enum thread_state
 {
+	THREAD_CREATED,
 	THREAD_RUNNING,
 	THREAD_READY,
 	THREAD_BLOCKED,
 	THREAD_SLEEPING,
-	THREAD_DEAD
+	THREAD_ZOMBIE
 };
 enum thread_type { KTHREAD, UTHREAD };
 
@@ -50,19 +51,19 @@ struct thread
 
 	refcount_t refcnt;
 
-	struct list_node p_thr_list; // process.threads node
-	struct list_node s_ready_queue; // sched ready_queue node
-	struct list_node sem_wq; // sem wait_queue node
+	struct list_node p_thr_list; /**< Chained in process::threads */
+	struct list_node s_ready_queue; /**< Chained in sched::@ref ::ready_queues */
+	struct list_node sem_wq; /**< Chained in sem_t::wait_queue */
 
 	wait_queue_entry_t wqe; // wait_queue entry
 };
 
-struct thread* thread_kthread_create(const char* name,
-		struct process* proc, size_t stack_size, start_func_t start,
-		void* start_args, exit_func_t exit);
-struct thread* thread_uthread_create(const char* name,
-		struct process* proc, size_t stack_size, size_t kstack_size,
-		start_func_t start, void* start_args, exit_func_t exit);
+struct thread* thread_kthread_create(const char* name, size_t stack_size,
+									 start_func_t start, void* start_args,
+									 exit_func_t exit);
+struct thread* thread_uthread_create(const char* name, size_t stack_size,
+									 size_t kstack_size, start_func_t start,
+									 void* start_args, exit_func_t exit);
 
 void thread_ref(struct thread* thread);
 void thread_unref(struct thread* thread);

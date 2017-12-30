@@ -24,6 +24,9 @@ static sched_queue_t ready_queues[SCHED_PRIORITY_LEVELS];
 #define get_thread_queue(thread) ready_queues[(thread)->priority]
 #define get_thread_list_entry(node) list_entry(node, struct thread, s_ready_queue)
 
+/** List of running processes */
+static list_t process_list = LIST_NULL;
+
 static spinlock_declare_lock(access_lock);
 
 
@@ -122,9 +125,13 @@ static int add_process_threads(struct list_node* proc_thr_list_it)
 	return 0;
 }
 
-int sched_add_process(const struct process* proc)
+int sched_add_process(struct process* proc)
 {
-	return add_process_threads(list_begin(&proc->threads));
+	int err = add_process_threads(list_begin(&proc->threads));
+	if (err == 0)
+		list_push_back(&process_list, &proc->p_list);
+
+	return err;
 }
 
 
@@ -147,6 +154,22 @@ int sched_remove_thread(struct thread* thread)
 	}
 
 	return -1;
+}
+
+int sched_remove_process(struct process* proc)
+{
+	int ret = 0;
+	struct list_node* it;
+
+	list_foreach(&proc->threads, it) {
+		struct thread* thread = list_entry(it, struct thread, p_thr_list);
+		if (sched_remove_thread(thread) != 0)
+			ret = -1;
+	}
+
+	list_erase(&process_list, &proc->p_list);
+
+	return ret;
 }
 
 
@@ -261,6 +284,4 @@ void sched_init()
 {
 	for (unsigned int i = 0; i < SCHED_PRIORITY_LEVELS; ++i)
 		list_init_null(&ready_queues[i]);
-
-	idle_init();
 }

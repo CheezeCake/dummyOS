@@ -1,4 +1,5 @@
 #include <arch/paging.h>
+#include <kernel/errno.h>
 #include <kernel/memory.h>
 #include <kernel/paging.h>
 #include <kernel/vm_context.h>
@@ -7,7 +8,7 @@
 int vm_context_create(struct vm_context* vm_context)
 {
 	if ((vm_context->cr3 = memory_page_frame_alloc()) == 0)
-		return -1;
+		return -ENOMEM;
 
 	vm_context->init = true;
 
@@ -15,6 +16,12 @@ int vm_context_create(struct vm_context* vm_context)
 			USER_ADDR_SPACE_PAGE_DIRECTORY_ENTRIES);
 
 	return 0;
+}
+
+void vm_context_destroy(struct vm_context* vm_context)
+{
+	if (vm_context->cr3)
+		memory_page_frame_free(vm_context->cr3);
 }
 
 void vm_context_switch(struct vm_context* vm_context)

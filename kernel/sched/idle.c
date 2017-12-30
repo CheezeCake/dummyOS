@@ -3,7 +3,6 @@
 #include <kernel/sched/idle.h>
 #include <kernel/sched/sched.h>
 
-static struct process kthreadd;
 
 static void idle_kthread_do(void* args)
 {
@@ -13,6 +12,12 @@ static void idle_kthread_do(void* args)
 
 void idle_init(void)
 {
-	kassert(process_kprocess_create(&kthreadd, "[idle]", idle_kthread_do) == 0);
-	sched_add_process(&kthreadd);
+	process_kprocess_init();
+
+	struct thread* idle = thread_kthread_create("[idle]", 1024, idle_kthread_do, NULL, NULL);
+	kassert(idle != NULL);
+	kassert(process_add_kthread(idle) == 0);
+	thread_unref(idle);
+
+	kassert(sched_add_process(process_get_kprocess()) == 0);
 }
