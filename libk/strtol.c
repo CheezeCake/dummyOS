@@ -33,8 +33,6 @@ long int strntol(const char *nptr, size_t size, char **endptr, int base)
 		i += 2;
 
 	for (; i < size; ++i) {
-		value *= base;
-
 		char d = nptr[i];
 		char minus;
 
@@ -52,6 +50,7 @@ long int strntol(const char *nptr, size_t size, char **endptr, int base)
 		if (dval >= base)
 			break;
 
+		value *= base;
 		value += dval;
 	}
 
