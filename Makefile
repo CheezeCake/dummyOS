@@ -5,18 +5,21 @@ LDFLAGS:=-lgcc
 ARCHDIR=arch/$(TARGET_ARCH)/
 LIBKDIR=libk/
 KERNELDIR=kernel/
+FSDIR=fs/
 SCRIPTSDIR=scripts/
 ISODIR=isodir/
 
 include $(ARCHDIR)make.config
 include $(LIBKDIR)make.config
 include $(KERNELDIR)make.config
-OBJECTS=$(ARCH_OBJS) $(LIBK_OBJS) $(KERNEL_OBJS)
+include $(FSDIR)make.config
+RAMFS=
+OBJECTS=$(ARCH_OBJS) $(LIBK_OBJS) $(KERNEL_OBJS) $(FS_OBJS) $(RAMFS)
 
 KERNEL_BIN=dummy_os.bin
 KERNEL_ISO=dummy_os.iso
 
-.PHONY: all arch libk kernel clean mrproper rebuild bin iso run debug
+.PHONY: all arch libk kernel fs clean mrproper rebuild bin iso run debug
 
 
 all: bin
@@ -36,7 +39,10 @@ libk:
 kernel: arch libk
 	@$(MAKE) -C $(KERNELDIR)
 
-bin: arch libk kernel $(KERNEL_BIN)
+fs:
+	@$(MAKE) -C $(FSDIR)
+
+bin: arch libk kernel fs $(KERNEL_BIN)
 
 iso: bin $(KERNEL_ISO)
 
@@ -53,6 +59,7 @@ clean:
 	@$(MAKE) clean -C $(ARCHDIR)
 	@$(MAKE) clean -C $(LIBKDIR)
 	@$(MAKE) clean -C $(KERNELDIR)
+	@$(MAKE) clean -C $(FSDIR)
 
 mrproper: clean
 	@rm -f $(KERNEL_BIN) $(KERNEL_ISO)
