@@ -159,7 +159,8 @@ ar_get_long_filename(const struct ar_header* header,
 {
 	const size_t offset = strntol(header->name + 1, sizeof(header->name) - 1,
 								  NULL, 10);
-	return (sb_data->long_filenames_start + offset);
+	return ((char*)sb_data->long_filenames_start + sizeof(struct ar_header)
+			+ offset);
 }
 
 static inline bool ar_header_valid(const struct ar_header* header)
