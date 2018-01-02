@@ -102,6 +102,14 @@ struct vfs_cache_node*
 vfs_cache_node_lookup_child(const struct vfs_cache_node* parent,
 							const vfs_path_t* name)
 {
+	const char dot[] = "..";
+	// "."
+	if (vfs_path_name_str_equals(name, dot, 1))
+		return (struct vfs_cache_node*)parent;
+	// ".."
+	if (vfs_path_name_str_equals(name, dot, 2))
+		return parent->parent;
+
 	struct list_node* it;
 
 	list_foreach(&parent->children, it) {
