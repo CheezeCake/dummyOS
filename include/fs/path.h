@@ -39,6 +39,14 @@ typedef struct vfs_path
 } vfs_path_t;
 
 /**
+ * @brief File system path component
+ */
+typedef struct vfs_path_component
+{
+	vfs_path_t as_path;
+} vfs_path_component_t;
+
+/**
  * @brief Creates a vfs_path_t object taking ownership of the pointer path
  *
  * @param path the path
@@ -125,14 +133,20 @@ bool vfs_path_absolute(const vfs_path_t* path);
  */
 bool vfs_path_empty(const vfs_path_t* path);
 
-// XXX
-int vfs_path_get_component(const vfs_path_t* path, vfs_path_t* component);
+/**
+ * @brief Starts splitting the path in components
+ *
+ * @param component will point to the first component of path
+ */
+int vfs_path_get_component(const vfs_path_t* path,
+						   vfs_path_component_t* component);
+
 /*
  * @brief Point to the next component
  *
  * @return @see vfs_path_get_next_compenent()
  */
-int vfs_path_next_component(vfs_path_t* path);
+int vfs_path_next_component(vfs_path_component_t* path);
 
 /**
  * @brief Compare two names

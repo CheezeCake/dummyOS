@@ -17,9 +17,9 @@ static list_t mounted_list = LIST_NULL;
 
 static int get_superblock(struct vfs_cache_node* device, const char* filesystem,
 						  void* data, struct vfs_superblock** sb);
-static int lookup(vfs_path_t* path, struct vfs_cache_node* start,
-				  struct vfs_cache_node* root, struct vfs_cache_node** result,
-				  unsigned int recursion_level);
+static int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
+					   struct vfs_cache_node* cwd, struct vfs_cache_node** result,
+					   unsigned int recursion_level);
 
 #include <fs/ramfs/ramfs.h>
 /* extern int8_t _binary_archive_start; */
@@ -107,7 +107,7 @@ static int readlink(const struct vfs_cache_node* symlink,
 		? root
 		: vfs_cache_node_get_parent(symlink);
 
-	return lookup(target_path_p, start, root, target, recursion_level + 1);
+	return lookup_path(target_path_p, start, root, target, recursion_level + 1);
 }
 
 /**
@@ -133,7 +133,7 @@ static int read_and_cache_inode(struct vfs_cache_node* parent,
 									   cached_result);
 }
 
-static int lookup(vfs_path_t* path, struct vfs_cache_node* start,
+static int lookup(vfs_path_component_t* path_component, struct vfs_cache_node* start,
 				  struct vfs_cache_node* root, struct vfs_cache_node** result,
 				  unsigned int recursion_level)
 {
@@ -143,6 +143,7 @@ static int lookup(vfs_path_t* path, struct vfs_cache_node* start,
 	if (!start || !root)
 		return -EINVAL;
 
+	vfs_path_t* path = &path_component->as_path;
 	struct vfs_cache_node* current_node = start;
 
 	while (!vfs_path_empty(path)) {
@@ -170,7 +171,7 @@ static int lookup(vfs_path_t* path, struct vfs_cache_node* start,
 				return err;
 		}
 
-		vfs_path_next_component(path);
+		vfs_path_next_component(path_component);
 		current_node = looked_up;
 	}
 
@@ -179,21 +180,28 @@ static int lookup(vfs_path_t* path, struct vfs_cache_node* start,
 	return 0;
 }
 
+int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
+				struct vfs_cache_node* cwd, struct vfs_cache_node** result,
+				unsigned int recursion_level)
+{
+	int err;
+	vfs_path_component_t path_component;
+	struct vfs_cache_node* start = (vfs_path_absolute(path)) ? root : cwd;
+
+	if ((err = vfs_path_get_component(path, &path_component)) != 0)
+		return err;
+
+	err = lookup(&path_component, start, root, result, recursion_level);
+
+	vfs_path_destroy(&path_component.as_path);
+
+	return err;
+}
+
 int vfs_lookup(const vfs_path_t* path, struct vfs_cache_node* root,
 			   struct vfs_cache_node* cwd, struct vfs_cache_node** result)
 {
-	int err;
-	vfs_path_t lkp_path;
-	struct vfs_cache_node* start = (vfs_path_absolute(path)) ? root : cwd;
-
-	if ((err = vfs_path_get_component(path, &lkp_path)) != 0)
-		return err;
-
-	err = lookup(&lkp_path, start, root, result, 0);
-
-	vfs_path_destroy(&lkp_path);
-
-	return err;
+	return lookup_path(path, root, cwd, result, 0);
 }
 
 int vfs_lookup_in_fs(const vfs_path_t* path, struct vfs_superblock* sb,
