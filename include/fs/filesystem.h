@@ -3,7 +3,7 @@
 
 #include <libk/list.h>
 
-/** Max length for a file system path */
+/** Max length for a file system name */
 #define VFS_FILESYSTEM_NAME_MAX_LENGTH 16
 
 struct vfs_inode;
