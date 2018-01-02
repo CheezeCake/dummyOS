@@ -23,8 +23,8 @@ int vfs_mount(struct vfs_cache_node* device, struct vfs_cache_node* mountpoint,
  * @brief Unmounts a File system
  *
  * @param mountpoint the node on which the file system is mounted
- * @return 0 on success \
- *			-EINVAL if no file system was mounted on mountpoint
+ * @return 0 on success \n
+ *		-EINVAL if no file system was mounted on mountpoint
  */
 int vfs_umount(struct vfs_cache_node* mountpoint);
 
