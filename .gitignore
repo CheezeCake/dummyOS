@@ -11,3 +11,4 @@ compile_commands.json
 .gdbinit
 peda-session-dummy_os.bin.txt
 doc/
+Doxyfile
