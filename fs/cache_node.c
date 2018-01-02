@@ -9,7 +9,6 @@
 #include <libk/refcount.h>
 #include <libk/utils.h>
 
-/* static struct vfs_inode root_inode; */
 static struct vfs_cache_node* cache_node_root = NULL;
 
 int vfs_cache_init(struct vfs_cache_node* root)
