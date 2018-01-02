@@ -7,13 +7,7 @@
 /**
  * Registered @ref vfs_filesystem list
  */
-static list_t filesystem_list;
-
-int vfs_filesystem_init(void)
-{
-	list_init_null(&filesystem_list);
-	return 0;
-}
+static list_t filesystem_list = LIST_NULL;
 
 int vfs_filesystem_register(struct vfs_filesystem* fs)
 {

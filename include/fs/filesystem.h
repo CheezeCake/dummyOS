@@ -30,11 +30,6 @@ struct vfs_filesystem
 };
 
 /**
- * @brief Initialiazes the filesystem subsystem
- */
-int vfs_filesystem_init(void);
-
-/**
  * @brief Register a filesystem
  */
 int vfs_filesystem_register(struct vfs_filesystem* fs);
