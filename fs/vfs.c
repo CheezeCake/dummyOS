@@ -184,21 +184,13 @@ int vfs_lookup(const vfs_path_t* path, struct vfs_cache_node* root,
 {
 	int err;
 	vfs_path_t lkp_path;
-	struct vfs_cache_node* start = NULL;
+	struct vfs_cache_node* start = (vfs_path_absolute(path)) ? root : cwd;
 
-	if (vfs_path_absolute(path)) {
-		err = vfs_path_get_component(path, &lkp_path);
-		start = root;
-	}
-	else {
-		err = vfs_path_copy_init(path, &lkp_path);
-		start = cwd;
-	}
-
-	if (err != 0)
+	if ((err = vfs_path_get_component(path, &lkp_path)) != 0)
 		return err;
 
 	err = lookup(&lkp_path, start, root, result, 0);
+
 	vfs_path_destroy(&lkp_path);
 
 	return err;
