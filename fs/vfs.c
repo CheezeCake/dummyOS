@@ -99,7 +99,7 @@ static int readlink(const struct vfs_cache_node* symlink,
 	vfs_path_t* target_path_p = &target_path;
 
 	int err = symlink->inode->op->readlink(symlink->inode, &target_path_p);
-	if (err < 0)
+	if (err != 0)
 		return err;
 
 	struct vfs_cache_node* const start =
@@ -146,6 +146,8 @@ static int lookup(vfs_path_t* path, struct vfs_cache_node* start,
 	struct vfs_cache_node* current_node = start;
 
 	while (!vfs_path_empty(path)) {
+		current_node = vfs_cache_node_resolve_mounted_fs(current_node);
+
 		log_print("path: "); print_path(path);
 		log_print("current_node: "); print_path(&current_node->name);
 
