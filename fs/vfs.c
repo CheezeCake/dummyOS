@@ -129,9 +129,8 @@ static int read_and_cache_inode(struct vfs_cache_node* parent,
 	if (err != 0)
 		return err;
 
-	*cached_result = vfs_cache_node_insert_child(parent, inode);
-
-	return 0;
+	return vfs_cache_node_insert_child(parent, inode, lookup_pathname,
+									   cached_result);
 }
 
 static int lookup(vfs_path_t* path, struct vfs_cache_node* start,
@@ -148,6 +147,7 @@ static int lookup(vfs_path_t* path, struct vfs_cache_node* start,
 
 	while (!vfs_path_empty(path)) {
 		log_print("path: "); print_path(path);
+		log_print("current_node: "); print_path(&current_node->name);
 
 		// if it's a symlink resolve it
 		if (current_node->inode->type == SYMLINK)
@@ -164,7 +164,7 @@ static int lookup(vfs_path_t* path, struct vfs_cache_node* start,
 		if (!looked_up) {
 			// node is not in the cache, fetch and cache it
 			int err = read_and_cache_inode(current_node, path, &looked_up);
-			if (err < 0)
+			if (err != 0)
 				return err;
 		}
 

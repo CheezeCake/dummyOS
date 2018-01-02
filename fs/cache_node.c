@@ -78,11 +78,25 @@ static void destroy(struct vfs_cache_node* node)
 	}
 }
 
-struct vfs_cache_node*
-vfs_cache_node_insert_child(struct vfs_cache_node* parent,
-							struct vfs_inode* child_inode)
+int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
+								struct vfs_inode* child_inode,
+								const vfs_path_t* name,
+								struct vfs_cache_node** inserted_child)
 {
-	return NULL;
+	int err;
+	struct vfs_cache_node* cache_node;
+
+	if ((err = vfs_cache_node_create(child_inode, name, &cache_node) != 0))
+		return err;
+
+	if (parent) {
+		cache_node->parent = parent;
+		list_push_back(&parent->children, &cache_node->cn_children_list);
+	}
+	if (inserted_child)
+		*inserted_child = cache_node;
+
+	return 0;
 }
 
 struct vfs_cache_node*

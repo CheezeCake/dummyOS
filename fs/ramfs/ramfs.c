@@ -137,11 +137,20 @@ static size_t ar_filename_len(const char* filename)
 }
 
 static inline struct ar_header*
-ar_get_next_header(struct ar_header* header)
+ar_get_next_header(struct ar_header* header, void* archive_start)
 {
 	const size_t file_size = strntol(header->size, sizeof(header->size),
 									 NULL, 10);
-	return (struct ar_header*)((int8_t*)header + file_size);
+	const int8_t* next_header = ((int8_t*)header + sizeof(struct ar_header)
+								  + file_size);
+	const ptrdiff_t offset = next_header - (int8_t*)archive_start;
+
+	// "Each archive file member begins on an even byte boundary;
+	// a newline is inserted between files if necessary"
+	if (offset % 2 == 1)
+		++next_header;
+
+	return (struct ar_header*)next_header;
 }
 
 static const char*
@@ -171,7 +180,8 @@ static inline bool ar_long_filename_header(const struct ar_header* header)
 static void superblock_data_init(struct ramfs_superblock_data* sb_data,
 								 void* start)
 {
-	struct ar_header* first_header = (struct ar_header*)start;
+	struct ar_header* first_header = (struct ar_header*)
+		((int8_t*)start + AR_MAGIC_SIZE);
 
 	memset(sb_data, 0, sizeof(struct ramfs_superblock_data));
 
@@ -215,7 +225,7 @@ static int superblock_create(struct vfs_filesystem* this,
 		goto fail;
 
 	memset(sb, 0, sizeof(struct vfs_superblock));
-	superblock_data_init(sb_data, (int8_t*)data + AR_MAGIC_SIZE);
+	superblock_data_init(sb_data, data);
 
 	if ((err = create_root_node(sb, &sb->root)) != 0)
 		goto fail;
@@ -290,7 +300,7 @@ static int lookup(struct vfs_inode* this, const vfs_path_t* name,
 			found = true;
 		}
 		else {
-			struct ar_header* next = ar_get_next_header(fh);
+			struct ar_header* next = ar_get_next_header(fh, sb_data->start);
 			if (next == fh)
 				break; // avoid infinite loop
 			fh = next;

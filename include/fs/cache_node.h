@@ -57,9 +57,10 @@ int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
 /**
  * @brief Add child node
  */
-struct vfs_cache_node*
-vfs_cache_node_insert_child(struct vfs_cache_node* parent,
-							struct vfs_inode* child_inode);
+int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
+								struct vfs_inode* child_inode,
+								const vfs_path_t* name,
+								struct vfs_cache_node** inserted_child);
 
 /*
  * @brief Returns the child node that matches a name if it exists
