@@ -6,6 +6,8 @@
 #include <fs/inode.h>
 #include <libk/list.h>
 
+struct vfs_superblock_operations;
+
 /**
  * @brief File system superblock interface
  *

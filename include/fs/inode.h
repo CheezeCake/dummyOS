@@ -5,6 +5,8 @@
 #include <fs/path.h>
 #include <libk/refcount.h>
 
+struct vfs_inode_operations;
+
 /**
  * @brief File system node types
  */
