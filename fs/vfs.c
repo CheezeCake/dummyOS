@@ -34,7 +34,9 @@ static int mount_root(void)
 
 	/* vfs_cache_init(sb->root); */
 
-	return 0;
+	/* return 0; */
+
+	return -ENODEV;
 }
 
 int vfs_init(void)
