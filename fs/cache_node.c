@@ -134,6 +134,29 @@ vfs_cache_node_get_parent(const struct vfs_cache_node* node)
 	return node->parent;
 }
 
+int vfs_cache_node_open(struct vfs_cache_node* node, int mode,
+						struct vfs_file** result)
+{
+	int err;
+	struct vfs_file* file;
+	struct vfs_inode* inode = node->inode;
+
+	if ((err = vfs_file_create(node, mode, &file)) != 0)
+		return err;
+
+	if ((err = inode->op->open(inode, node, mode, file)) != 0)
+		return err;
+
+	// fs dependent open() did not set file->op
+	if (!file->op) {
+		inode->op->close(inode, file);
+		vfs_file_destroy(file);
+		return -EIO;
+	}
+
+	return 0;
+}
+
 struct vfs_cache_node*
 vfs_cache_node_resolve_mounted_fs(struct vfs_cache_node* mountpoint)
 {

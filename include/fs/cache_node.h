@@ -1,6 +1,7 @@
 #ifndef _FS_VFS_CACHE_NODE_H_
 #define _FS_VFS_CACHE_NODE_H_
 
+#include <fs/file.h>
 #include <fs/inode.h>
 #include <fs/path.h>
 #include <libk/list.h>
@@ -81,6 +82,11 @@ struct vfs_cache_node* vfs_cache_node_get_root(void);
  */
 struct vfs_cache_node*
 vfs_cache_node_get_parent(const struct vfs_cache_node* node);
+
+/**
+ */
+int vfs_cache_node_open(struct vfs_cache_node* node, int mode,
+						struct vfs_file** result);
 
 /**
  * @brief Returns the root node of the last file system mounted

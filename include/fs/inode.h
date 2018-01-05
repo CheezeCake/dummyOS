@@ -5,6 +5,7 @@
 #include <fs/path.h>
 #include <libk/refcount.h>
 
+struct vfs_cache_node;
 struct vfs_inode_operations;
 
 /**
@@ -18,6 +19,13 @@ enum vfs_node_type
 	DEVCHAR,
 	DEVBLOCK
 };
+
+/*
+ * @brief open() flags
+ */
+#define O_APPEND	0
+#define O_CREAT		1
+#define O_TRUNC		2
 
 /**
  * @brief File system inode interface
@@ -39,15 +47,36 @@ struct vfs_inode
  */
 struct vfs_inode_operations
 {
-	// directory
+	/**
+	 * @brief Searches for child node
+	 *
+	 * @node Only applies to type == DIRECTORY
+	 */
 	int (*lookup)(struct vfs_inode* this, const vfs_path_t* name,
 								struct vfs_inode** result);
-	// symlink
+	/**
+	 * @brief Extracts the target path of a symlink
+	 *
+	 * @note Only applies to type == SYMLINK
+	 */
 	int (*readlink)(struct vfs_inode* this, vfs_path_t** target_path);
-	// all
-	/* struct file* (*open)(struct vfs_inode* this, int mode); */
-	/* int (*close)(struct vfs_inode* this, struct file* file); */
 
+	/**
+	 * @brief Opens this inode as a file
+	 *
+	 * @note This should fill the vfs_file::op field
+	 */
+	int (*open)(struct vfs_inode* this, struct vfs_cache_node* node,
+				int flags, struct vfs_file* file);
+
+	/**
+	 * @brief Closes and file  associated with and inode
+	 */
+	int (*close)(struct vfs_inode* this, struct vfs_file* file);
+
+	/**
+	 * @brief Destroys a vfs_inode object
+	 */
 	void (*destroy)(struct vfs_inode* this);
 };
 

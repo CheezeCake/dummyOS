@@ -9,9 +9,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <fs/file.h>
 #include <fs/filesystem.h>
-#include <fs/superblock.h>
 #include <fs/inode.h>
+#include <fs/superblock.h>
 #include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/types.h>
@@ -78,6 +79,7 @@ struct ramfs_inode_info
 static struct vfs_filesystem ramfs;
 static struct vfs_superblock_operations ramfs_superblock_op;
 static struct vfs_inode_operations ramfs_inode_op;
+static struct vfs_file_operations ramfs_file_op;
 
 static int ramfs_node_info_create(struct ar_header* header,
 								  struct vfs_superblock* sb,
@@ -327,6 +329,18 @@ static int readlink(struct vfs_inode* this, vfs_path_t** target_path)
 	return -EINVAL; // symlinks are not supported
 }
 
+static int open(struct vfs_inode* this, struct vfs_cache_node* node,
+			int mode, struct vfs_file* file)
+{
+	file->op = &ramfs_file_op;
+	return 0;
+}
+
+static int close(struct vfs_inode* this, struct vfs_file* file)
+{
+	return 0;
+}
+
 static void destroy(struct vfs_inode* this)
 {
 	ramfs_node_info_destroy(get_ramfs_inode(this));
@@ -351,7 +365,13 @@ static struct vfs_superblock_operations ramfs_superblock_op = {
 static struct vfs_inode_operations ramfs_inode_op = {
 	.lookup = lookup,
 	.readlink = readlink,
+	.open = open,
+	.close = close,
 	.destroy = destroy
+};
+
+static struct vfs_file_operations ramfs_file_op = {
+	.lseek = NULL,
 };
 
 int ramfs_init_and_register(void)
