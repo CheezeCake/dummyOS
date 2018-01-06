@@ -154,6 +154,8 @@ int vfs_cache_node_open(struct vfs_cache_node* node, int mode,
 		return -EIO;
 	}
 
+	*result = file;
+
 	return 0;
 }
 
