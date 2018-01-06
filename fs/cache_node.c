@@ -134,17 +134,17 @@ vfs_cache_node_get_parent(const struct vfs_cache_node* node)
 	return node->parent;
 }
 
-int vfs_cache_node_open(struct vfs_cache_node* node, int mode,
+int vfs_cache_node_open(struct vfs_cache_node* node, int flags,
 						struct vfs_file** result)
 {
 	int err;
 	struct vfs_file* file;
 	struct vfs_inode* inode = node->inode;
 
-	if ((err = vfs_file_create(node, mode, &file)) != 0)
+	if ((err = vfs_file_create(node, flags, &file)) != 0)
 		return err;
 
-	if ((err = inode->op->open(inode, node, mode, file)) != 0)
+	if ((err = inode->op->open(inode, node, flags, file)) != 0)
 		return err;
 
 	// fs dependent open() did not set file->op
