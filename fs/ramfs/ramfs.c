@@ -95,7 +95,7 @@ static int ramfs_node_info_create(struct ar_header* header,
 	ramfs_inode->header_start = header;
 	if (header) {
 		ramfs_inode->data_start = header + 1;
-		ramfs_inode->data_size = strntol(header->name, sizeof(header->name),
+		ramfs_inode->data_size = strntol(header->size, sizeof(header->size),
 										 NULL, 10);
 	}
 
