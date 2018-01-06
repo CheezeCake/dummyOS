@@ -10,5 +10,6 @@
 	(MIRRORING_VADDR_BEGIN / VM_COVERED_PER_PD_ENTRY) // 256
 
 void paging_switch_cr3(p_addr_t cr3, bool init_userspace);
+int paging_free_userspace(void);
 
 #endif

@@ -17,6 +17,11 @@ int vm_context_create(struct vm_context* vm_context)
 	return 0;
 }
 
+void vm_context_destroy(struct vm_context* vm_context)
+{
+	memory_page_frame_free(vm_context->cr3);
+}
+
 void vm_context_switch(struct vm_context* vm_context)
 {
 	paging_switch_cr3(vm_context->cr3, vm_context->init);

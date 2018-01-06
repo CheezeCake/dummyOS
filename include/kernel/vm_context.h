@@ -5,6 +5,8 @@
 
 int vm_context_create(struct vm_context* vm_context);
 
+void vm_context_destroy(struct vm_context* vm_context);
+
 void vm_context_switch(struct vm_context* vm_context);
 
 #endif
