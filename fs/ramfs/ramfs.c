@@ -330,7 +330,7 @@ static int readlink(struct vfs_inode* this, vfs_path_t** target_path)
 }
 
 static int open(struct vfs_inode* this, struct vfs_cache_node* node,
-			int mode, struct vfs_file* file)
+			int flags, struct vfs_file* file)
 {
 	file->op = &ramfs_file_op;
 	return 0;
@@ -344,6 +344,47 @@ static int close(struct vfs_inode* this, struct vfs_file* file)
 static void destroy(struct vfs_inode* this)
 {
 	ramfs_node_info_destroy(get_ramfs_inode(this));
+}
+
+/*
+ * file operations
+ */
+off_t lseek(struct vfs_file* this, off_t offset, int whence)
+{
+	off_t new;
+	struct ramfs_inode_info* ramfs_inode = get_ramfs_inode(this->node->inode);
+
+	switch (whence) {
+		case SEEK_CUR:
+			new = this->cur + offset;
+			if (new < this->cur) // negative result
+				return -EINVAL;
+			break;
+		case SEEK_SET:
+			new = 0;
+			break;
+		case SEEK_END:
+			new = ramfs_inode->data_size - offset;
+			if (new > ramfs_inode->data_size) // overflow
+				return -EOVERFLOW;
+			break;
+		default:
+			return -EINVAL;
+	}
+
+	this->cur = new;
+
+	return 0;
+}
+
+ssize_t read(struct vfs_file* this, void* buf, size_t count)
+{
+	return 0;
+}
+
+ssize_t write(struct vfs_file* this, void* buf, size_t count)
+{
+	return 0;
 }
 
 /*

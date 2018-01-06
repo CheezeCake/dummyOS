@@ -38,4 +38,6 @@
 
 #define ELOOP		40		/* Too many levels of symbolic links */
 
+#define	EOVERFLOW	84		/* Value too large to be stored in data type */
+
 #endif

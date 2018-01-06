@@ -23,9 +23,12 @@ enum vfs_node_type
 /*
  * @brief open() flags
  */
-#define O_APPEND	0
-#define O_CREAT		1
-#define O_TRUNC		2
+#define O_RDONLY	0
+#define O_WRONLY	1
+#define O_RDWR		2
+#define O_APPEND	3
+#define O_CREAT		4
+#define O_TRUNC		5
 
 /**
  * @brief File system inode interface
