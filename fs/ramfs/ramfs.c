@@ -379,12 +379,26 @@ off_t lseek(struct vfs_file* this, off_t offset, int whence)
 
 ssize_t read(struct vfs_file* this, void* buf, size_t count)
 {
-	return 0;
+	if (this->node->inode->type == DIRECTORY)
+		return -EISDIR;
+
+	const struct ramfs_inode_info* ramfs_inode =
+		get_ramfs_inode(this->node->inode);
+	size_t left = ramfs_inode->data_size - this->cur;
+
+	if (count > left)
+		count = left;
+	if (count > SSIZE_MAX)
+		count = SSIZE_MAX;
+
+	memcpy(buf, ramfs_inode->data_start + this->cur, count);
+
+	return count;
 }
 
 ssize_t write(struct vfs_file* this, void* buf, size_t count)
 {
-	return 0;
+	return -EROFS;
 }
 
 /*
@@ -412,7 +426,9 @@ static struct vfs_inode_operations ramfs_inode_op = {
 };
 
 static struct vfs_file_operations ramfs_file_op = {
-	.lseek = NULL,
+	.lseek = lseek,
+	.read = read,
+	.write = write,
 };
 
 int ramfs_init_and_register(void)

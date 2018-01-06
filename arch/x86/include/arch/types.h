@@ -7,5 +7,6 @@ typedef uint32_t p_addr_t; // physical address
 typedef uint32_t v_addr_t; // virtual address
 
 typedef int32_t ssize_t;
+#define SSIZE_MAX 0x7fffffff
 
 #endif
