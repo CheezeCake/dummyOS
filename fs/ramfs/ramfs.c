@@ -364,7 +364,7 @@ off_t lseek(struct vfs_file* this, off_t offset, int whence)
 			new = 0;
 			break;
 		case SEEK_END:
-			new = ramfs_inode->data_size - offset;
+			new = ramfs_inode->data_size - offset - 1;
 			if (new > ramfs_inode->data_size) // overflow
 				return -EOVERFLOW;
 			break;
