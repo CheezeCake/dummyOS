@@ -27,6 +27,8 @@ typedef struct list {
 /*
  * init
  */
+#define LIST_NULL { .head = NULL, .tail = NULL }
+
 #define list_init_null(list)	\
 	do {						\
 		(list)->head = NULL;	\

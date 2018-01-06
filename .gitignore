@@ -10,4 +10,5 @@ compile_commands.json
 .gdb_history
 .gdbinit
 peda-session-dummy_os.bin.txt
-doc
+doc/
+Doxyfile

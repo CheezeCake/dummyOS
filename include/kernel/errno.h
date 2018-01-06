@@ -36,4 +36,8 @@
 #define	EDOM		33		/* Numerical argument out of domain */
 #define	ERANGE		34		/* Result too large */
 
+#define ELOOP		40		/* Too many levels of symbolic links */
+
+#define	EOVERFLOW	84		/* Value too large to be stored in data type */
+
 #endif
