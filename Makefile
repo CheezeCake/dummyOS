@@ -15,6 +15,7 @@ include $(KERNELDIR)make.config
 include $(FSDIR)make.config
 RAMFS=
 OBJECTS=$(ARCH_OBJS) $(LIBK_OBJS) $(KERNEL_OBJS) $(FS_OBJS) $(RAMFS)
+KERNEL_LINKER_SCRIPT=$(ARCHDIR)kernel.ld
 
 KERNEL_BIN=dummy_os.bin
 KERNEL_ISO=dummy_os.iso
@@ -24,8 +25,8 @@ KERNEL_ISO=dummy_os.iso
 
 all: bin
 
-$(KERNEL_BIN): $(OBJECTS)
-	$(CC) -T $(ARCHDIR)kernel.ld -o $@ -ffreestanding -nostdlib $(OBJECTS) $(LDFLAGS)
+$(KERNEL_BIN): $(OBJECTS) $(KERNEL_LINKER_SCRIPT)
+	$(CC) -T $(KERNEL_LINKER_SCRIPT) -o $@ -ffreestanding -nostdlib $(OBJECTS) $(LDFLAGS)
 
 $(KERNEL_ISO): $(KERNEL_BIN)
 	GRUB_MKRESCUE=$(GRUB_MKRESCUE) ISODIR=$(ISODIR) $(SCRIPTSDIR)iso.sh

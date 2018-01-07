@@ -57,8 +57,14 @@ struct page_table_entry
 } __attribute__((packed));
 
 
-// original page directory, to be released
-static p_addr_t page_directory_frame = (p_addr_t)NULL;
+/*
+ * boot page directory and boot page table symbols
+ * defined in boot.s
+ */
+extern const uint8_t __boot_page_directory_phys;
+extern const uint8_t __boot_page_directory;
+extern const uint8_t __boot_page_table_phys;
+extern const uint8_t __boot_page_table;
 
 /*
  * saves how many times a page table is referenced i.e. how many entries
@@ -102,51 +108,6 @@ static inline void invlpg(v_addr_t addr)
 	__asm__ __volatile__ ("invlpg %0" : : "m" (addr) : "memory");
 }
 
-static void identity_map(p_addr_t page_directory, p_addr_t from, p_addr_t to)
-{
-	/*
-	 * paging is not enabled here, we are still working with physical adresses
-	 */
-	kassert(from <= to);
-	for (p_addr_t addr = from; addr < to; addr += PAGE_SIZE) {
-		int index_pd = index_in_pd(addr);
-		int index_pt = index_in_pt(addr);
-
-		struct page_directory_entry* pde =
-			(struct page_directory_entry*)page_directory + index_pd;
-		p_addr_t page_table = (p_addr_t)NULL;
-		struct page_table_entry* pte = NULL;
-
-		if (pde->present) {
-			page_table = pd_addr2p_addr(pde->address);
-		}
-		else {
-			page_table = memory_page_frame_alloc();
-			kassert(page_table != (p_addr_t)NULL);
-			memset((void*)page_table, 0, PAGE_SIZE);
-
-			pde->present = 1;
-			pde->read_write = 1;
-			pde->address = p_addr2pd_addr(page_table);
-		}
-
-		pte = (struct page_table_entry*)page_table + index_pt;
-		pte->present = 1;
-		pte->read_write = 1;
-		pte->address = p_addr2pt_addr(addr);
-
-		paging_ref_page_table(index_pd);
-	}
-}
-
-static void setup_identity_mapping(p_addr_t page_directory)
-{
-	identity_map(page_directory, X86_MEMORY_HARDWARE_MAP_BEGIN,
-			X86_MEMORY_HARDWARE_MAP_END);
-	identity_map(page_directory, kernel_image_get_base_page_frame(),
-			kernel_image_get_top_page_frame());
-}
-
 static void setup_mirroring(v_addr_t page_directory, p_addr_t page_directory_phys)
 {
 	struct page_directory_entry* mirroring_entry =
@@ -157,33 +118,69 @@ static void setup_mirroring(v_addr_t page_directory, p_addr_t page_directory_phy
 	mirroring_entry->read_write = 1;
 	mirroring_entry->user = 0;
 	mirroring_entry->address = p_addr2pd_addr(page_directory_phys);
+	invlpg(MIRRORING_VADDR_BEGIN);
 }
 
+/**
+ * The kernel was loaded at 1MB and the first 4MB of physical memory were
+ * mapped to KERNEL_VADDR_SPACE_START in boot.s
+ * Unmap the "extra" pages that were map so only the frames were the kernel
+ * actually lives are mapped.
+ */
+static void map_to_fit_kernel(void)
+{
+	struct page_table_entry* const pt = (struct page_table_entry*)&__boot_page_table;
+
+	// 0 to X86_MEMORY_HARDWARE_MAP_BEGIN
+	for (v_addr_t low_mem = KERNEL_VADDR_SPACE_START;
+		 low_mem < KERNEL_VADDR_SPACE_START + X86_MEMORY_HARDWARE_MAP_BEGIN;
+		 low_mem += PAGE_SIZE)
+	{
+		const int pt_index = index_in_pt(low_mem);
+
+		memset(&pt[pt_index], 0, sizeof(struct page_table_entry));
+		invlpg(low_mem);
+	}
+
+	// kernel top virtual page
+	const v_addr_t kernel_top = kernel_image_get_top_page();
+	const int pt_index = index_in_pt(kernel_top);
+
+	// Clear every entry in the kernel page table starting at the entry for the
+	// kernel_top page
+	v_addr_t page = kernel_top;
+	for (int i = pt_index; i < PAGE_TABLE_ENTRY_COUNT; ++i, page += PAGE_SIZE) {
+		memset(&pt[i], 0, sizeof(struct page_table_entry));
+		invlpg(page);
+	}
+}
+
+/**
+ * The first 4MB of physical memory were identity mapped to avoid a crash,
+ * we can now remove this mapping.
+ */
+static void unmap_identity_map(void)
+{
+	struct page_directory_entry* pd = (struct page_directory_entry*)&__boot_page_directory;
+	// clear the page directory entry
+	memset(&pd[0], 0, sizeof(struct page_directory_entry));
+
+	// invalidate the translations for the first 4MB/4KB = 1024 pages
+	v_addr_t p = 0;
+	for (int i = 0; i < 1024; ++i) {
+		invlpg(p);
+		p += PAGE_SIZE;
+	}
+}
 
 void paging_init(void)
 {
-	p_addr_t page_directory = memory_page_frame_alloc();
-	kassert(page_directory != (p_addr_t)NULL);
-	memset((void*)page_directory, 0, PAGE_SIZE);
+	map_to_fit_kernel();
 
-	setup_mirroring(page_directory, page_directory);
+	setup_mirroring((v_addr_t)&__boot_page_directory,
+					(p_addr_t)&__boot_page_directory_phys);
 
-	setup_identity_mapping(page_directory);
-
-	page_directory_frame = page_directory;
-
-	// enable paging:
-	// cr3 = page directory base address
-	// set PG flag in cr0 (Intel Architecture Software Developer’s Manual Volume 3, section 2.5)
-	__asm__ (
-			"movl %0, %%eax\n"
-			"movl %%eax, %%cr3\n"
-			"movl %%cr0, %%eax\n"
-			"orl $0x80000000, %%eax\n"
-			"movl %%eax, %%cr0\n"
-			:
-			: "m" (page_directory)
-			: "eax");
+	unmap_identity_map();
 }
 
 static inline struct page_directory_entry* get_page_directory_entry(v_addr_t vaddr)
@@ -214,8 +211,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 
 		pde->present = 1;
 		pde->read_write = 1;
-		// vaddr < MIRRORING_VADDR_BEGIN => kernel page table
-		pde->user = (vaddr < MIRRORING_VADDR_BEGIN) ? 0 : 1;
+		pde->user = virtual_memory_is_userspace_address(vaddr);
 		pde->address = p_addr2pd_addr(page_table);
 
 		invlpg((v_addr_t)pte);
@@ -287,20 +283,19 @@ void paging_switch_cr3(p_addr_t cr3, bool init_userspace)
 
 	paging_map(cr3, (v_addr_t)cr3_map, VM_OPT_WRITE);
 
+	const int kernel_vaddr_space_start_pd_index = index_in_pd(KERNEL_VADDR_SPACE_START);
 	// copy kernel space entries
-	memcpy((void*)cr3_map, pd,
-			KERNEL_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES *
-			sizeof(struct page_directory_entry));
-	// clear reserved entry
-	memset((struct page_directory_entry*)cr3_map +
-			index_in_pd(KERNEL_VADDR_SPACE_RESERVED), 0,
-			sizeof(struct page_directory_entry));
+	memcpy((struct page_directory_entry*)cr3_map + kernel_vaddr_space_start_pd_index,
+		   pd + kernel_vaddr_space_start_pd_index,
+		   KERNEL_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES *
+		   sizeof(struct page_directory_entry));
+
 	// mirroring
 	setup_mirroring(cr3_map, cr3);
+
 	if (init_userspace) {
 		// clear user space entries
-		memset((struct page_directory_entry*) cr3_map +
-				index_in_pd(KERNEL_VADDR_SPACE_TOP), 0,
+		memset((void*)cr3_map, 0,
 				USER_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES *
 				sizeof(struct page_table_entry));
 	}
