@@ -1,18 +1,28 @@
-# see kernel/syscall.c
+#include <kernel/syscall.h>
+
+/* see kernel/syscall.c */
 .extern syscall_table
 
 .globl syscall_handler
 
 .text
 
-# eax =  syscall number
-# ebx =  arg1
-# ecx =  arg2
-# edx =  arg3
-# esi =  arg4
-# edi =  arg5
-# ebp =  arg6
+/*
+	eax =  syscall number
+	ebx =  arg1
+	ecx =  arg2
+	edx =  arg3
+	esi =  arg4
+	edi =  arg5
+	ebp =  arg6
+*/
 syscall_handler:
+	/* check if syscall number is valid */
+	cmpl $SYSCALL_NR_TOP, %eax
+	jle 1f
+	movl $-1, %eax
+	iret
+1:
 	pushl %ebp
 	pushl %edi
 	pushl %esi

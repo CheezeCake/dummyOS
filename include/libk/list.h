@@ -1,6 +1,7 @@
 #ifndef _LIBK_LIST_H_
 #define _LIBK_LIST_H_
 
+#include <libk/libk.h>
 #include <libk/utils.h>
 
 typedef struct list_node {
@@ -105,18 +106,24 @@ typedef struct list {
 		}									\
 	} while (0)
 
-#define list_pop_front(list)				\
-	do {									\
-		if ((list)->head == (list)->tail)	\
-			(list)->tail = NULL;			\
-		(list)->head = (list)->head->next;	\
+#define __list_clear_node(node) memset(node, 0, sizeof(struct list_node))
+
+#define list_pop_front(list)						\
+	do {											\
+		if ((list)->head == (list)->tail)			\
+			(list)->tail = NULL;					\
+		struct list_node* __node = (list)->head;	\
+		(list)->head = (list)->head->next;			\
+		__list_clear_node(__node);					\
 	} while (0)
 
-#define list_pop_back(list)					\
-	do {									\
-		if ((list)->tail == (list)->head)	\
-			(list)->head = NULL;			\
-		(list)->tail = (list)->tail->prev;	\
+#define list_pop_back(list)							\
+	do {											\
+		if ((list)->tail == (list)->head)			\
+			(list)->head = NULL;					\
+		struct list_node* __node = (list)->tail;	\
+		(list)->tail = (list)->tail->prev;			\
+		__list_clear_node(__node);					\
 	} while(0)
 
 #define list_erase(list, value)						\
@@ -129,6 +136,7 @@ typedef struct list {
 			(value)->prev->next = (value)->next;	\
 		if ((value)->next)							\
 			(value)->next->prev = (value)->prev;	\
+		__list_clear_node(value);					\
 	} while (0)
 
 #define list_clear(list) list_init_null(list)

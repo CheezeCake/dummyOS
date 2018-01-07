@@ -1,80 +1,96 @@
+#include <kernel/errno.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
 #include <kernel/process.h>
 #include <libk/libk.h>
 
-struct
-{
-	LIST_CREATE
-} process_list;
+/**
+ * @brief "Kernel" process
+ *
+ * The process to which kernel threads are attached
+ */
+static struct process kprocess;
 
-pid_t last_pid = 0;
+static pid_t last_pid = 0;
 
-void process_init(void)
-{
-	list_init_null(&process_list);
-}
 
-static int process_create(struct process* proc, const char* name)
+static int create(struct process* proc, const char* name)
 {
+	int err;
+
 	memset(proc, 0, sizeof(struct process));
 
-	if (vm_context_create(&proc->vm_ctx) != 0)
-		return -1;
+	if ((err = vm_context_create(&proc->vm_ctx)) < 0)
+		return err;
 
 	proc->pid = ++last_pid;
-	strlcpy(proc->name, name, strlen(name) + 1);
+	strlcpy(proc->name, name, PROCESS_NAME_MAX_LENGTH);
+
 	proc->parent = NULL;
+	list_init_null(&proc->children);
 
 	list_init_null(&proc->threads);
 
 	return 0;
 }
 
-static inline int process_create_initial_thread(struct process* proc, struct thread* thread)
+int process_init(struct process* proc, const char* name)
 {
-	if (!thread || process_add_thread(proc, thread) != 0) {
-		if (thread)
-			thread_unref(thread);
-		process_destroy(proc);
-		return -1;
-	}
-
-	thread_unref(thread);
-
-	list_push_back(&process_list, &proc->p_list);
-
-	return 0;
-}
-
-int process_uprocess_create(struct process* proc, const char* name)
-{
-	if (process_create(proc, name) != 0)
-		return -1;
+	int err;
+	if ((err = create(proc, name)) != 0)
+		return err;
 
 	start_func_t start = NULL;
 	void* start_args = NULL;
 	exit_func_t exit = NULL;
 
-	return process_create_initial_thread(proc,
-			thread_uthread_create(name, proc, 2048, 2048, start, start_args, exit));
+	struct thread* initial_thread = thread_uthread_create(name, 2048, 2048,
+														  start, start_args,
+														  exit);
+	if (!initial_thread) {
+		process_destroy(proc);
+		return -ENOMEM;
+	}
+
+	err = process_add_thread(proc, initial_thread);
+	if (err != 0)
+		process_destroy(proc);
+
+	thread_unref(initial_thread);
+
+	return err;
 }
 
-int process_kprocess_create(struct process* proc, const char* name,
-		start_func_t start)
+struct process* process_create(const char* name)
 {
-	if (process_create(proc, name) != 0)
-		return -1;
+	struct process* proc = kmalloc(sizeof(struct process));
+	if (!proc)
+		return NULL;
 
-	void* start_args = NULL;
-	exit_func_t exit = NULL;
+	if (process_init(proc, name) < 0) {
+		kfree(proc);
+		return NULL;
+	}
 
-	return process_create_initial_thread(proc,
-			thread_kthread_create(name, proc, 2048, start, start_args, exit));
+	return proc;
 }
 
-int process_add_thread(struct process* proc, struct thread* thread)
+int process_kprocess_init(void)
 {
+	return create(&kprocess, "kthreadd");
+}
+
+struct process* process_get_kprocess(void)
+{
+	return &kprocess;
+}
+
+static int add_thread(struct process* proc, struct thread* thread,
+					  enum thread_type expected)
+{
+	if (thread->type != expected)
+		return -EINVAL;
+
 	if (!list_empty(&proc->threads)) {
 		const struct thread* head =
 			list_entry(list_front(&proc->threads), struct thread, p_thr_list);
@@ -89,7 +105,17 @@ int process_add_thread(struct process* proc, struct thread* thread)
 	return 0;
 }
 
-void process_destroy(struct process* proc)
+int process_add_thread(struct process* proc, struct thread* thread)
+{
+	return add_thread(proc, thread, UTHREAD);
+}
+
+int process_add_kthread(struct thread* kthread)
+{
+	return add_thread(&kprocess, kthread, KTHREAD);
+}
+
+static void destroy_threads(struct process* proc)
 {
 	struct list_node* it = list_begin(&proc->threads);
 
@@ -101,7 +127,12 @@ void process_destroy(struct process* proc)
 		thread_unref(thread);
 		kfree(thread);
 	}
-	list_clear(&proc->threads);
 
-	list_erase(&process_list, &proc->p_list);
+	list_clear(&proc->threads);
+}
+
+void process_destroy(struct process* proc)
+{
+	vm_context_destroy(&proc->vm_ctx);
+	destroy_threads(proc);
 }

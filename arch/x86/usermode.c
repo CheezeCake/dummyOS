@@ -9,24 +9,29 @@
 void usermode_function()
 {
 	unsigned int i = 0;
-	while (i < 100 * 1000)
+	while (i < 10 * 1000 * 1000)
 		++i;
 
 	/* __asm__ __volatile__ ( */
-	/* 		"mov $0, %%eax\n" */
-	/* 		"mov $0xdeadbeef, %%ebx\n" */
-	/* 		"mov $0x8BADF00D, %%ecx\n" */
-	/* 		"mov $0xBAAAAAAD, %%edx\n" */
-	/* 		"mov $0xBAADF00D, %%esi\n" */
-	/* 		"mov $0xBADDCAFE, %%edi\n" */
-	/* 		/1* "mov $0xCAFED00D, %%ebp\n" *1/ */
-	/* 		"int $0x80" */
-	/* 		: */
-	/* 		: */
-	/* 		: "eax", "ebx", "ecx", "edx", "esi", "edi" */
-	/* 		); */
+	/*              "mov $0, %%eax\n" */
+	/*              "mov $0xdeadbeef, %%ebx\n" */
+	/*              "mov $0x8BADF00D, %%ecx\n" */
+	/*              "mov $0xBAAAAAAD, %%edx\n" */
+	/*              "mov $0xBAADF00D, %%esi\n" */
+	/*              "mov $0xBADDCAFE, %%edi\n" */
+	/*              /1* "mov $0xCAFED00D, %%ebp\n" *1/ */
+	/*              "int $0x80" */
+	/*              : */
+	/*              : */
+	/*              : "eax", "ebx", "ecx", "edx", "esi", "edi" */
+	/*              ); */
 
-	while (1);
+	/* while (1); */
+
+	// _exit(0xdead)
+	__asm__ ("movl $1, %eax\n"
+			 "movl $0xdead, %ebx\n"
+			 "int $0x80");
 }
 
 void usermode_entry(void* _args)

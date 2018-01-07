@@ -1,4 +1,5 @@
 #include <kernel/cpu_context.h>
+#include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/sched/sched.h>
 #include <kernel/thread.h>
@@ -17,15 +18,15 @@ static void thread_destroy(struct thread* thread)
 static int create_stack(v_addr_t* sp, size_t* size, size_t  stack_size)
 {
 	if (!(*sp = (v_addr_t)kmalloc(stack_size)))
-		return -1;
+		return -ENOMEM;
 	*size = stack_size;
 
 	return 0;
 }
 
-static struct thread* thread_create(const char* name,
-		struct process* proc, size_t stack_size, start_func_t start,
-		void* start_args, exit_func_t exit, enum thread_type type)
+static struct thread* thread_create(const char* name, size_t stack_size,
+									start_func_t start, void* start_args,
+									exit_func_t exit, enum thread_type type)
 {
 	struct thread* thread = kmalloc(sizeof(struct thread));
 	if (!thread)
@@ -35,7 +36,7 @@ static struct thread* thread_create(const char* name,
 
 	strncpy(thread->name, name, MAX_THREAD_NAME_LENGTH);
 
-	if (create_stack(&thread->stack.sp, &thread->stack.size, stack_size) == -1) {
+	if (create_stack(&thread->stack.sp, &thread->stack.size, stack_size) != 0) {
 		kfree(thread);
 		return NULL;
 	}
@@ -46,8 +47,6 @@ static struct thread* thread_create(const char* name,
 		return NULL;
 	}
 
-	thread->process = proc;
-
 	const v_addr_t stack_top = thread->stack.sp + stack_size;
 
 	cpu_context_create(thread->cpu_context, stack_top, (v_addr_t)start);
@@ -55,7 +54,7 @@ static struct thread* thread_create(const char* name,
 	cpu_context_pass_arg(thread->cpu_context, 1, (v_addr_t)start_args);
 	cpu_context_set_ret_ip(thread->cpu_context, (v_addr_t)exit);
 
-	thread->state = THREAD_READY;
+	thread->state = THREAD_CREATED;
 	thread->type = type;
 
 	thread->priority = SCHED_PRIORITY_LEVEL_DEFAULT;
@@ -65,17 +64,17 @@ static struct thread* thread_create(const char* name,
 	return thread;
 }
 
-struct thread* thread_kthread_create(const char* name,
-		struct process* proc, size_t stack_size, start_func_t start,
-		void* start_args, exit_func_t exit)
+struct thread* thread_kthread_create(const char* name, size_t stack_size,
+									 start_func_t start, void* start_args,
+									 exit_func_t exit)
 {
-	return thread_create(name, proc, stack_size, start, start_args,
+	return thread_create(name, stack_size, start, start_args,
 			exit, KTHREAD);
 }
 
-struct thread* thread_uthread_create(const char* name,
-		struct process* proc, size_t stack_size, size_t kstack_size,
-		start_func_t start, void* start_args, exit_func_t exit)
+struct thread* thread_uthread_create(const char* name, size_t stack_size,
+									 size_t kstack_size, start_func_t start,
+									 void* start_args, exit_func_t exit)
 {
 	// TODO: replace with real usermode start function pointer
 	start_func_t usermode_entry_func = usermode_entry;
@@ -87,12 +86,13 @@ struct thread* thread_uthread_create(const char* name,
 	usermode_entry_args[0] = start;
 	usermode_entry_args[1] = start_args;
 
-	struct thread* thread = thread_create(name, proc, stack_size,
+	struct thread* thread = thread_create(name, stack_size,
 			usermode_entry_func, usermode_entry_args, exit, UTHREAD);
 	if (!thread)
 		return NULL;
 
-	if (create_stack(&thread->kstack.sp, &thread->kstack.size, kstack_size) == -1) {
+	if (create_stack(&thread->kstack.sp, &thread->kstack.size,
+					 kstack_size) != 0) {
 		thread_destroy(thread);
 		return NULL;
 	}
@@ -131,7 +131,7 @@ int sched_set_priority(struct thread* thread, thread_priority_t priority)
 		return 0;
 	}
 
-	return -1;
+	return -EINVAL;
 }
 
 

@@ -30,7 +30,7 @@ int wait_wake(wait_queue_t* wq, unsigned int nb_threads)
 		struct thread* thread = list_entry(list_front(wq), struct thread, wqe);
 		list_pop_front(wq);
 
-		if (thread->state != THREAD_DEAD && sched_add_thread(thread) == 0)
+		if (thread->state != THREAD_ZOMBIE && sched_add_thread(thread) == 0)
 			++n;
 
 		thread_unref(thread);

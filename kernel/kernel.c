@@ -7,6 +7,7 @@
 #include <kernel/log.h>
 #include <kernel/multiboot.h>
 #include <kernel/process.h>
+#include <kernel/sched/idle.h>
 #include <kernel/sched/sched.h>
 #include <kernel/terminal.h>
 #include <kernel/thread.h>
@@ -35,17 +36,18 @@ void kernel_main(multiboot_info_t* mbi)
 	terminal_printf("CPU: %s\tRAM: %dMB (0x%x)\n", cpu->cpu_vendor,
 			(mbi->mem_upper >> 10) + 1, mbi->mem_upper);
 
+
 	kassert(arch_init() == 0);
 	arch_memory_management_init((mbi->mem_upper << 10) + (1 << 20));
 
 	register_filesystems();
 	kassert(vfs_init() == 0);
 
-	process_init();
 	sched_init();
+	idle_init(); // create idle thread
 
 	struct process user;
-	kassert(process_uprocess_create(&user, "user") == 0);
+	kassert(process_init(&user, "user") == 0);
 	sched_add_process(&user);
 
 	sched_start();
