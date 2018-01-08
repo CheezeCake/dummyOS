@@ -58,12 +58,14 @@ struct thread
 	wait_queue_entry_t wqe; // wait_queue entry
 };
 
-struct thread* thread_kthread_create(const char* name, size_t stack_size,
-									 start_func_t start, void* start_args,
-									 exit_func_t exit);
-struct thread* thread_uthread_create(const char* name, size_t stack_size,
-									 size_t kstack_size, start_func_t start,
-									 void* start_args, exit_func_t exit);
+int thread_kthread_create(const char* name, size_t stack_size,
+						  start_func_t start, void* start_args,
+						  exit_func_t exit, struct thread** result);
+
+int thread_uthread_create(const char* name, size_t stack_size,
+						  size_t kstack_size, start_func_t start,
+						  void* start_args, exit_func_t exit,
+						  struct thread** result);
 
 void thread_ref(struct thread* thread);
 void thread_unref(struct thread* thread);

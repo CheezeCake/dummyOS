@@ -26,16 +26,21 @@ static void idle_kthread_do(void* args)
 
 void idle_init(void)
 {
+	int err;
+
 	process_kprocess_init();
 
-	struct thread* idle = thread_kthread_create("[idle]", 1024, idle_kthread_do, NULL, NULL);
-	kassert(idle != NULL);
+	struct thread* idle;
+	err = thread_kthread_create("[idle]", 1024, idle_kthread_do, NULL, NULL,
+								&idle);
+	kassert(err == 0);
 	kassert(process_add_kthread(idle) == 0);
 	thread_unref(idle);
 
 	// test
-	struct thread* test_thread = thread_kthread_create("[test]", 1024, test, NULL, exit);
-	kassert(test_thread != NULL);
+	struct thread* test_thread;
+	err = thread_kthread_create("[test]", 1024, test, NULL, exit, &test_thread);
+	kassert(err == 0);
 	kassert(process_add_kthread(test_thread) == 0);
 	thread_unref(test_thread);
 	//
