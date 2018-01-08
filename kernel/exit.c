@@ -4,7 +4,7 @@
 
 #include <kernel/log.h>
 
-void _exit(int status)
+void sys_exit(int status)
 {
 	log_e_printf("\nSYSCALL: _exit(0x%x)\n", status);
 
