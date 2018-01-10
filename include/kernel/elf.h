@@ -9,19 +9,24 @@
 // http://wiki.osdev.org/ELF
 // http://refspecs.linuxbase.org/elf/elf.pdf
 
+/** elf_header::e_ident size */
 #define EI_NIDENT		16
 
+// elf_header::e_indent indexes
 #define EI_CLASS		4
 #define EI_DATA			5
 #define EI_VERSION		6
 #define EI_OSABI		7
 #define EI_ABIVERSION	8
 
+// elf_header::e_indent[EI_CLASS]
 #define ELFCLASS32		1
 
+// elf_header::e_indent[EI_DATA]
 #define ELFDATA2LSB		1
 #define ELFDATA2MSB		2
 
+// elf_header::e_type
 #define ET_EXEC			2
 
 struct elf_header
@@ -43,6 +48,32 @@ struct elf_header
 	uint16_t e_shnum;
 
 	uint16_t e_shstrndx;
+};
+
+struct elf_program_header
+{
+	uint32_t p_type;
+	uint32_t p_offset;
+	uint32_t p_vaddr;
+	uint32_t p_paddr;
+	uint32_t p_filesz;
+	uint32_t p_memsz;
+	uint32_t p_flags;
+	uint32_t p_align;
+};
+
+struct elf_section_header
+{
+	uint32_t sh_name;
+	uint32_t sh_type;
+	uint32_t sh_flags;
+	uint32_t sh_addr;
+	uint32_t sh_offset;
+	uint32_t sh_size;
+	uint32_t sh_link;
+	uint32_t sh_info;
+	uint32_t sh_addralign;
+	uint32_t sh_entsize;
 };
 
 #endif
