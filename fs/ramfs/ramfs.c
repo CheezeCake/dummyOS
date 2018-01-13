@@ -374,7 +374,7 @@ off_t lseek(struct vfs_file* this, off_t offset, int whence)
 
 	this->cur = new;
 
-	return 0;
+	return new;
 }
 
 ssize_t read(struct vfs_file* this, void* buf, size_t count)
