@@ -29,6 +29,9 @@
 // elf_header::e_type
 #define ET_EXEC			2
 
+// elf_program_header::p_type
+#define PT_LOAD			1
+
 struct elf_header
 {
 	uint8_t e_ident[EI_NIDENT];

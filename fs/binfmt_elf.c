@@ -3,6 +3,7 @@
 #include <fs/file.h>
 #include <kernel/elf.h>
 #include <kernel/errno.h>
+#include <kernel/kmalloc.h>
 #include <libk/libk.h>
 #include <libk/utils.h>
 
@@ -36,11 +37,13 @@ static bool check_header(const struct elf_header* e_hdr)
 int elf_load_binary(struct vfs_file* binfile)
 {
 	struct elf_header e_hdr;
+	struct elf_program_header* e_phdr;
 	v_addr_t entry_point;
 	off_t phdr_offset, shdr_offset;
 	uint16_t phdr_size, phdr_num;
 	uint16_t shdr_size, shdr_num;
 	uint16_t e_shstrndx;
+	int err = 0;
 
 	if (binfile->op->read(binfile, &e_hdr, sizeof(e_hdr)) != sizeof(e_hdr))
 		return -ENOEXEC;
@@ -67,5 +70,30 @@ int elf_load_binary(struct vfs_file* binfile)
 
 	e_shstrndx = le2h16(e_hdr.e_shstrndx);
 
-	return 0;
+	size_t size = phdr_size * phdr_num;
+	if (!(e_phdr = kmalloc(sizeof(size))))
+		return -ENOMEM;
+
+	off_t seek_offset = binfile->op->lseek(binfile, phdr_offset, SEEK_SET);
+	if (seek_offset != phdr_offset) {
+		err = seek_offset;
+		goto end;
+	}
+	ssize_t read = binfile->op->read(binfile, e_phdr, size);
+	if (read != size) {
+		err = read;
+		goto end;
+	}
+
+	for (int i = 0; i < phdr_num; ++i) {
+		off_t offset = le2h32(e_phdr[i].p_offset);
+		v_addr_t vaddr = le2h32(e_phdr[i].p_vaddr);
+		uint32_t filesz = le2h32(e_phdr[i].p_filesz);
+		uint32_t memsz = le2h32(e_phdr[i].p_memsz);
+	}
+
+end:
+	kfree(e_phdr);
+
+	return err;
 }
