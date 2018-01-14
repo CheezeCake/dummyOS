@@ -4,6 +4,6 @@
 #include <stddef.h>
 
 #include <arch/types.h>
-typedef size_t off_t;
+typedef long long off_t;
 
 #endif
