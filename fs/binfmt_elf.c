@@ -1,5 +1,6 @@
 #include <stdbool.h>
 
+#include <arch/virtual_memory.h>
 #include <fs/file.h>
 #include <kernel/elf.h>
 #include <kernel/errno.h>
@@ -86,10 +87,19 @@ int elf_load_binary(struct vfs_file* binfile)
 	}
 
 	for (int i = 0; i < phdr_num; ++i) {
+		if (le2h32(e_phdr[i].p_type) != PT_LOAD)
+			continue;
+
 		off_t offset = le2h32(e_phdr[i].p_offset);
 		v_addr_t vaddr = le2h32(e_phdr[i].p_vaddr);
 		uint32_t filesz = le2h32(e_phdr[i].p_filesz);
 		uint32_t memsz = le2h32(e_phdr[i].p_memsz);
+
+		if (!virtual_memory_is_userspace_address(vaddr) ||
+			!virtual_memory_is_userspace_address(vaddr + memsz)) {
+			err = -ENOEXEC;
+			goto end;
+		}
 	}
 
 end:

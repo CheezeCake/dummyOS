@@ -32,6 +32,11 @@
 // elf_program_header::p_type
 #define PT_LOAD			1
 
+// elf_program_header::p_flags
+#define PF_X			1
+#define PF_W			2
+#define PF_R			4
+
 struct elf_header
 {
 	uint8_t e_ident[EI_NIDENT];
