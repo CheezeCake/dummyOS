@@ -3,6 +3,7 @@
 
 #include <arch/memory.h>
 #include <arch/virtual_memory.h>
+#include <kernel/errno.h>
 #include <kernel/kassert.h>
 #include <kernel/kernel_image.h>
 #include <kernel/memory.h>
@@ -223,7 +224,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 	// a page frame is already mapped for the virtual page
 	// (vaddr & 0xfffff000) -> (vaddr | 0xfff)
 	if (pte->present)
-		return -1;
+		return -EFAULT;
 
 	pte->present = 1;
 	pte->read_write = ((flags & VM_OPT_WRITE) == VM_OPT_WRITE) ? 1 : 0;
@@ -243,7 +244,7 @@ static int _paging_unmap(v_addr_t vaddr, bool free_page_frame)
 	struct page_table_entry* pte = get_page_table_entry(vaddr);
 
 	if (!pde->present || !pte->present)
-		return -1;
+		return -EFAULT;
 
 	// free the page frame
 	if (free_page_frame)
