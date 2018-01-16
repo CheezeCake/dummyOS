@@ -5,6 +5,8 @@
 #include <kernel/elf.h>
 #include <kernel/errno.h>
 #include <kernel/kmalloc.h>
+#include <kernel/memory.h>
+#include <kernel/paging.h>
 #include <libk/libk.h>
 #include <libk/utils.h>
 
@@ -94,12 +96,42 @@ int elf_load_binary(struct vfs_file* binfile)
 		v_addr_t vaddr = le2h32(e_phdr[i].p_vaddr);
 		uint32_t filesz = le2h32(e_phdr[i].p_filesz);
 		uint32_t memsz = le2h32(e_phdr[i].p_memsz);
+		uint32_t flags = le2h32(e_phdr[i].p_flags);
+		uint32_t align = le2h32(e_phdr[i].p_align);
 
 		if (!virtual_memory_is_userspace_address(vaddr) ||
 			!virtual_memory_is_userspace_address(vaddr + memsz)) {
 			err = -ENOEXEC;
 			goto end;
 		}
+		if (offset % align != vaddr % align) {
+			err = -ENOEXEC;
+			goto end;
+		}
+
+		v_addr_t map_addr = vaddr;
+		int nb_pages = filesz / PAGE_SIZE;
+		for (int p = 0; p < nb_pages; ++p) {
+			p_addr_t page = memory_page_frame_alloc();
+			if (!page) {
+				err = -ENOMEM;
+				goto end;
+			}
+
+			if ((err = paging_map(page, map_addr, flags | VM_OPT_USER)) != 0)
+				goto end;
+
+			map_addr += PAGE_SIZE;
+		}
+
+		// read segment into memory
+		if (binfile->op->read(binfile, (void*)vaddr, filesz) != filesz) {
+			err = -EIO;
+			goto end;
+		}
+		// zero fill
+		if (filesz < memsz)
+			memset((void*)vaddr + filesz, 0, memsz - filesz);
 	}
 
 end:
