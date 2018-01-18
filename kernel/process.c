@@ -42,14 +42,12 @@ int process_init(struct process* proc, const char* name)
 
 	start_func_t start = NULL;
 	void* start_args = NULL;
-	exit_func_t exit = NULL;
 
-	struct thread* initial_thread = thread_uthread_create(name, 2048, 2048,
-														  start, start_args,
-														  exit);
-	if (!initial_thread) {
+	struct thread* initial_thread;
+	err = thread_uthread_create(name, 2048, start, start_args, &initial_thread);
+	if (err != 0) {
 		process_destroy(proc);
-		return -ENOMEM;
+		return err;
 	}
 
 	err = process_add_thread(proc, initial_thread);

@@ -10,12 +10,9 @@ static void test(void* args)
 		terminal_putchar('t');
 		thread_sleep(500);
 	}
-}
 
-static void exit(void)
-{
-	log_e_print("EXIT\n");
-	sched_remove_current_thread();
+	/* log_e_print("EXIT\n"); */
+	/* sched_remove_current_thread(); */
 }
 
 static void idle_kthread_do(void* args)
@@ -28,14 +25,14 @@ void idle_init(void)
 {
 	process_kprocess_init();
 
-	struct thread* idle = thread_kthread_create("[idle]", 1024, idle_kthread_do, NULL, NULL);
-	kassert(idle != NULL);
+	struct thread* idle;
+	kassert(thread_kthread_create("[idle]", 1024, idle_kthread_do, NULL, &idle) == 0);
 	kassert(process_add_kthread(idle) == 0);
 	thread_unref(idle);
 
 	// test
-	struct thread* test_thread = thread_kthread_create("[test]", 1024, test, NULL, exit);
-	kassert(test_thread != NULL);
+	struct thread* test_thread;
+	kassert(thread_kthread_create("[test]", 1024, test, NULL, &test_thread) == 0)
 	kassert(process_add_kthread(test_thread) == 0);
 	thread_unref(test_thread);
 	//

@@ -13,7 +13,6 @@
 struct process;
 
 typedef void (*start_func_t)(void* data);
-typedef void (*exit_func_t)(void);
 typedef unsigned int thread_priority_t;
 
 #define MAX_THREAD_NAME_LENGTH 16
@@ -37,12 +36,12 @@ struct thread
 
 	struct process* process;
 
-	// kernel stack and user stack
+	// kernel stack
 	struct
 	{
 		v_addr_t sp;
 		size_t size;
-	} stack, kstack;
+	} kstack;
 
 	enum thread_state state;
 	enum thread_type type;
@@ -58,12 +57,12 @@ struct thread
 	wait_queue_entry_t wqe; // wait_queue entry
 };
 
-struct thread* thread_kthread_create(const char* name, size_t stack_size,
-									 start_func_t start, void* start_args,
-									 exit_func_t exit);
-struct thread* thread_uthread_create(const char* name, size_t stack_size,
-									 size_t kstack_size, start_func_t start,
-									 void* start_args, exit_func_t exit);
+int thread_kthread_create(const char* name, size_t stack_size,
+						  start_func_t start, void* start_args,
+						  struct thread** result);
+int thread_uthread_create(const char* name, size_t kstack_size,
+						  start_func_t start, void* start_args,
+						  struct thread** result);
 
 void thread_ref(struct thread* thread);
 void thread_unref(struct thread* thread);
