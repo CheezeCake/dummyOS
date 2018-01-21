@@ -24,10 +24,7 @@ static sched_queue_t ready_queues[SCHED_PRIORITY_LEVELS];
 #define get_thread_queue(thread) ready_queues[(thread)->priority]
 #define get_thread_list_entry(node) list_entry(node, struct thread, s_ready_queue)
 
-/** List of running processes */
-static list_t process_list = LIST_NULL;
-
-static spinlock_declare_lock(access_lock);
+static spinlock_t access_lock = SPINLOCK_NULL;
 
 
 static inline thread_priority_t first_non_empty_queue_priority(void)

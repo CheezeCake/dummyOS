@@ -40,7 +40,7 @@ static memory_block_t* memory_block_get_next(memory_block_t* ptr)
 }
 
 static bool kmalloc_init_done = false;
-static spinlock_declare_lock(lock);
+static spinlock_t lock = SPINLOCK_NULL;
 static memory_block_t* next_free_block = NULL;
 
 void kmalloc_init(void)

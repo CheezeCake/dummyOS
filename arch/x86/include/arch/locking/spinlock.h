@@ -5,7 +5,7 @@
 
 typedef __volatile__ uint32_t spinlock_t;
 
-#define spinlock_declare_lock(lock) spinlock_t lock = 0
+#define SPINLOCK_NULL 0
 
 // %= format string: https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#AssemblerTemplate
 #define spinlock_lock(lock)		\
