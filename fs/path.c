@@ -78,6 +78,9 @@ static inline void vfs_path_string_init(string_t* str, char* path,
 
 int vfs_path_init(vfs_path_t* path, const char* path_str, vfs_path_size_t size)
 {
+	if (size > VFS_PATH_MAX_LEN)
+		return -ENAMETOOLONG;
+
 	string_t* str = kmalloc(sizeof(string_t));
 	if (!str)
 		return -ENOMEM;
@@ -104,6 +107,9 @@ int vfs_path_create_from(const vfs_path_t* path,
 {
 	int err;
 	vfs_path_t* new_path;
+
+	if (size > VFS_PATH_MAX_LEN)
+		return -ENAMETOOLONG;
 
 	if ((err = vfs_path_copy_create(path, &new_path)) != 0)
 		return err;
