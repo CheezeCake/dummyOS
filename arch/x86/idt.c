@@ -24,7 +24,9 @@ static int set_handler(uint8_t index, enum gate_type type,
 
 int idt_set_syscall_handler(uint8_t int_number, interrupt_handler_t handler)
 {
-	kassert(int_number >= INTERRUPTS_DEFINED); // do not use a irq/exception number
+	// do not use a irq/exception number
+	kassert(int_number >= INTERRUPTS_DEFINED);
+
 	return set_handler(int_number, TRAPGATE, PRIVILEGE_USER, (uint32_t)handler);
 }
 
@@ -62,10 +64,6 @@ void idt_init(void)
 	idt_register.limit = sizeof(idt);
 
 	// load the idt register
-	__asm__ __volatile__ (
-			"lidt %0"
-			:
-			: "m" (idt_register)
-			: "memory");
+	__asm__ volatile ("lidt %0" : : "m" (idt_register) : "memory");
 
 }

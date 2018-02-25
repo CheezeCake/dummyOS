@@ -38,8 +38,22 @@ struct vfs_file_operations
 	ssize_t (*write)(struct vfs_file* this, void* buf, size_t count);
 };
 
+/**
+ * @brief Initializes a vfs_file object
+ */
+int vfs_file_init(struct vfs_file* file, struct vfs_cache_node* node,
+				  int flags);
+
+/**
+ * @brief Creates a vfs_file object
+ *
+ * @param result where to store the created vfs_file
+ */
 int vfs_file_create(struct vfs_cache_node* node, int flags,
 					struct vfs_file** result);
 
+/**
+ * @brief Destroys a vfs_file object
+ */
 void vfs_file_destroy(struct vfs_file* file);
 #endif

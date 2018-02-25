@@ -1,8 +1,6 @@
-#include <stdint.h>
-#include <stdbool.h>
-
 #include <arch/memory.h>
-#include <arch/virtual_memory.h>
+#include <arch/vm.h>
+#include <kernel/errno.h>
 #include <kernel/kassert.h>
 #include <kernel/kernel_image.h>
 #include <kernel/memory.h>
@@ -76,6 +74,7 @@ static unsigned int kernel_addr_space_pd_reference_pf_refs[KERNEL_VADDR_SPACE_PA
 
 static inline void paging_ref_page_table(int pd_index)
 {
+	return;
 	// increment reference count
 	if (pd_index < index_in_pd(MIRRORING_VADDR_BEGIN)) {
 		++kernel_addr_space_pd_reference_pf_refs[pd_index];
@@ -88,6 +87,7 @@ static inline void paging_ref_page_table(int pd_index)
 
 static inline unsigned int paging_unref_page_table(int pd_index)
 {
+	return 1;
 	unsigned int* ref_count = NULL;
 	if (pd_index < index_in_pd(MIRRORING_VADDR_BEGIN)) {
 		ref_count = &kernel_addr_space_pd_reference_pf_refs[pd_index];
@@ -105,7 +105,7 @@ static inline unsigned int paging_unref_page_table(int pd_index)
 
 static inline void invlpg(v_addr_t addr)
 {
-	__asm__ __volatile__ ("invlpg %0" : : "m" (addr) : "memory");
+	__asm__ volatile ("invlpg %0" : : "m" (addr) : "memory");
 }
 
 static void setup_mirroring(v_addr_t page_directory, p_addr_t page_directory_phys)
@@ -216,18 +216,18 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 
 		invlpg((v_addr_t)pte);
 
-		memset((void*)page_frame_align_inf((v_addr_t)pte), 0, PAGE_SIZE);
+		memset((void*)page_frame_align_down((v_addr_t)pte), 0, PAGE_SIZE);
 	}
 
 
 	// a page frame is already mapped for the virtual page
 	// (vaddr & 0xfffff000) -> (vaddr | 0xfff)
 	if (pte->present)
-		return -1;
+		return -EFAULT;
 
 	pte->present = 1;
-	pte->read_write = ((flags & VM_OPT_WRITE) == VM_OPT_WRITE) ? 1 : 0;
-	pte->user = ((flags & VM_OPT_USER) == VM_OPT_USER) ? 1 : 0;
+	pte->read_write = (flags & VM_OPT_WRITE) ? 1 : 0;
+	pte->user = (flags & VM_OPT_USER) ? 1 : 0;
 	pte->address = p_addr2pt_addr(paddr);
 
 	paging_ref_page_table(index_in_pd(vaddr));
@@ -243,7 +243,7 @@ static int _paging_unmap(v_addr_t vaddr, bool free_page_frame)
 	struct page_table_entry* pte = get_page_table_entry(vaddr);
 
 	if (!pde->present || !pte->present)
-		return -1;
+		return -EFAULT;
 
 	// free the page frame
 	if (free_page_frame)
@@ -303,12 +303,11 @@ void paging_switch_cr3(p_addr_t cr3, bool init_userspace)
 	// unmap but don't free the cr3 page frame
 	_paging_unmap((v_addr_t)cr3_map, false);
 
-	__asm__ __volatile__ (
-			"movl %0, %%eax\n"
-			"movl %%eax, %%cr3"
-			:
-			: "m" (cr3)
-			: "eax", "memory");
+	__asm__ volatile ("movl %0, %%eax\n"
+					  "movl %%eax, %%cr3"
+					  :
+					  : "m" (cr3)
+					  : "eax", "memory");
 }
 
 int paging_free_userspace(void)

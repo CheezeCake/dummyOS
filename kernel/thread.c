@@ -6,10 +6,11 @@
 #include <kernel/usermode.h>
 #include <libk/libk.h>
 
+#define DEFAULT_STACK_SIZE 2048
+
 static void thread_destroy(struct thread* thread)
 {
 	kfree(thread->cpu_context);
-	kfree((void*)thread->stack.sp);
 	if (thread->kstack.sp != (v_addr_t)NULL)
 		kfree((void*)thread->kstack.sp);
 	kfree(thread);
@@ -25,11 +26,12 @@ static int create_stack(v_addr_t* sp, size_t* size, size_t  stack_size)
 }
 
 static int thread_create(const char* name, size_t stack_size,
-									start_func_t start, void* start_args,
-									exit_func_t exit, enum thread_type type,
-									struct thread** result)
+						 start_func_t start, void* start_args,
+						 enum thread_type type,
+						 struct thread** result)
 {
 	int err;
+
 	struct thread* thread = kmalloc(sizeof(struct thread));
 	if (!thread)
 		return -ENOMEM;
@@ -38,21 +40,21 @@ static int thread_create(const char* name, size_t stack_size,
 
 	strncpy(thread->name, name, MAX_THREAD_NAME_LENGTH);
 
-	err = create_stack(&thread->stack.sp, &thread->stack.size, stack_size);
+	err = create_stack(&thread->kstack.sp, &thread->kstack.size, stack_size);
 	if (err != 0)
-		goto err_thread;
+		goto out_thread;
 
 	if (!(thread->cpu_context = kmalloc(sizeof(struct cpu_context)))) {
-		err =  -ENOMEM;
-		goto err_stack;
+		err = -ENOMEM;
+		goto out_stack;
 	}
 
-	const v_addr_t stack_top = thread->stack.sp + stack_size;
+	const v_addr_t stack_top = thread->kstack.sp + stack_size;
 
 	cpu_context_create(thread->cpu_context, stack_top, (v_addr_t)start);
 	cpu_context_pass_arg(thread->cpu_context, 2, 0);
 	cpu_context_pass_arg(thread->cpu_context, 1, (v_addr_t)start_args);
-	cpu_context_set_ret_ip(thread->cpu_context, (v_addr_t)exit);
+	cpu_context_set_ret_ip(thread->cpu_context, (v_addr_t)NULL);
 
 	thread->state = THREAD_CREATED;
 	thread->type = type;
@@ -62,56 +64,29 @@ static int thread_create(const char* name, size_t stack_size,
 	refcount_init(&thread->refcnt);
 
 	*result = thread;
-
 	return 0;
 
-	// error
-err_stack:
-	kfree((void*)thread->stack.sp);
-err_thread:
+out_stack:
+	kfree((void*)thread->kstack.sp);
+
+out_thread:
 	kfree(thread);
 
 	return err;
 }
 
-int thread_kthread_create(const char* name, size_t stack_size,
-						  start_func_t start, void* start_args,
-						  exit_func_t exit, struct thread** result)
+int thread_kthread_create(const char* name, start_func_t start,
+						  void* start_args, struct thread** result)
 {
-	return thread_create(name, stack_size, start, start_args,
-			exit, KTHREAD, result);
+	return thread_create(name, DEFAULT_STACK_SIZE, start, start_args, KTHREAD,
+						 result);
 }
 
-int thread_uthread_create(const char* name, size_t stack_size,
-						  size_t kstack_size, start_func_t start,
-						  void* start_args, exit_func_t exit,
-						  struct thread** result)
+int thread_uthread_create(const char* name, start_func_t start,
+						  void* start_args, struct thread** result)
 {
-	int err;
-	start_func_t usermode_entry_func = usermode_entry;
-
-	// user function and arguments
-	void** usermode_entry_args = kmalloc(2 * sizeof(void*));
-	if (!usermode_entry_args)
-		return -ENOMEM;
-	usermode_entry_args[0] = start;
-	usermode_entry_args[1] = start_args;
-
-	struct thread* thread;
-	err = thread_create(name, stack_size, usermode_entry_func,
-						usermode_entry_args, exit, UTHREAD, &thread);
-	if (err != 0)
-		return err;
-
-	err = create_stack(&thread->kstack.sp, &thread->kstack.size, kstack_size);
-	if (err != 0) {
-		thread_destroy(thread);
-		return err;
-	}
-
-	*result = thread;
-
-	return 0;
+	return thread_create(name, DEFAULT_STACK_SIZE, start, start_args, UTHREAD,
+						 result);
 }
 
 void thread_ref(struct thread* thread)

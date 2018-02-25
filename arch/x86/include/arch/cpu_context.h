@@ -1,7 +1,7 @@
 #ifndef _ARCH_CPU_CONTEXT_H_
 #define _ARCH_CPU_CONTEXT_H_
 
-#include <stdint.h>
+#include <kernel/types.h>
 
 struct cpu_context
 {

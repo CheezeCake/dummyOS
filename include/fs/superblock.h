@@ -24,7 +24,7 @@ struct vfs_superblock
 
 	struct vfs_superblock_operations *op;
 
-	struct list_node mounted_list; /**< Chained in vfs::@ref ::mounted_list */
+	list_node_t mounted_list; /**< Chained in vfs::@ref ::mounted_list */
 };
 
 /**

@@ -1,8 +1,6 @@
 #ifndef _SEGMENT_H_
 #define _SEGMENT_H_
 
-#include <stdbool.h>
-
 // indexes in GDT
 #define KCODE 1
 #define KDATA 2
@@ -14,6 +12,7 @@
 #define SYSTEM_SEGMENT 0
 #define CODE_DATA_SEGMENT 1
 
+#ifndef ASSEMBLY
 // Intel Architecture Software Developer’s Manual Volume 3, section 3.4.3.1
 enum code_data_segment_types
 {
@@ -32,6 +31,11 @@ enum privilege_level
 	PRIVILEGE_KERNEL = 0,
 	PRIVILEGE_USER = 3
 };
+#else
+// mirror enum privilege_level values for use in assembly code
+# define PRIVILEGE_KERNEL	0
+# define PRIVILEGE_USER		3
+#endif // ! ASSEMBLY
 
 // LDT flag in segment selector is always zero
 #define make_segment_selector(rpl, index) \

@@ -5,7 +5,9 @@
 
 int wait_create(wait_queue_t* wq)
 {
-	list_init_null_synced(wq);
+	list_init(&wq->threads);
+	wq->lock = SPINLOCK_NULL;
+
 	return 0;
 }
 
@@ -13,7 +15,7 @@ int wait_wait(wait_queue_t* wq)
 {
 	struct thread* thread = sched_get_current_thread();
 
-	list_push_back_synced(wq, &thread->wqe);
+	list_push_back(&wq->threads, &thread->wqe);
 	thread_ref(thread);
 	sched_block_current_thread();
 
@@ -24,11 +26,12 @@ int wait_wake(wait_queue_t* wq, unsigned int nb_threads)
 {
 	unsigned int n = 0;
 
-	list_lock_synced(wq);
+	spinlock_lock(&wq->lock);
 
-	while (!list_empty(wq) && n < nb_threads) {
-		struct thread* thread = list_entry(list_front(wq), struct thread, wqe);
-		list_pop_front(wq);
+	while (!list_empty(&wq->threads) && n < nb_threads) {
+		struct thread* thread = list_entry(list_front(&wq->threads),
+										   struct thread, wqe);
+		list_pop_front(&wq->threads);
 
 		if (thread->state != THREAD_ZOMBIE && sched_add_thread(thread) == 0)
 			++n;
@@ -36,7 +39,7 @@ int wait_wake(wait_queue_t* wq, unsigned int nb_threads)
 		thread_unref(thread);
 	}
 
-	list_unlock_synced(wq);
+	spinlock_unlock(&wq->lock);
 
 	return n;
 }
@@ -48,5 +51,5 @@ int wait_wake_all(wait_queue_t* wq)
 
 bool wait_empty(const wait_queue_t* wq)
 {
-	return list_empty(wq);
+	return list_empty(&wq->threads);
 }

@@ -1,9 +1,12 @@
 #include <fs/vfs.h>
 #include <kernel/arch.h>
 #include <kernel/cpu.h>
+#include <kernel/init.h>
 #include <kernel/interrupt.h>
 #include <kernel/kassert.h>
 #include <kernel/kernel.h>
+#include <kernel/kernel_image.h>
+#include <kernel/kheap.h>
 #include <kernel/log.h>
 #include <kernel/multiboot.h>
 #include <kernel/process.h>
@@ -19,6 +22,15 @@ void clock_tick(void)
 {
 	time_tick();
 	sched_schedule();
+}
+
+static void mm_init(size_t mem)
+{
+	kassert(arch_mm_init(mem) == 0);
+
+	if (kheap_init(kernel_image_get_top_page(), KHEAP_INITIAL_SIZE)
+		< KHEAP_INITIAL_SIZE)
+		PANIC("Not enough memory for kernel heap!");
 }
 
 static void register_filesystems(void)
@@ -38,17 +50,15 @@ void kernel_main(multiboot_info_t* mbi)
 
 
 	kassert(arch_init() == 0);
-	arch_memory_management_init((mbi->mem_upper << 10) + (1 << 20));
+	mm_init((mbi->mem_upper << 10) + (1 << 20));
 
 	register_filesystems();
 	kassert(vfs_init() == 0);
 
 	sched_init();
-	idle_init(); // create idle thread
 
-	struct process user;
-	kassert(process_init(&user, "user") == 0);
-	sched_add_process(&user);
+	kassert(init_process_init("/init") == 0); // create init process first (pid 1)
+	idle_init(); // then create the idle thread (pid 2)
 
 	sched_start();
 

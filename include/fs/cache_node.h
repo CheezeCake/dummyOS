@@ -22,7 +22,7 @@ struct vfs_cache_node
 	struct vfs_cache_node* mounted; // the root of the fs mounted on this node
 
 	/** Chained in vfs_cache_node::children */
-	struct list_node cn_children_list;
+	list_node_t cn_children_list;
 
 	refcount_t refcnt;
 };
@@ -78,12 +78,13 @@ vfs_cache_node_lookup_child(const struct vfs_cache_node* parent,
 struct vfs_cache_node* vfs_cache_node_get_root(void);
 
 /*
- * @brief Return the parent node of a vfs_cache_node object
+ * @brief Returns the parent node of a vfs_cache_node object
  */
 struct vfs_cache_node*
 vfs_cache_node_get_parent(const struct vfs_cache_node* node);
 
 /**
+ * @brief Opens the file represented by a vfs_cache_node object
  */
 int vfs_cache_node_open(struct vfs_cache_node* node, int mode,
 						struct vfs_file** result);

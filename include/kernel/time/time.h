@@ -1,7 +1,7 @@
 #ifndef _KERNEL_TIME_H_
 #define _KERNEL_TIME_H_
 
-#include <stdint.h>
+#include <kernel/types.h>
 
 #define TIME_SEC_IN_MS 1000
 #define TIME_SEC_IN_NANOSEC 1000000000

@@ -1,7 +1,7 @@
 #ifndef _EXCEPTION_H_
 #define _EXCEPTION_H_
 
-#ifndef ASM_SOURCE
+#ifndef ASSEMBLY
 #include <kernel/interrupt.h>
 #endif
 
@@ -42,7 +42,7 @@
 #define EXCEPTION_RESERVED_14 31
 
 
-#ifndef ASM_SOURCE
+#ifndef ASSEMBLY
 
 #define EXCEPTION_BASE 0 // base index in IDT
 #define EXCEPTION_MAX 31
@@ -60,6 +60,6 @@ static inline int exception_set_handler_generic(unsigned int exception,
 	return exception_set_handler(exception, (interrupt_handler_t)handler);
 }
 
-#endif
+#endif // ! ASSEMBLY
 
 #endif

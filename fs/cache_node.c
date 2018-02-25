@@ -1,5 +1,3 @@
-#include <stddef.h>
-
 #include <fs/cache_node.h>
 #include <fs/vfs.h>
 #include <kernel/errno.h>
@@ -55,6 +53,9 @@ int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
 	if (inode)
 		vfs_inode_grab_ref(inode);
 
+	list_init(&node->children);
+	list_init(&node->cn_children_list);
+
 	refcount_init(&node->refcnt);
 
 	return 0;
@@ -70,7 +71,7 @@ static void destroy(struct vfs_cache_node* node)
 	if (node->inode)
 		vfs_inode_drop_ref(node->inode);
 
-	struct list_node* child;
+	list_node_t* child;
 	list_foreach(&node->children, child) {
 		vfs_cache_node_drop_ref(container_of(child, struct vfs_cache_node,
 											 cn_children_list));
@@ -110,7 +111,7 @@ vfs_cache_node_lookup_child(const struct vfs_cache_node* parent,
 	if (vfs_path_name_str_equals(name, dot, 2))
 		return parent->parent;
 
-	struct list_node* it;
+	list_node_t* it;
 
 	list_foreach(&parent->children, it) {
 		struct vfs_cache_node* node_it = list_entry(it,

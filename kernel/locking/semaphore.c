@@ -1,11 +1,10 @@
-#include <kernel/atomic.h>
 #include <kernel/locking/semaphore.h>
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
 
-int semaphore_create(sem_t* sem, int n)
+int semaphore_init(sem_t* sem, int n)
 {
-	sem->value = n;
+	atomic_int_init(&sem->value, n);
 	wait_create(&sem->wait_queue);
 
 	return 0;
@@ -13,15 +12,17 @@ int semaphore_create(sem_t* sem, int n)
 
 int semaphore_destroy(sem_t* sem)
 {
-	wait_wake_all(&sem->wait_queue);
+	int ret;
+
+	ret = wait_wake_all(&sem->wait_queue);
 	memset(sem, 0, sizeof(sem_t));
 
-	return 0;
+	return ret;
 }
 
 int semaphore_up(sem_t* sem)
 {
-	atomic_inc_int(sem->value);
+	atomic_int_inc(&sem->value);
 
 	while (!wait_empty(&sem->wait_queue) &&
 			wait_wake(&sem->wait_queue, 1) != 1)
@@ -32,7 +33,7 @@ int semaphore_up(sem_t* sem)
 
 int semaphore_down(sem_t* sem)
 {
-	atomic_dec_int(sem->value);
+	atomic_int_dec(&sem->value);
 
 	if (sem->value < 0)
 		wait_wait(&sem->wait_queue);
@@ -42,7 +43,5 @@ int semaphore_down(sem_t* sem)
 
 int semaphore_get_value(const sem_t* sem)
 {
-	int val;
-	atomic_get_int(sem->value, val);
-	return val;
+	return atomic_int_get(&sem->value);
 }

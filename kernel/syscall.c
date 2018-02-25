@@ -1,5 +1,3 @@
-#include <stddef.h>
-
 #include <kernel/syscall.h>
 
 static int nosys(void);

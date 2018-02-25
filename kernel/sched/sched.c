@@ -9,7 +9,7 @@
 
 #include <kernel/log.h>
 
-typedef struct thread_list sched_queue_t;
+typedef thread_list_t sched_queue_t;
 typedef unsigned int quantum_ms_t;
 
 /* static unsigned int quantums[SCHED_PRIORITY_LEVELS] = { 100, 80, 60, 40, 20 }; */
@@ -24,10 +24,7 @@ static sched_queue_t ready_queues[SCHED_PRIORITY_LEVELS];
 #define get_thread_queue(thread) ready_queues[(thread)->priority]
 #define get_thread_list_entry(node) list_entry(node, struct thread, s_ready_queue)
 
-/** List of running processes */
-static list_t process_list = LIST_NULL;
-
-static spinlock_declare_lock(access_lock);
+static spinlock_t access_lock = SPINLOCK_NULL;
 
 
 static inline thread_priority_t first_non_empty_queue_priority(void)
@@ -72,7 +69,7 @@ void sched_schedule(void)
 	if (current_thread->type == KTHREAD)
 		return;
 
-	if (spinlock_locked(access_lock))
+	if (spinlock_locked(&access_lock))
 		return;
 
 	struct time current_time;
@@ -96,6 +93,7 @@ void sched_schedule(void)
 int sched_add_thread(struct thread* thread)
 {
 	kassert(thread != NULL);
+	/* kassert(thread->state == THREAD_READY); */
 
 	log_printf("sched add %s (%p)\n", thread->name, thread);
 
@@ -107,41 +105,13 @@ int sched_add_thread(struct thread* thread)
 	return 0;
 }
 
-static int add_process_threads(struct list_node* proc_thr_list_it)
-{
-	if (!proc_thr_list_it)
-		return 0;
-
-	struct thread* it_thread = list_entry(proc_thr_list_it, struct thread, p_thr_list);
-
-	if (sched_add_thread(it_thread) != 0)
-		return -1;
-
-	if (add_process_threads(list_it_next(proc_thr_list_it)) != 0) {
-		sched_remove_thread(it_thread);
-		return -1;
-	}
-
-	return 0;
-}
-
-int sched_add_process(struct process* proc)
-{
-	int err = add_process_threads(list_begin(&proc->threads));
-	if (err == 0)
-		list_push_back(&process_list, &proc->p_list);
-
-	return err;
-}
-
-
 /*
  * remove
  */
 int sched_remove_thread(struct thread* thread)
 {
 	sched_queue_t* ready_queue = &get_thread_queue(thread);
-	struct list_node* it;
+	list_node_t* it;
 
 	list_foreach(ready_queue, it) {
 		struct thread* it_thread = get_thread_list_entry(it);
@@ -159,15 +129,13 @@ int sched_remove_thread(struct thread* thread)
 int sched_remove_process(struct process* proc)
 {
 	int ret = 0;
-	struct list_node* it;
+	list_node_t* it;
 
 	list_foreach(&proc->threads, it) {
 		struct thread* thread = list_entry(it, struct thread, p_thr_list);
 		if (sched_remove_thread(thread) != 0)
 			ret = -1;
 	}
-
-	list_erase(&process_list, &proc->p_list);
 
 	return ret;
 }
@@ -195,12 +163,12 @@ void sched_yield_current_thread(void)
 	if (idle())
 		return;
 
-	spinlock_lock(access_lock);
+	spinlock_lock(&access_lock);
 
 	current_thread->state = THREAD_READY;
 	list_push_back(&get_thread_queue(current_thread), &current_thread->s_ready_queue);
 
-	spinlock_unlock(access_lock);
+	spinlock_unlock(&access_lock);
 
 	preempt();
 }
@@ -209,7 +177,7 @@ void sched_block_current_thread(void)
 {
 	log_printf("sched_block %s\n", current_thread->name);
 
-	spinlock_lock(access_lock);
+	spinlock_lock(&access_lock);
 
 	current_thread->state = THREAD_BLOCKED;
 
@@ -217,33 +185,33 @@ void sched_block_current_thread(void)
 			"blocking thread without taking ownership");
 	thread_unref(current_thread);
 
-	spinlock_unlock(access_lock);
+	spinlock_unlock(&access_lock);
 
 	preempt();
 }
 
 void sched_remove_current_thread(void)
 {
-	spinlock_lock(access_lock);
+	spinlock_lock(&access_lock);
 
 	thread_unref(current_thread);
 	current_thread = NULL;
 
-	spinlock_unlock(access_lock);
+	spinlock_unlock(&access_lock);
 
 	preempt();
 }
 
 static int sched_timer_callback(void* data)
 {
-	spinlock_lock(access_lock);
+	spinlock_lock(&access_lock);
 
 	struct thread* thread = (struct thread*)data;
 	sched_add_thread(thread);
 	// timer drops ownership
 	thread_unref(thread);
 
-	spinlock_unlock(access_lock);
+	spinlock_unlock(&access_lock);
 
 	return 0;
 }
@@ -252,7 +220,7 @@ void sched_sleep_current_thread(unsigned int millis)
 {
 	log_printf("sched_sleep %s\n", current_thread->name);
 
-	spinlock_lock(access_lock);
+	spinlock_lock(&access_lock);
 
 	current_thread->state = THREAD_SLEEPING;
 
@@ -263,7 +231,7 @@ void sched_sleep_current_thread(unsigned int millis)
 	timer_register(timer);
 	timer_unref(timer);
 
-	spinlock_unlock(access_lock);
+	spinlock_unlock(&access_lock);
 
 	preempt();
 }
@@ -283,5 +251,5 @@ void sched_start(void)
 void sched_init()
 {
 	for (unsigned int i = 0; i < SCHED_PRIORITY_LEVELS; ++i)
-		list_init_null(&ready_queues[i]);
+		list_init(&ready_queues[i]);
 }

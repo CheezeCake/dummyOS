@@ -2,8 +2,9 @@
 #include <kernel/memory.h>
 #include <kernel/panic.h>
 #include <kernel/paging.h>
-#include <kernel/kmalloc.h>
+#include <kernel/kheap.h>
 #include <kernel/kernel.h>
+#include <kernel/kernel_image.h>
 #include <kernel/time/time.h>
 #include <kernel/kassert.h>
 #include "gdt.h"
@@ -50,11 +51,11 @@ int arch_init(void)
 	return i8254_set_tick_interval(TICK_INTERVAL_IN_MS);
 }
 
-void arch_memory_management_init(size_t ram_size_bytes)
+int arch_mm_init(size_t ram_size_bytes)
 {
 	memory_init(ram_size_bytes);
 
 	paging_init();
 
-	kmalloc_init();
+	return 0;
 }

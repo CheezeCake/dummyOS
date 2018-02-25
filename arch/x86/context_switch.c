@@ -11,7 +11,7 @@ void context_switch(const struct thread* from, const struct thread* to)
 	if (to->type == UTHREAD)
 		tss_update(to->kstack.sp + to->kstack.size);
 
-	if (from && from->process != to->process)
+	if (!from || from->process != to->process)
 		vm_context_switch(&to->process->vm_ctx);
 
 	cpu_context_switch(from_cpu_ctx, to->cpu_context);

@@ -1,5 +1,3 @@
-#include <stdbool.h>
-
 #include <kernel/time/timer.h>
 #include <kernel/time/time.h>
 

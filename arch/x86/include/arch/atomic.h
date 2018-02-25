@@ -1,23 +1,34 @@
 #ifndef _ARCH_ATOMIC_H_
 #define _ARCH_ATOMIC_H_
 
-#define __atomic_single_operand(instr, value)	\
-	__asm__ __volatile__ (						\
-			#instr" %0"							\
-			:									\
-			: "m" (value)						\
-			: "memory")
+static inline void atomic_int_init(volatile atomic_int_t* v, int i)
+{
+	__asm__ volatile ("movl %1, (%0)\n" : : "r" (v), "r" (i) : "memory");
+}
 
-#define atomic_dec_int(value) __atomic_single_operand(decl, value)
+static inline int atomic_int_get(const volatile atomic_int_t* v)
+{
+	int value;
+	__asm__ volatile ("movl (%1), %%eax\n"
+					  "movl %%eax, %0"
+					  : "=r" (value)
+					  : "r" (v)
+					  : "%eax", "memory");
 
-#define atomic_inc_int(value) __atomic_single_operand(incl, value)
+	return value;
+}
 
-#define atomic_get_int(value, dest)		\
-		__asm__ __volatile__ (			\
-				"movl %1, %%eax\n"		\
-				"movl %%eax, %0\n"		\
-				: "=r" (dest)			\
-				: "r" (value)			\
-				: "memory")
+#define __atomic_single_operand(instr, value) \
+	__asm__ volatile (#instr" (%0)" : : "r" (value) : "memory")
+
+static inline void atomic_int_inc(volatile atomic_int_t* v)
+{
+	__atomic_single_operand(incl, v);
+}
+
+static inline void atomic_int_dec(volatile atomic_int_t* v)
+{
+	__atomic_single_operand(decl, v);
+}
 
 #endif

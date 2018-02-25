@@ -1,10 +1,8 @@
 #ifndef _ARCH_PAGING_H_
 #define _ARCH_PAGING_H_
 
-#include <stdbool.h>
-
 #include <kernel/types.h>
-#include <arch/virtual_memory.h>
+#include <arch/vm.h>
 
 #define KERNEL_ADDR_SPACE_PAGE_DIRECTORY_ENTRIES \
 	(MIRRORING_VADDR_BEGIN / VM_COVERED_PER_PD_ENTRY) // 256

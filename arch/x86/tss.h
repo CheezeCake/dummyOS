@@ -1,7 +1,7 @@
 #ifndef _TSS_H_
 #define _TSS_H_
 
-#include <stdint.h>
+#include <kernel/types.h>
 
 // Intel Architecture Software Developer’s Manual Volume 3, section 6.2.1
 struct tss

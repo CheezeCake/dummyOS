@@ -1,8 +1,7 @@
 #ifndef _FS_VFS_H_
 #define _FS_VFS_H_
 
-#include <stdbool.h>
-
+#include <kernel/types.h>
 #include <fs/cache_node.h>
 #include <fs/path.h>
 

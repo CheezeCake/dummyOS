@@ -4,7 +4,9 @@
 #include <arch/vm_context.h>
 
 int vm_context_create(struct vm_context* vm_context);
+int vm_context_init(struct vm_context* vm_context);
 void vm_context_destroy(struct vm_context* vm_context);
 void vm_context_switch(struct vm_context* vm_context);
+int vm_context_clear_userspace(struct vm_context* vm_context);
 
 #endif

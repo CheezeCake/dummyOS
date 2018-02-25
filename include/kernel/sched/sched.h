@@ -1,10 +1,10 @@
 #ifndef _KERNEL_SCHED_SCHED_H_
 #define _KERNEL_SCHED_SCHED_H_
 
-#include <stddef.h>
-#include <kernel/thread.h>
 #include <kernel/process.h>
+#include <kernel/thread.h>
 #include <kernel/thread_list.h>
+#include <kernel/types.h>
 
 
 #define SCHED_PRIORITY_LEVELS 5
@@ -17,10 +17,9 @@ void sched_start(void);
 
 void sched_schedule(void);
 
-int sched_add_process(struct process* proc);
 int sched_remove_process(struct process* proc);
-int sched_add_thread(struct thread* thread);
 
+int sched_add_thread(struct thread* thread);
 int sched_remove_thread(struct thread* thread);
 
 struct thread* sched_get_current_thread(void);

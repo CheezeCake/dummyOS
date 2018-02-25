@@ -1,6 +1,5 @@
-#include <stddef.h>
-#include <stdint.h>
 #include <kernel/interrupt.h>
+#include <kernel/types.h>
 #include "irq.h"
 #include "i8259.h"
 #include "idt.h"

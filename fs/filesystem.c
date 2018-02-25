@@ -1,13 +1,12 @@
-#include <stddef.h>
-
 #include <fs/filesystem.h>
 #include <kernel/errno.h>
+#include <kernel/types.h>
 #include <libk/libk.h>
 
 /**
  * Registered @ref vfs_filesystem list
  */
-static list_t filesystem_list = LIST_NULL;
+static LIST_DEFINE(filesystem_list);
 
 int vfs_filesystem_register(struct vfs_filesystem* fs)
 {
@@ -21,7 +20,7 @@ int vfs_filesystem_register(struct vfs_filesystem* fs)
 
 struct vfs_filesystem* vfs_filesystem_get_fs(const char* fs_name)
 {
-	struct list_node* it;
+	list_node_t* it;
 
 	list_foreach(&filesystem_list, it) {
 		struct vfs_filesystem* registered =

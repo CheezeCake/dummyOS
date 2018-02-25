@@ -1,9 +1,9 @@
 #ifndef _IRQ_H_
 #define _IRQ_H_
 
-#ifndef ASM_SOURCE
-#include <stdint.h>
+#ifndef ASSEMBLY
 #include <kernel/interrupt.h>
+#include <kernel/types.h>
 #endif
 
 /*
@@ -27,7 +27,7 @@
 #define IRQ_SECONDARY_HARDDISK 15
 
 
-#ifndef ASM_SOURCE
+#ifndef ASSEMBLY
 
 #define IRQ_BASE 32 // base index in IDT
 #define IRQ_MAX 15
@@ -39,6 +39,6 @@ int irq_set_handler(uint8_t irq, interrupt_handler_t handler);
 int irq_unset_handler(uint8_t irq);
 void irq_init(void);
 
-#endif
+#endif // ! ASSEMBLY
 
 #endif

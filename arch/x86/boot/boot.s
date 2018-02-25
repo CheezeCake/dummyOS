@@ -23,7 +23,7 @@
 # Multiboot header. We will force the .multiboot section to come first in
 # the kernel in the linker script. It must be in the first 8192 bytes.
 .section .multiboot
-.align 4 # The multiboot header must be aligned on a 4 byte boundary
+.align 4 # The multiboot header must be aligned to a 4-byte boundary
 .long MULTIBOOT_MAGIC
 .long MULTIBOOT_FLAGS
 .long MULTIBOOT_CHECKSUM

@@ -11,7 +11,7 @@ void sys_exit(int status)
 	struct process* p = sched_get_current_process();
 	kassert(p != NULL);
 
-	struct list_node* it;
+	list_node_t* it;
 	list_foreach(&p->threads, it) {
 		struct thread* thread = list_entry(it, struct thread, p_thr_list);
 		thread->state = THREAD_ZOMBIE;
