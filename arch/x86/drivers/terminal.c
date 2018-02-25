@@ -1,7 +1,5 @@
-#include <stddef.h>
-#include <stdint.h>
-
 #include <kernel/terminal.h>
+#include <kernel/types.h>
 #include <kernel/vga.h>
 #include <libk/libk.h>
 

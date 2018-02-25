@@ -1,17 +1,16 @@
 #include <kernel/kassert.h>
-#include <kernel/log.h>
+#include <kernel/locking/spinlock.h>
 #include <kernel/sched/sched.h>
-#include <kernel/synced_list.h>
 #include <kernel/time/time.h>
 #include <kernel/time/timer.h>
 
+#include <kernel/log.h>
 
 static struct time tick_value;
 static struct time current = { .sec = 0, .milli_sec = 0, .nano_sec = 0 };
-static struct
-{
-	SYNCED_LIST_CREATE
-} timer_list;
+
+static list_t timer_list;
+static spinlock_t lock = SPINLOCK_NULL;
 
 static void time_update_timer_list(void);
 
@@ -23,7 +22,7 @@ void time_init(struct time tick_val)
 	tick_value.milli_sec = tick_val.milli_sec;
 	tick_value.nano_sec = tick_val.nano_sec;
 
-	list_init_null_synced(&timer_list);
+	list_init(&timer_list);
 }
 
 void time_tick(void)
@@ -63,7 +62,7 @@ int time_cmp(const struct time* t1, const struct time* t2)
 	}
 }
 
-static void release_timer(struct list_node* n)
+static void release_timer(list_node_t* n)
 {
 	struct timer* timer = list_entry(n, struct timer, t_list);
 	timer_trigger(timer);
@@ -72,16 +71,19 @@ static void release_timer(struct list_node* n)
 
 static void time_update_timer_list(void)
 {
-	struct list_node* erase = NULL;
-	struct list_node* it;
+	list_node_t* erase = NULL;
+	list_node_t* it;
 
-	if (list_empty(&timer_list))
+	spinlock_lock(&lock); // lock
+
+	if (list_empty(&timer_list)) {
+		spinlock_unlock(&lock); // unlock
 		return;
+	}
 
-	list_lock_synced(&timer_list); // lock list
 	list_foreach(&timer_list, it) {
 		if (erase) {
-			list_erase(&timer_list, erase); // normal erase
+			list_erase(&timer_list, erase);
 			release_timer(erase);
 			erase = NULL;
 		}
@@ -90,11 +92,16 @@ static void time_update_timer_list(void)
 		if (time_cmp(&current, &timer_it->time) >= 0)
 			erase = it;
 	}
-	list_unlock_synced(&timer_list); // unlock
+
 
 	if (erase) {
-		list_erase_synced(&timer_list, erase); // synced erase
+		list_erase(&timer_list, erase);
+		spinlock_unlock(&lock); // unlock
+
 		release_timer(erase);
+	}
+	else {
+		spinlock_unlock(&lock); // unlock
 	}
 }
 
@@ -103,6 +110,9 @@ void time_add_timer(struct timer* timer)
 {
 	if (timer) {
 		log_printf("sleep add %s\n", ((struct thread*)timer->data)->name);
-		list_push_back_synced(&timer_list, &timer->t_list);
+
+		spinlock_lock(&lock);
+		list_push_back(&timer_list, &timer->t_list);
+		spinlock_unlock(&lock);
 	}
 }

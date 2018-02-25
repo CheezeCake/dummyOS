@@ -1,8 +1,7 @@
 #ifndef _FS_VFS_PATH_H_
 #define _FS_VFS_PATH_H_
 
-#include <stdbool.h>
-
+#include <kernel/types.h>
 #include <libk/refcount.h>
 
 

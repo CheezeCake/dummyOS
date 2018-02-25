@@ -1,9 +1,8 @@
 #ifndef _IDT_H_
 #define _IDT_H_
 
-#include <stdint.h>
-
 #include <kernel/interrupt.h>
+#include <kernel/types.h>
 #include "segment.h"
 
 #define INTERRUPT_MAX 256

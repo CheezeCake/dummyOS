@@ -1,8 +1,7 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <kernel/terminal.h>
 #include <kernel/interrupt.h>
 #include <kernel/panic.h>
+#include <kernel/terminal.h>
+#include <kernel/types.h>
 #include "exception.h"
 #include "idt.h"
 #include "irq.h"

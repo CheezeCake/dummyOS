@@ -1,10 +1,8 @@
 #ifndef _ARCH_VM_CONTEXT_H_
 #define _ARCH_VM_CONTEXT_H_
 
-#include <stdbool.h>
-
 #include <kernel/types.h>
-#include <arch/virtual_memory.h>
+#include <arch/vm.h>
 
 #define USER_ADDR_SPACE_PAGE_DIRECTORY_ENTRIES \
 	(USER_VADDR_SPACE_SIZE / VM_COVERED_PER_PD_ENTRY) // 767

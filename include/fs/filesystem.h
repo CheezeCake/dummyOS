@@ -26,7 +26,7 @@ struct vfs_filesystem
 							  struct vfs_superblock* sb);
 
 	/** Chained in filesystem::@ref ::filesystem_list */
-	struct list_node fs_list;
+	list_node_t fs_list;
 };
 
 /**

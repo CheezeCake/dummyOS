@@ -6,6 +6,8 @@
 #include <kernel/usermode.h>
 #include <libk/libk.h>
 
+#define DEFAULT_STACK_SIZE 2048
+
 static void thread_destroy(struct thread* thread)
 {
 	kfree(thread->cpu_context);
@@ -24,9 +26,9 @@ static int create_stack(v_addr_t* sp, size_t* size, size_t  stack_size)
 }
 
 static int thread_create(const char* name, size_t stack_size,
-									start_func_t start, void* start_args,
-									enum thread_type type,
-									struct thread** result)
+						 start_func_t start, void* start_args,
+						 enum thread_type type,
+						 struct thread** result)
 {
 	int err;
 
@@ -73,29 +75,18 @@ out_thread:
 	return err;
 }
 
-int thread_kthread_create(const char* name, size_t stack_size,
-						  start_func_t start, void* start_args,
-						  struct thread** result)
+int thread_kthread_create(const char* name, start_func_t start,
+						  void* start_args, struct thread** result)
 {
-	return thread_create(name, stack_size, start, start_args, KTHREAD, result);
+	return thread_create(name, DEFAULT_STACK_SIZE, start, start_args, KTHREAD,
+						 result);
 }
 
-int thread_uthread_create(const char* name, size_t kstack_size,
-						  start_func_t start, void* start_args,
-						  struct thread** result)
+int thread_uthread_create(const char* name, start_func_t start,
+						  void* start_args, struct thread** result)
 {
-	// TODO: replace with real usermode start function pointer
-	start_func_t usermode_entry_func = usermode_entry;
-
-	// user function and arguments
-	void** usermode_entry_args = kmalloc(2 * sizeof(void*));
-	if (!usermode_entry_args)
-		return -ENOMEM;
-	usermode_entry_args[0] = start;
-	usermode_entry_args[1] = start_args;
-
-	return thread_create(name, kstack_size, usermode_entry_func,
-						  usermode_entry_args, UTHREAD, result);
+	return thread_create(name, DEFAULT_STACK_SIZE, start, start_args, UTHREAD,
+						 result);
 }
 
 void thread_ref(struct thread* thread)

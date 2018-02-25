@@ -1,8 +1,6 @@
 #ifndef _KERNEL_KERNEL_IMAGE_H_
 #define _KERNEL_KERNEL_IMAGE_H_
 
-#include <stddef.h>
-
 #include <kernel/types.h>
 
 void kernel_image_shift_kernel_end(size_t bytes);

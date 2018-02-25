@@ -6,9 +6,6 @@
  * https://en.wikipedia.org/wiki/Ar_(Unix)
  */
 
-#include <stddef.h>
-#include <stdint.h>
-
 #include <fs/file.h>
 #include <fs/filesystem.h>
 #include <fs/inode.h>
@@ -361,7 +358,7 @@ off_t lseek(struct vfs_file* this, off_t offset, int whence)
 				return -EINVAL;
 			break;
 		case SEEK_SET:
-			new = 0;
+			new = offset;
 			break;
 		case SEEK_END:
 			new = ramfs_inode->data_size - offset - 1;

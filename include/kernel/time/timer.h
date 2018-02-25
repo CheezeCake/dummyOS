@@ -16,7 +16,7 @@ struct timer
 
 	refcount_t refcnt;
 
-	struct list_node t_list; // timer_list node
+	list_node_t t_list; // timer_list node
 };
 
 struct timer* timer_create(unsigned int delay_ms, timer_callback_t cb, void* data);

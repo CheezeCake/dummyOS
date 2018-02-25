@@ -1,39 +1,32 @@
-#define ASM_SOURCE
+#define ASSEMBLY
 
 #include "exception.h"
+#include "interrupt.h"
 #include "irq.h"
+#include "segment.h"
 
-.macro SAVE_CONTEXT
+.macro PROLOGUE
 	pushl %ebp
 	movl %esp, %ebp
-	pushal
-	pushw %ss
-	pushw %ds
-	pushw %es
-	pushw %fs
-	pushw %gs
+	SAVE_CONTEXT()
+	/* setup kernel segment register values */
+	SET_DATA_SEGMENT_REGISTERS(PRIVILEGE_KERNEL, KDATA)
 .endm
 
-.macro RESTORE_CONTEXT
-	popw %gs
-	popw %fs
-	popw %es
-	popw %ds
-	popw %ss
-	popal
+.macro EPILOGUE
+	RESTORE_CONTEXT()
 	popl %ebp
 .endm
 
-.set NOP, 0x90
-#define PIC_MASTER $0x20
-#define PIC_SLAVE $0xa0
+#define PIC_MASTER	0x20
+#define PIC_SLAVE	0xa0
 
 .text
 
-/* defined in exception.c */
+/* see exception.c */
 .extern exception_handlers
 
-/* defined in irq.c */
+/* see irq.c */
 .extern irq_handlers
 
 
@@ -64,11 +57,10 @@
 	     EXCEPTION_RESERVED_13, 			\
 	     EXCEPTION_RESERVED_14
 
-     .p2align 2, NOP /* align on a 4 byte boundary, fill empty space with NOP */
      asm_exception_handler_\nb:
 	.type asm_interrupt_handler_\nb, @function
 
-	SAVE_CONTEXT
+	PROLOGUE
 
 	pushl $\nb
 
@@ -77,7 +69,7 @@
 
 	addl $4, %esp
 
-	RESTORE_CONTEXT
+	/* EPILOGUE */
 
 	iret
 .endr
@@ -91,13 +83,12 @@
 	     EXCEPTION_PAGE_FAULT,		\
 	     EXCEPTION_ALIGNEMENT_CHECK
 
-     .p2align 2, NOP /* align on a 4 byte boundary, fill empty space with NOP */
      asm_exception_handler_\nb:
 	.type asm_exception_handler_\nb, @function
 
 	addl $4, %esp /* remove error code from stack */
 
-	SAVE_CONTEXT
+	PROLOGUE
 
 	pushl $\nb
 
@@ -106,7 +97,7 @@
 
 	addl $4, %esp
 
-	RESTORE_CONTEXT
+	EPILOGUE
 
 	iret
 .endr
@@ -122,20 +113,19 @@
 	     IRQ_FLOPPY		\
 	     IRQ_LPT1
 
-	.p2align 2, NOP /* align on a 4 byte boundary, fill empty space with NOP */
 	asm_irq_handler_\nb:
 		.type asm_irq_handler_\nb, @function
 
-		SAVE_CONTEXT
+		PROLOGUE
 
 		/* send EOI */
 		movb $0x20, %al
-		outb %al, PIC_MASTER
+		outb %al, $PIC_MASTER
 
 		leal irq_handlers, %edi
 		call *\nb * 4(%edi) /* call C handler */
 
-		RESTORE_CONTEXT
+		EPILOGUE
 
 		iret
 .endr
@@ -150,21 +140,20 @@
 	     IRQ_PRIMARY_HARDDISK	\
 	     IRQ_SECONDARY_HARDDISK
 
-	.p2align 2, NOP /* align on a 4 byte boundary, fill empty space with NOP */
 	asm_irq_handler_\nb:
 		.type asm_irq_handler_\nb, @function
 
-		SAVE_CONTEXT
+		PROLOGUE
 
 		/* send EOI */
 		movb $0x20, %al
-		outb %al, PIC_SLAVE
-		outb %al, PIC_MASTER
+		outb %al, $PIC_SLAVE
+		outb %al, $PIC_MASTER
 
 		leal irq_handlers, %edi
 		call *\nb * 4(%edi) /* call C handler */
 
-		RESTORE_CONTEXT
+		EPILOGUE
 
 		iret
 .endr
@@ -174,7 +163,6 @@
 
 .globl asm_interrupt_handlers
 
-.p2align 5, 0x0
 asm_interrupt_handlers:
 	/* indexes 0 -> 31: asm exception hanlders */
 	.irp nb,  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, \

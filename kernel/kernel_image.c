@@ -31,12 +31,12 @@ p_addr_t kernel_image_get_phys_end(void)
 
 p_addr_t kernel_image_get_base_page_frame(void)
 {
-	return page_frame_align_inf((p_addr_t)&__kernel_p_start);
+	return page_frame_align_down((p_addr_t)&__kernel_p_start);
 }
 
 p_addr_t kernel_image_get_top_page_frame(void)
 {
-	return page_frame_align_sup(kernel_image_get_phys_end());
+	return page_frame_align_up(kernel_image_get_phys_end());
 }
 
 /*
@@ -54,10 +54,10 @@ v_addr_t kernel_image_get_virt_end(void)
 
 v_addr_t kernel_image_get_base_page(void)
 {
-	return page_frame_align_inf((v_addr_t)&__kernel_v_start);
+	return page_frame_align_down((v_addr_t)&__kernel_v_start);
 }
 
 v_addr_t kernel_image_get_top_page(void)
 {
-	return page_frame_align_sup(kernel_image_get_virt_end());
+	return page_frame_align_up(kernel_image_get_virt_end());
 }

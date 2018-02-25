@@ -1,8 +1,7 @@
 #ifndef _LIBK_LIBK_H_
 #define _LIBK_LIBK_H_
 
-#include <stddef.h>
-#include <stdarg.h>
+#include <kernel/types.h>
 
 void* memcpy(void* dest, const void* src, size_t size);
 void* memset(void *s, int c, size_t size);

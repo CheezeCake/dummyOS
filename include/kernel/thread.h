@@ -1,18 +1,17 @@
 #ifndef _KERNEL_THREAD_H_
 #define _KERNEL_THREAD_H_
 
-#include <stddef.h>
-
 #include <arch/cpu_context.h>
+#include <dummyos/const.h>
+#include <kernel/sched/wait.h>
 #include <kernel/time/time.h>
 #include <kernel/types.h>
 #include <libk/list.h>
 #include <libk/refcount.h>
-#include <kernel/sched/wait.h>
 
 struct process;
 
-typedef void (*start_func_t)(void* data);
+typedef int (*start_func_t)(void* data);
 typedef unsigned int thread_priority_t;
 
 #define MAX_THREAD_NAME_LENGTH 16
@@ -24,6 +23,7 @@ enum thread_state
 	THREAD_READY,
 	THREAD_BLOCKED,
 	THREAD_SLEEPING,
+	THREAD_STOPPED,
 	THREAD_ZOMBIE
 };
 enum thread_type { KTHREAD, UTHREAD };
@@ -50,19 +50,18 @@ struct thread
 
 	refcount_t refcnt;
 
-	struct list_node p_thr_list; /**< Chained in process::threads */
-	struct list_node s_ready_queue; /**< Chained in sched::@ref ::ready_queues */
-	struct list_node sem_wq; /**< Chained in sem_t::wait_queue */
+	list_node_t p_thr_list; /**< Chained in process::threads */
+	list_node_t s_ready_queue; /**< Chained in sched::@ref ::ready_queues */
+	list_node_t sem_wq; /**< Chained in sem_t::wait_queue */
 
-	wait_queue_entry_t wqe; // wait_queue entry
+	wait_queue_entry_t wqe; /**< Chained in wait_queue_t::threads */
 };
 
-int thread_kthread_create(const char* name, size_t stack_size,
-						  start_func_t start, void* start_args,
-						  struct thread** result);
-int thread_uthread_create(const char* name, size_t kstack_size,
-						  start_func_t start, void* start_args,
-						  struct thread** result);
+int thread_kthread_create(const char* name, start_func_t start,
+						  void* start_args, struct thread** result);
+
+int thread_uthread_create(const char* name, start_func_t __user start,
+						  void* __user start_args, struct thread** result);
 
 void thread_ref(struct thread* thread);
 void thread_unref(struct thread* thread);

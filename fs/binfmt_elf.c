@@ -1,12 +1,11 @@
-#include <stdbool.h>
-
-#include <arch/virtual_memory.h>
+#include <arch/vm.h>
 #include <fs/file.h>
 #include <kernel/elf.h>
 #include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/memory.h>
 #include <kernel/paging.h>
+#include <kernel/types.h>
 #include <libk/libk.h>
 #include <libk/utils.h>
 
@@ -37,11 +36,10 @@ static bool check_header(const struct elf_header* e_hdr)
 	return true;
 }
 
-int elf_load_binary(struct vfs_file* binfile)
+int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 {
 	struct elf_header e_hdr;
 	struct elf_program_header* e_phdr;
-	v_addr_t entry_point;
 	off_t phdr_offset, shdr_offset;
 	uint16_t phdr_size, phdr_num;
 	uint16_t shdr_size, shdr_num;
@@ -50,10 +48,10 @@ int elf_load_binary(struct vfs_file* binfile)
 
 	if (binfile->op->read(binfile, &e_hdr, sizeof(e_hdr)) != sizeof(e_hdr))
 		return -ENOEXEC;
-	if (check_header(&e_hdr))
+	if (!check_header(&e_hdr))
 		return -ENOEXEC;
 
-	entry_point = le2h32(e_hdr.e_entry);
+	*entry_point = le2h32(e_hdr.e_entry);
 
 	phdr_offset = le2h32(e_hdr.e_phoff); // program header offset
 	shdr_offset = le2h32(e_hdr.e_shoff); // section header offset
@@ -74,17 +72,18 @@ int elf_load_binary(struct vfs_file* binfile)
 	e_shstrndx = le2h16(e_hdr.e_shstrndx);
 
 	size_t size = phdr_size * phdr_num;
-	if (!(e_phdr = kmalloc(sizeof(size))))
+	e_phdr = kmalloc(size);
+	if (!e_phdr)
 		return -ENOMEM;
 
 	off_t seek_offset = binfile->op->lseek(binfile, phdr_offset, SEEK_SET);
 	if (seek_offset != phdr_offset) {
-		err = seek_offset;
+		err = -EIO;
 		goto end;
 	}
 	ssize_t read = binfile->op->read(binfile, e_phdr, size);
 	if (read != size) {
-		err = read;
+		err = -EIO;
 		goto end;
 	}
 
@@ -99,6 +98,9 @@ int elf_load_binary(struct vfs_file* binfile)
 		uint32_t flags = le2h32(e_phdr[i].p_flags);
 		uint32_t align = le2h32(e_phdr[i].p_align);
 
+		if (memsz == 0)
+			continue;
+
 		if (!virtual_memory_is_userspace_address(vaddr) ||
 			!virtual_memory_is_userspace_address(vaddr + memsz)) {
 			err = -ENOEXEC;
@@ -110,7 +112,9 @@ int elf_load_binary(struct vfs_file* binfile)
 		}
 
 		v_addr_t map_addr = vaddr;
-		int nb_pages = filesz / PAGE_SIZE;
+		int nb_pages = memsz / PAGE_SIZE;
+		if (memsz % PAGE_SIZE > 0)
+			++nb_pages;
 		for (int p = 0; p < nb_pages; ++p) {
 			p_addr_t page = memory_page_frame_alloc();
 			if (!page) {
@@ -118,17 +122,24 @@ int elf_load_binary(struct vfs_file* binfile)
 				goto end;
 			}
 
-			if ((err = paging_map(page, map_addr, flags | VM_OPT_USER)) != 0)
+			err = paging_map(page, map_addr, flags | VM_OPT_USER);
+			if (err)
 				goto end;
 
 			map_addr += PAGE_SIZE;
 		}
 
+
 		// read segment into memory
+		if (binfile->op->lseek(binfile, offset, SEEK_SET) != offset) {
+			err = -EIO;
+			goto end;
+		}
 		if (binfile->op->read(binfile, (void*)vaddr, filesz) != filesz) {
 			err = -EIO;
 			goto end;
 		}
+
 		// zero fill
 		if (filesz < memsz)
 			memset((void*)vaddr + filesz, 0, memsz - filesz);

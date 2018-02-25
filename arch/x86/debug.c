@@ -1,4 +1,4 @@
-#include <arch/virtual_memory.h>
+#include <arch/vm.h>
 #include <kernel/debug.h>
 #include <kernel/log.h>
 

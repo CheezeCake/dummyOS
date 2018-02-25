@@ -1,8 +1,7 @@
 #ifndef _ARCH_ELF_H_
 #define _ARCH_ELF_H_
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <kernel/types.h>
 
 #define ELF_HEADER_MACHINE_X86 0x3
 

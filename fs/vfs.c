@@ -1,9 +1,8 @@
-#include <stddef.h>
-
 #include <fs/filesystem.h>
 #include <fs/inode.h>
 #include <fs/vfs.h>
 #include <kernel/errno.h>
+#include <kernel/types.h>
 #include <libk/list.h>
 
 #include <kernel/log.h>
@@ -13,7 +12,7 @@
 /**
  * List of currently mounted @ref vfs_superblock
  */
-static list_t mounted_list = LIST_NULL;
+static list_t mounted_list;
 
 static int get_superblock(struct vfs_cache_node* device, const char* filesystem,
 						  void* data, struct vfs_superblock** sb);
@@ -41,6 +40,7 @@ static int mount_root(void)
 
 int vfs_init(void)
 {
+	list_init(&mounted_list);
 	// parse cmd line?
 	return mount_root();
 }

@@ -1,8 +1,7 @@
 #ifndef _KERNEL_TERMINAL_H_
 #define _KERNEL_TERMINAL_H_
 
-#include <stddef.h>
-#include <stdint.h>
+#include <kernel/types.h>
 
 int terminal_printf(const char* format, ...)
 	__attribute__((format(printf, 1, 2)));

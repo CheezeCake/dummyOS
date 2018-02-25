@@ -1,9 +1,8 @@
 #ifndef _ARCH_VIRTUAL_MEMORY_H_
 #define _ARCH_VIRTUAL_MEMORY_H_
 
-#include <stdbool.h>
-
 #include <arch/memory.h>
+#include <kernel/types.h>
 
 /*
  * +---+------------------+ 4GB - 1 (0xffffffff)
@@ -54,8 +53,8 @@
 #define KERNEL_VADDR_SPACE_LIMIT	MIRRORING_VADDR_BEGIN
 #define KERNEL_VADDR_SPACE_RESERVED KERNEL_VADDR_SPACE_START
 
-#define USER_VADDR_SPACE_START	0x40000000 // 1GB
-#define USER_VADDR_SPACE_END	0xffffffff // 4GB
+#define USER_VADDR_SPACE_START	0x0
+#define USER_VADDR_SPACE_END	0xc0000000 // 3GB
 
 /*
  * page directory entry count

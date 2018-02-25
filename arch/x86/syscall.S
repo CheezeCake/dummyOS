@@ -1,4 +1,9 @@
+#define ASSEMBLY
+
 #include <kernel/syscall.h>
+
+#include "interrupt.h"
+#include "segment.h"
 
 /* see kernel/syscall.c */
 .extern syscall_table
@@ -23,6 +28,9 @@ syscall_handler:
 	movl $-1, %eax
 	iret
 1:
+	SAVE_CONTEXT()
+
+	/* pass the arguments */
 	pushl %ebp
 	pushl %edi
 	pushl %esi
@@ -30,14 +38,21 @@ syscall_handler:
 	pushl %ecx
 	pushl %ebx
 
+	pushl %eax /* save eax */
+	SET_DATA_SEGMENT_REGISTERS(PRIVILEGE_KERNEL, KDATA)
+	popl %eax
+
 	leal syscall_table, %edi
 	call *(%edi, %eax, 4)
 
+	/* pop the arguments */
 	popl %ebx
 	popl %ecx
 	popl %edx
 	popl %esi
 	popl %edi
 	popl %ebp
+
+	RESTORE_CONTEXT()
 
 	iret

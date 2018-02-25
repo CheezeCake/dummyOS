@@ -62,19 +62,18 @@ void gdt_init(void)
 	gdt_register.limit = sizeof(gdt);
 
 	// load the gdtr register and update the segment registers
-	__asm__ __volatile__ (
-			"lgdt %0\n"
-			"movw %1, %%ax\n"
-			"movw %%ax, %%ss\n"
-			"movw %%ax, %%ds\n"
-			"movw %%ax, %%es\n"
-			"movw %%ax, %%fs\n"
-			"movw %%ax, %%gs\n"
-			"ljmp %2, $next\n"
-			"next:"
-			:
-			: "m" (gdt_register),
-			  "i" (make_segment_selector(PRIVILEGE_KERNEL, KDATA)),
-			  "i" (make_segment_selector(PRIVILEGE_KERNEL, KCODE))
-			: "eax", "memory");
+	__asm__ volatile ("lgdt %0\n"
+					  "movw %1, %%ax\n"
+					  "movw %%ax, %%ss\n"
+					  "movw %%ax, %%ds\n"
+					  "movw %%ax, %%es\n"
+					  "movw %%ax, %%fs\n"
+					  "movw %%ax, %%gs\n"
+					  "ljmp %2, $next\n"
+					  "next:"
+					  :
+					  : "m" (gdt_register),
+						"i" (make_segment_selector(PRIVILEGE_KERNEL, KDATA)),
+						"i" (make_segment_selector(PRIVILEGE_KERNEL, KCODE))
+					  : "eax", "memory");
 }

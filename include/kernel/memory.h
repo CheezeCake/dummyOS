@@ -1,25 +1,43 @@
 #ifndef _KERNEL_MEMORY_H_
 #define _KERNEL_MEMORY_H_
 
-#include <stddef.h>
 #include <kernel/page_frame_status.h>
 #include <kernel/types.h>
+#include <libk/utils.h>
+
+static inline enum page_frame_status
+get_page_frame_status(p_addr_t pf, p_addr_t mem_base, p_addr_t mem_top,
+					  p_addr_t kbase, p_addr_t ktop);
+
+/*
+ * Include platform specific implementation.
+ */
 #include <arch/memory.h>
 
-static inline p_addr_t page_frame_align_inf(p_addr_t addr)
+#ifndef PAGE_SIZE
+# error "arch/memory.h must define PAGE_SIZE"
+#endif
+#ifndef PAGE_SIZE_SHIFT
+# error "arch/memory.h must define PAGE_SIZE_SHIFT"
+#endif
+
+static inline p_addr_t page_frame_align_down(p_addr_t addr)
 {
-	return (addr & ~(PAGE_SIZE - 1));
+	return ALIGN_DOWN(addr, PAGE_SIZE);
 }
 
-static inline p_addr_t page_frame_align_sup(p_addr_t addr)
+static inline p_addr_t page_frame_align_up(p_addr_t addr)
 {
-	return ((addr + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1));
+	return ALIGN_UP(addr, PAGE_SIZE);
 }
 
 void memory_init(size_t ram_size_bytes);
+
 p_addr_t memory_page_frame_alloc(void);
+
 int memory_page_frame_free(p_addr_t addr);
+
 void memory_statistics(unsigned int* nb_used_page_frames,
-		unsigned int* nb_free_page_frames);
+					   unsigned int* nb_free_page_frames);
 
 #endif

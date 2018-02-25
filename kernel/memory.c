@@ -1,7 +1,4 @@
-#include <limits.h>
-#include <stdbool.h>
-
-#include <arch/memory.h>
+#include <kernel/errno.h>
 #include <kernel/kassert.h>
 #include <kernel/kernel_image.h>
 #include <kernel/kmalloc.h>
@@ -9,7 +6,7 @@
 #include <kernel/memory.h>
 #include <kernel/page_frame_status.h>
 #include <libk/libk.h>
-#include <libk/sz_list.h>
+#include <libk/list.h>
 
 /*
  * describes a physical page
@@ -18,22 +15,18 @@ struct page_frame
 {
 	p_addr_t addr;
 
-	struct list_node pf_list;
+	list_node_t pf_list;
 };
-
-/*
- * list structure
- */
-struct page_frame_list
-{
-	SZ_LIST_CREATE
-};
-
 
 static struct page_frame* page_frame_descriptors = NULL;
 
-static struct page_frame_list free_page_frames;
-static struct page_frame_list used_page_frames;
+typedef struct pf_list_t {
+	list_t list;
+	size_t n;
+} pf_list_t;
+
+static pf_list_t free_page_frames;
+static pf_list_t used_page_frames;
 
 static p_addr_t memory_base;
 static p_addr_t memory_top;
@@ -59,8 +52,10 @@ void memory_init(size_t ram_size_bytes)
 
 	kassert(kernel_top < memory_top);
 
-	sz_list_init_null(&free_page_frames);
-	sz_list_init_null(&used_page_frames);
+	list_init(&free_page_frames.list);
+	free_page_frames.n = 0;
+	list_init(&used_page_frames.list);
+	free_page_frames.n = 0;
 
 #ifndef NDEBUG
 	int stat = -1;
@@ -79,9 +74,9 @@ void memory_init(size_t ram_size_bytes)
 			const char* status_str[] = { "reserved", "kernel", "hw map", "free" };
 			stat = status;
 			if (status <= 3)
-				log_printf("[0x%x]\n %s\n", (unsigned int)paddr, status_str[status]);
+				log_printf("[%p]\n %s\n", (void*)paddr, status_str[status]);
 			else
-				log_printf("[0x%x]\n %d\n", (unsigned int)paddr, status);
+				log_printf("[%p]\n %d\n", (void*)paddr, status);
 		}
 #endif
 
@@ -89,10 +84,12 @@ void memory_init(size_t ram_size_bytes)
 		pf_descriptor->addr = paddr;
 
 		if (status == PAGE_FRAME_FREE) {
-			sz_list_push_back(&free_page_frames, &pf_descriptor->pf_list);
+			list_push_back(&free_page_frames.list, &pf_descriptor->pf_list);
+			++free_page_frames.n;
 		}
 		else if (status == PAGE_FRAME_KERNEL || status == PAGE_FRAME_HW_MAP) {
-			sz_list_push_back(&used_page_frames, &pf_descriptor->pf_list);
+			list_push_back(&used_page_frames.list, &pf_descriptor->pf_list);
+			++used_page_frames.n;
 		}
 	}
 }
@@ -101,27 +98,27 @@ static inline struct page_frame* get_page_frame_at(p_addr_t addr)
 {
 	// check if addr is PAGE_SIZE aligned
 	// if it isn't, it's not a page frame address
-	if ((addr & ((1 << PAGE_SIZE_SHIFT) - 1)) != 0)
-		return NULL;
+	if (IS_ALIGNED(addr, PAGE_SIZE)) {
+		if (addr >= memory_base && addr < memory_top)
+			return (page_frame_descriptors + (addr >> PAGE_SIZE_SHIFT));
+	}
 
-	if (addr >= memory_base && addr < memory_top)
-		return (page_frame_descriptors + (addr >> PAGE_SIZE_SHIFT));
-
-	// addr is out of memory
 	return NULL;
 }
 
 p_addr_t memory_page_frame_alloc()
 {
 	// no free pages left
-	if (sz_list_empty(&free_page_frames))
+	if (list_empty(&free_page_frames.list))
 		return (p_addr_t)NULL;
 
 	struct page_frame* new_page_frame =
-		list_entry(sz_list_front(&free_page_frames), struct page_frame, pf_list);
-	sz_list_pop_front(&free_page_frames);
+		list_entry(list_front(&free_page_frames.list), struct page_frame, pf_list);
+	list_pop_front(&free_page_frames.list);
+	--free_page_frames.n;
 
-	sz_list_push_back(&used_page_frames, &new_page_frame->pf_list);
+	list_push_back(&used_page_frames.list, &new_page_frame->pf_list);
+	++used_page_frames.n;
 
 	return new_page_frame->addr;
 }
@@ -130,10 +127,12 @@ int memory_page_frame_free(p_addr_t addr)
 {
 	struct page_frame* pf = get_page_frame_at(addr);
 	if (!pf)
-		return -1;
+		return -EINVAL;
 
-	sz_list_erase(&used_page_frames, &pf->pf_list);
-	sz_list_push_front(&free_page_frames, &pf->pf_list);
+	list_erase(&used_page_frames.list, &pf->pf_list);
+	--used_page_frames.n;
+	list_push_front(&free_page_frames.list, &pf->pf_list);
+	++free_page_frames.n;
 
 	return 0;
 }
@@ -141,6 +140,6 @@ int memory_page_frame_free(p_addr_t addr)
 void memory_statistics(unsigned int* nb_used_page_frames,
 		unsigned int* nb_free_page_frames)
 {
-	*nb_used_page_frames = used_page_frames.size;
-	*nb_free_page_frames = free_page_frames.size;
+	*nb_used_page_frames = used_page_frames.n;
+	*nb_free_page_frames = free_page_frames.n;
 }
