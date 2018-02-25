@@ -109,7 +109,7 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap)
 				case 's':
 					{
 						const char* s = va_arg(ap, char*);
-						static const char* null = "null";
+						static const char* null = "(null)";
 						if (!s)
 							s = null;
 						PUTSTR(s);
