@@ -58,7 +58,7 @@ __boot_page_table:
 _start:
 	# This assumes the kernel is smaller than 3MB.
 	# The kernel is loaded in physical memory at 1MB (0x100000).
-	# Fill the page directory and the page table to have the the physical
+	# Fill the page directory and the page table to have the physical
 	# memory 0 -> 4MB identity mapped so the CPU can fetch the next
 	# instruction after enabling paging.
 	# Also map 0 -> 4MB to  to the kernel virtual address (0xc0000000)

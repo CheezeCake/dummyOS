@@ -1,31 +1,56 @@
 #include <libk/libk.h>
+#include <kernel/types.h>
 
-#define PUTSTR(str)				\
-	do {						\
-		while (*str) {			\
-			PUTCHAR(*(str++));	\
-		}						\
-	} while (0)
+static inline void putchar(char* str, size_t size, size_t* pos, char c)
+{
+	if (*pos < size - 1)
+		str[(*pos)++] = c;
+}
 
-#define PRINT_UDECIDMAL(value, buffer)			\
-	do {										\
-		unsigned int n = 0;						\
-		do {									\
-			unsigned int m = value % 10;		\
-												\
-			buffer[n++] = '0' + m;				\
-			value /= 10;						\
-		} while (value != 0);					\
-												\
-		while (n > 0)							\
-			PUTCHAR(buffer[--n]);				\
-	} while (0)
+static inline void print_unsigned_integer(char* str, size_t size, size_t* pos,
+										  unsigned long long value, int base)
+{
+	static const char charset[] = "0123456789abcdef";
+	char buffer[20];
+	unsigned int n = 0;
+
+	do {
+		buffer[n++] = charset[value % base];
+		value /= base;
+	} while (value);
+
+	while (n > 0)
+		putchar(str, size, pos, buffer[--n]);
+}
+
+static inline void print_integer(char* str, size_t size, size_t* pos,
+								 long long value)
+{
+	if (value < 0) {
+		putchar(str, size, pos, '-');
+		value = -value;
+	}
+
+	return print_unsigned_integer(str, size, pos, value, 10);
+}
+
+#define PUTSTR(str)			\
+	while (*str) {			\
+		PUTCHAR(*(str++));	\
+	}
+
+#define PRINT_UNSIGNED_INTEGER(type) __PRINT_UNSIGNED_INTEGER(type, 10)
+#define PRINT_UNSIGNED_INTEGER_HEX(type) __PRINT_UNSIGNED_INTEGER(type, 16)
 
 int vsnprintf(char* str, size_t size, const char* format, va_list ap)
 {
 	char c;
 	size_t pos = 0;
-#define PUTCHAR(character) if (pos < size - 1) str[pos++] = character
+
+#define PUTCHAR(character) putchar(str, size, &pos, character)
+#define __PRINT_UNSIGNED_INTEGER(type, base)	\
+	print_unsigned_integer(str, size, &pos, va_arg(ap, type), base)
+#define PRINT_INTEGER(type) print_integer(str, size, &pos, va_arg(ap, type))
 
 	for (; *format; ++format) {
 		c = *format;
@@ -40,70 +65,54 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap)
 					break;
 				case 'i':
 				case 'd':
-					{
-						int value = va_arg(ap, int);
-						char buffer[10];
-
-						if (value < 0) {
-							PUTCHAR('-');
-							value = -value;
-						}
-
-						PRINT_UDECIDMAL(value, buffer);
-
-						break;
-					}
+					PRINT_INTEGER(int);
+					break;
 				case 'u':
+					PRINT_UNSIGNED_INTEGER(unsigned int);
+					break;
 				case 'l':
-					if (format[1] == 'u' || c == 'u') {
-							unsigned long value = va_arg(ap, unsigned long);
-							char buffer[20];
-							PRINT_UDECIDMAL(value, buffer);
-							if (c != 'u')
-								++format;
-					}
-					else if (format[1] == 'l' && format[2] == 'u') {
-						unsigned long long value = va_arg(ap, unsigned long long);
-						char buffer[20];
-						PRINT_UDECIDMAL(value, buffer);
-						format += 2;
+					if (format[1]) {
+						// %l*
+						if (format[1] == 'i' || format[1] == 'd') {
+							PRINT_INTEGER(long);
+						}
+						else if (format[1] == 'u') {
+							PRINT_UNSIGNED_INTEGER(unsigned long);
+						}
+						else if (format[1] == 'x' || format[1] == 'X') {
+							PRINT_UNSIGNED_INTEGER_HEX(unsigned long);
+						}
+						else if (format[1] == 'l') {
+							// %ll*
+							if (format[2]) {
+								if (format[2] == 'i' || format[2] == 'd')
+									PRINT_INTEGER(long long);
+								else if (format[2] == 'u')
+									PRINT_UNSIGNED_INTEGER(unsigned long long);
+								else if (format[2] == 'x' || format[2] == 'X')
+									PRINT_UNSIGNED_INTEGER_HEX(unsigned long long);
+							}
+							++format;
+						}
+						++format;
 					}
 					break;
 				case 'p':
 					PUTCHAR('0');
 					PUTCHAR('x');
+					PRINT_UNSIGNED_INTEGER_HEX(v_addr_t);
+					break;
 				case 'x':
 				case 'X':
-					{
-						unsigned int value = va_arg(ap, int);
-						char buffer[8];
-						int n = 0;
-
-						do {
-							int m = value % 16;
-							char hex_char = (m <= 9) ? ('0' + m) : ('a' + m - 10);
-
-							buffer[n++] = hex_char;
-							value >>= 4;
-						} while (value != 0);
-
-						while (n > 0)
-							PUTCHAR(buffer[--n]);
-
-						break;
-					}
+					PRINT_UNSIGNED_INTEGER_HEX(unsigned int);
+					break;
 				case 's':
 					{
-						char* s = va_arg(ap, char*);
-						if (s) {
-							for (; *s; ++s)
-								PUTCHAR(*s);
-						}
-						else {
-							const char* null = "null";
-							PUTSTR(null);
-						}
-
+						const char* s = va_arg(ap, char*);
+						static const char* null = "null";
+						if (!s)
+							s = null;
+						PUTSTR(s);
 						break;
 					}
 				default:

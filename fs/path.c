@@ -29,12 +29,14 @@ static inline vfs_path_offset_t first_x(const char* str, vfs_path_size_t size,
 static inline bool slash_predicate(char c) { return (c == '/'); }
 static inline bool non_slash_predicate(char c) { return !slash_predicate(c); }
 
-static vfs_path_offset_t first_slash(const char* str, vfs_path_size_t size)
+static inline
+vfs_path_offset_t first_slash(const char* str, vfs_path_size_t size)
 {
 	return first_x(str, size, slash_predicate);
 }
 
-static vfs_path_offset_t first_non_slash(const char* str, vfs_path_size_t size)
+static inline
+vfs_path_offset_t first_non_slash(const char* str, vfs_path_size_t size)
 {
 	return first_x(str, size, non_slash_predicate);
 }
@@ -78,6 +80,9 @@ static inline void vfs_path_string_init(string_t* str, char* path,
 
 int vfs_path_init(vfs_path_t* path, const char* path_str, vfs_path_size_t size)
 {
+	if (size > VFS_PATH_MAX_LEN)
+		return -ENAMETOOLONG;
+
 	string_t* str = kmalloc(sizeof(string_t));
 	if (!str)
 		return -ENOMEM;
@@ -104,6 +109,9 @@ int vfs_path_create_from(const vfs_path_t* path,
 {
 	int err;
 	vfs_path_t* new_path;
+
+	if (size > VFS_PATH_MAX_LEN)
+		return -ENAMETOOLONG;
 
 	if ((err = vfs_path_copy_create(path, &new_path)) != 0)
 		return err;

@@ -13,4 +13,4 @@ case $1 in
 		exit 1
 esac
 
-qemu-system-i386 ${QEMU_EXTRA_FLAGS} ${KERNEL_FLAG} -debugcon stdio
+${QEMU} ${KERNEL_FLAG} ${QEMU_FLAGS} ${QEMU_EXTRA_FLAGS}
