@@ -407,7 +407,7 @@ static struct vfs_filesystem ramfs = {
 	.name = "ramfs",
 	.superblock_create = superblock_create,
 	.superblock_destroy = superblock_destroy,
-	.fs_list = { NULL, }
+	.fs_list = LIST_NODE_NULL
 };
 
 static struct vfs_superblock_operations ramfs_superblock_op = {

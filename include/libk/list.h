@@ -15,6 +15,8 @@ typedef struct list_node list_t;
 /*
  * init
  */
+#define LIST_NODE_NULL { .prev = NULL, .next = NULL }
+
 #define LIST_DEFINE(list) list_t list = { .prev = &list, .next = &list }
 
 static inline void list_init(list_t* list)
