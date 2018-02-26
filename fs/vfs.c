@@ -28,12 +28,11 @@ static int mount_root(void)
 	/* int err; */
 	/* struct vfs_superblock* sb; */
 
-	/* if ((err = get_superblock(NULL, "ramfs", &_binary_archive_start, &sb)) != 0) */
-	/* 	return err; */
+	/* err = get_superblock(NULL, "ramfs", &_binary_archive_start, &sb); */
+	/* if (!err) */
+	/* 	err = vfs_cache_init(sb->root); */
 
-	/* vfs_cache_init(sb->root); */
-
-	/* return 0; */
+	/* return err; */
 
 	return -ENODEV;
 }
@@ -64,7 +63,8 @@ int vfs_mount(struct vfs_cache_node* device, struct vfs_cache_node* mountpoint,
 	int err;
 	struct vfs_superblock* sb;
 
-	if ((err = get_superblock(device, filesystem, data, &sb)) != 0)
+	err = get_superblock(device, filesystem, data, &sb);
+	if (err)
 		return err;
 
 	list_push_back(&mounted_list, &sb->mounted_list);
@@ -101,7 +101,7 @@ static int readlink(const struct vfs_cache_node* symlink,
 	vfs_path_t* target_path_p = &target_path;
 
 	int err = symlink->inode->op->readlink(symlink->inode, &target_path_p);
-	if (err != 0)
+	if (err)
 		return err;
 
 	struct vfs_cache_node* const start =
@@ -124,11 +124,11 @@ static int read_and_cache_inode(struct vfs_cache_node* parent,
 	int err;
 
 	err = parent_inode->op->lookup(parent_inode, lookup_pathname, &inode);
-	if (err != 0)
+	if (err)
 		return err;
 
 	err = inode->sb->op->read_inode(inode->sb, inode);
-	if (err != 0)
+	if (err)
 		return err;
 
 	return vfs_cache_node_insert_child(parent, inode, lookup_pathname,
@@ -169,7 +169,7 @@ static int lookup(vfs_path_component_t* path_component, struct vfs_cache_node* s
 		if (!looked_up) {
 			// node is not in the cache, fetch and cache it
 			int err = read_and_cache_inode(current_node, path, &looked_up);
-			if (err != 0)
+			if (err)
 				return err;
 		}
 
@@ -190,7 +190,8 @@ int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
 	vfs_path_component_t path_component;
 	struct vfs_cache_node* start = (vfs_path_absolute(path)) ? root : cwd;
 
-	if ((err = vfs_path_get_component(path, &path_component)) != 0)
+	err = vfs_path_get_component(path, &path_component);
+	if (err)
 		return err;
 
 	err = lookup(&path_component, start, root, result, recursion_level);

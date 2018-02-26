@@ -16,10 +16,13 @@ static void thread_destroy(struct thread* thread)
 	kfree(thread);
 }
 
-static int create_stack(v_addr_t* sp, size_t* size, size_t  stack_size)
+static int create_stack(v_addr_t* sp, size_t* size, size_t stack_size)
 {
-	if (!(*sp = (v_addr_t)kmalloc(stack_size)))
+	void* stack = kmalloc(stack_size);
+	if (!stack)
 		return -ENOMEM;
+
+	*sp = (v_addr_t)stack;
 	*size = stack_size;
 
 	return 0;
@@ -41,10 +44,11 @@ static int thread_create(const char* name, size_t stack_size,
 	strncpy(thread->name, name, MAX_THREAD_NAME_LENGTH);
 
 	err = create_stack(&thread->kstack.sp, &thread->kstack.size, stack_size);
-	if (err != 0)
+	if (err)
 		goto out_thread;
 
-	if (!(thread->cpu_context = kmalloc(sizeof(struct cpu_context)))) {
+	thread->cpu_context = kmalloc(sizeof(struct cpu_context));
+	if (!thread->cpu_context) {
 		err = -ENOMEM;
 		goto out_stack;
 	}

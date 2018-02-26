@@ -59,15 +59,15 @@ int vfs_path_create(const char* path, vfs_path_size_t size, vfs_path_t** result)
 	if (!new_path)
 		return -ENOMEM;
 
-	int err;
-	if ((err = vfs_path_init(new_path, path, size)) != 0) {
+	int err = vfs_path_init(new_path, path, size);
+	if (err) {
 		kfree(new_path);
-		return err;
+		new_path = NULL;
 	}
 
 	*result = new_path;
 
-	return 0;
+	return err;
 }
 
 static inline void vfs_path_string_init(string_t* str, char* path,
@@ -113,13 +113,13 @@ int vfs_path_create_from(const vfs_path_t* path,
 	if (size > VFS_PATH_MAX_LEN)
 		return -ENAMETOOLONG;
 
-	if ((err = vfs_path_copy_create(path, &new_path)) != 0)
-		return err;
+	err = vfs_path_copy_create(path, &new_path);
+	if (!err) {
+		new_path->offset += relative_offset;
+		new_path->size = size;
+	}
 
-	new_path->offset += relative_offset;
-	new_path->size = size;
-
-	return 0;
+	return err;
 }
 
 int vfs_path_copy_create(const vfs_path_t* path, vfs_path_t** result)
@@ -128,13 +128,11 @@ int vfs_path_copy_create(const vfs_path_t* path, vfs_path_t** result)
 	if (!new_path)
 		return -ENOMEM;
 
-	int err;
-	if ((err = vfs_path_copy_init(path, new_path)) != 0) {
+	int err = vfs_path_copy_init(path, new_path);
+	if (err)
 		kfree(new_path);
-		return err;
-	}
 
-	return 0;
+	return err;
 }
 
 int vfs_path_copy_init(const vfs_path_t* path, vfs_path_t* copy)
@@ -172,7 +170,8 @@ int vfs_path_get_component(const vfs_path_t* path,
 	int err;
 	vfs_path_t* component_path = &component->as_path;
 
-	if ((err = vfs_path_copy_init(path, component_path)) != 0)
+	err = vfs_path_copy_init(path, component_path);
+	if (err)
 		return err;
 
 	// find start offset of first component

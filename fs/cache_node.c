@@ -13,13 +13,11 @@ int vfs_cache_init(struct vfs_cache_node* root)
 {
 	kassert(root->inode->type == DIRECTORY);
 
-	int err;
-	if ((err = vfs_path_init(&root->name, "/", 1)) != 0)
-		return err;
+	int err = vfs_path_init(&root->name, "/", 1);
+	if (!err)
+		cache_node_root = root;
 
-	cache_node_root = root;
-
-	return 0;
+	return err;
 }
 
 int vfs_cache_node_create(struct vfs_inode* inode, const vfs_path_t* name,
@@ -29,15 +27,15 @@ int vfs_cache_node_create(struct vfs_inode* inode, const vfs_path_t* name,
 	if (!node)
 		return -ENOMEM;
 
-	int err;
-	if ((err = vfs_cache_node_init(node, inode, name)) != 0) {
+	int err = vfs_cache_node_init(node, inode, name);
+	if (err) {
 		kfree(node);
-		return err;
+		node = NULL;
 	}
 
 	*result = node;
 
-	return 0;
+	return err;
 }
 
 int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
@@ -45,9 +43,11 @@ int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
 {
 	memset(node, 0, sizeof(struct vfs_cache_node));
 
-	int err;
-	if (name && (err = vfs_path_copy_init(name, &node->name)) != 0)
-		return err;
+	if (name) {
+		int err = vfs_path_copy_init(name, &node->name);
+		if (err)
+			return err;
+	}
 
 	node->inode = inode;
 	if (inode)
@@ -86,7 +86,8 @@ int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
 	int err;
 	struct vfs_cache_node* cache_node;
 
-	if ((err = vfs_cache_node_create(child_inode, name, &cache_node) != 0))
+	err = vfs_cache_node_create(child_inode, name, &cache_node);
+	if (err)
 		return err;
 
 	if (parent) {
@@ -112,7 +113,6 @@ vfs_cache_node_lookup_child(const struct vfs_cache_node* parent,
 		return parent->parent;
 
 	list_node_t* it;
-
 	list_foreach(&parent->children, it) {
 		struct vfs_cache_node* node_it = list_entry(it,
 													struct vfs_cache_node,
@@ -142,10 +142,12 @@ int vfs_cache_node_open(struct vfs_cache_node* node, int flags,
 	struct vfs_file* file;
 	struct vfs_inode* inode = node->inode;
 
-	if ((err = vfs_file_create(node, flags, &file)) != 0)
+	err = vfs_file_create(node, flags, &file);
+	if (err)
 		return err;
 
-	if ((err = inode->op->open(inode, node, flags, file)) != 0)
+	err = inode->op->open(inode, node, flags, file);
+	if (err)
 		return err;
 
 	// fs dependent open() did not set file->op
