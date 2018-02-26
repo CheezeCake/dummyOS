@@ -48,7 +48,7 @@ struct ramfs_superblock_data
 	/** start of ar archive */
 	void* start;
 
-	void* long_filenames_start;
+	void* long_filenames_data;
 	size_t long_filenames_size;
 
 	struct ar_header* first_file_header;
@@ -116,12 +116,12 @@ static int create_root_node(struct vfs_superblock* sb,
 	struct ramfs_inode_info* ramfs_inode = NULL;
 
 	// create inode
-	if ((err = ramfs_node_info_create(NULL, sb, &ramfs_inode)) != 0)
-		return err;
-
-	// grabs the inode
-	err = vfs_cache_node_create(&ramfs_inode->inode, NULL, result);
-	vfs_inode_drop_ref(&ramfs_inode->inode); // drop inode
+	err = ramfs_node_info_create(NULL, sb, &ramfs_inode);
+	if (!err) {
+		// grabs the inode
+		err = vfs_cache_node_create(&ramfs_inode->inode, NULL, result);
+		vfs_inode_drop_ref(&ramfs_inode->inode); // drop inode
+	}
 
 	return err;
 }
@@ -140,26 +140,28 @@ ar_get_next_header(struct ar_header* header, void* archive_start)
 {
 	const size_t file_size = strntol(header->size, sizeof(header->size),
 									 NULL, 10);
-	const int8_t* next_header = ((int8_t*)header + sizeof(struct ar_header)
-								  + file_size);
-	const ptrdiff_t offset = next_header - (int8_t*)archive_start;
+	void* next_header = (void*)(header + 1) + file_size;
+	const ptrdiff_t offset = next_header - archive_start;
 
 	// "Each archive file member begins on an even byte boundary;
 	// a newline is inserted between files if necessary"
 	if (offset % 2 == 1)
 		++next_header;
 
-	return (struct ar_header*)next_header;
+	return next_header;
 }
 
 static const char*
 ar_get_long_filename(const struct ar_header* header,
 					 const struct ramfs_superblock_data* sb_data)
 {
+	if (!sb_data->long_filenames_data)
+		return NULL;
+
 	const size_t offset = strntol(header->name + 1, sizeof(header->name) - 1,
 								  NULL, 10);
-	return ((char*)sb_data->long_filenames_start + sizeof(struct ar_header)
-			+ offset);
+	return (offset > sb_data->long_filenames_size)
+		? NULL : (sb_data->long_filenames_data + offset);
 }
 
 static inline bool ar_header_valid(const struct ar_header* header)
@@ -180,22 +182,19 @@ static inline bool ar_long_filename_header(const struct ar_header* header)
 static void superblock_data_init(struct ramfs_superblock_data* sb_data,
 								 void* start)
 {
-	struct ar_header* first_header = (struct ar_header*)
-		((int8_t*)start + AR_MAGIC_SIZE);
+	struct ar_header* first_header = start + AR_MAGIC_SIZE;
 
 	memset(sb_data, 0, sizeof(struct ramfs_superblock_data));
 
 	sb_data->start = start;
 
 	if (ar_long_filename_header(first_header)) {
-		sb_data->long_filenames_start = first_header;
+		sb_data->long_filenames_data = first_header + 1;
 		sb_data->long_filenames_size = strntol(first_header->size,
 											   sizeof(first_header->size),
 											   NULL, 10);
 		sb_data->first_file_header =
-			(struct ar_header*)((int8_t*)first_header +
-								sizeof(struct ar_header) +
-								sb_data->long_filenames_size);
+			sb_data->long_filenames_data + sb_data->long_filenames_size;
 	}
 	else {
 		sb_data->first_file_header = first_header;
@@ -218,16 +217,19 @@ static int superblock_create(struct vfs_filesystem* this,
 	if (!ar_check_magic(data))
 		return -EINVAL;
 
-	if (!(sb = kmalloc(sizeof(struct vfs_superblock))))
+	sb = kmalloc(sizeof(struct vfs_superblock));
+	if (!sb)
 		goto fail;
 
-	if (!(sb_data = kmalloc(sizeof(struct ramfs_superblock_data))))
+	sb_data = kmalloc(sizeof(struct ramfs_superblock_data));
+	if (!sb_data)
 		goto fail;
 
 	memset(sb, 0, sizeof(struct vfs_superblock));
 	superblock_data_init(sb_data, data);
 
-	if ((err = create_root_node(sb, &sb->root)) != 0)
+	err = create_root_node(sb, &sb->root);
+	if (err)
 		goto fail;
 	sb->device = device;
 	sb->fs = &ramfs;
@@ -295,8 +297,8 @@ static int lookup(struct vfs_inode* this, const vfs_path_t* name,
 		if (filename[0] == '/')
 			filename = ar_get_long_filename(fh, sb_data);
 
-		if (vfs_path_name_str_equals(name, filename,
-									 ar_filename_len(filename))) {
+		if (filename && vfs_path_name_str_equals(name, filename,
+												 ar_filename_len(filename))) {
 			found = true;
 		}
 		else {
@@ -310,7 +312,7 @@ static int lookup(struct vfs_inode* this, const vfs_path_t* name,
 	if (found) {
 		struct ramfs_inode_info* rfs_node;
 		int err = ramfs_node_info_create(fh, this->sb, &rfs_node);
-		if (err != 0)
+		if (err)
 			return err;
 
 		*result = &rfs_node->inode;
