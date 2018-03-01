@@ -1,14 +1,10 @@
-*.o
-*.d
 *.swp
-dummy_os.bin
-dummy_os.iso
 isodir
 TODO
-cscope.*
 compile_commands.json
 .gdb_history
 .gdbinit
 peda-session-*.txt
+build/
 doc/
 Doxyfile

@@ -1,0 +1,19 @@
+libk_src = files(
+  'ctype.c',
+  'memcmp.c',
+  'memcpy.c',
+  'memset.c',
+  'refcount.c',
+  'snprintf.c',
+  'strcat.c',
+  'strcmp.c',
+  'strcpy.c',
+  'strlcpy.c',
+  'strlen.c',
+  'strncat.c',
+  'strncmp.c',
+  'strncpy.c',
+  'strnlen.c',
+  'strtol.c',
+  'vsnprintf.c'
+  )

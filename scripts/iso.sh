@@ -1,13 +1,28 @@
 #!/bin/sh
 
-mkdir -p ${ISODIR}/boot/grub
+BIN="$1"
+ISO="$2"
 
-cp dummy_os.bin ${ISODIR}/boot/dummy_os.bin
+usage() {
+	echo "$0 bin iso"
+	exit 1
+}
 
-cat > ${ISODIR}/boot/grub/grub.cfg << EOF
+if [ $# -ne 2 ]
+then
+	usage
+fi
+
+ISODIR="isodir"
+
+mkdir -p "${ISODIR}/boot/grub"
+
+cp "${BIN}" "${ISODIR}/boot"
+
+cat > "${ISODIR}/boot/grub/grub.cfg" << EOF
 menuentry "dummyOS" {
 	multiboot /boot/dummy_os.bin
 }
 EOF
 
-${GRUB_MKRESCUE} -o dummy_os.iso ${ISODIR}
+grub-mkrescue -o "${ISO}" "${ISODIR}"

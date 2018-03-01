@@ -1,0 +1,22 @@
+kernel_src = files(
+  'exec.c',
+  'exit.c',
+  'init.c',
+  'kernel.c',
+  'kernel_image.c',
+  'kheap.c',
+  'kmalloc.c',
+  'memory.c',
+  'process.c',
+  'syscall.c',
+  'thread.c'
+  )
+
+subdir('locking')
+kernel_src += kernel_locking_src
+
+subdir('sched')
+kernel_src += kernel_sched_src
+
+subdir('time')
+kernel_src += kernel_time_src
