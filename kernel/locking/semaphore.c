@@ -43,5 +43,5 @@ int semaphore_down(sem_t* sem)
 
 int semaphore_get_value(const sem_t* sem)
 {
-	return atomic_int_get(&sem->value);
+	return atomic_int_load(&sem->value);
 }

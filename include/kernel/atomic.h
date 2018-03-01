@@ -11,7 +11,12 @@ static inline void atomic_int_init(volatile atomic_int_t* v, int i);
 /**
  * @brief Returns the value of an atomic_int_t
  */
-static inline int atomic_int_get(const volatile atomic_int_t* v);
+static inline int atomic_int_load(const volatile atomic_int_t* v);
+
+/**
+ * @brief Sets the value of an atomic_int_t
+ */
+static inline void atomic_int_store(volatile atomic_int_t* v, int i);
 
 /**
  * @brief Increments the value of an atomic_int_t

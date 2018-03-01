@@ -3,10 +3,10 @@
 
 static inline void atomic_int_init(volatile atomic_int_t* v, int i)
 {
-	__asm__ volatile ("movl %1, (%0)\n" : : "r" (v), "r" (i) : "memory");
+	atomic_int_store(v, i);
 }
 
-static inline int atomic_int_get(const volatile atomic_int_t* v)
+static inline int atomic_int_load(const volatile atomic_int_t* v)
 {
 	int value;
 	__asm__ volatile ("movl (%1), %%eax\n"
@@ -18,8 +18,13 @@ static inline int atomic_int_get(const volatile atomic_int_t* v)
 	return value;
 }
 
+static inline void atomic_int_store(volatile atomic_int_t* v, int i)
+{
+	__asm__ volatile ("movl %1, (%0)\n" : : "r" (v), "r" (i) : "memory");
+}
+
 #define __atomic_single_operand(instr, value) \
-	__asm__ volatile (#instr" (%0)" : : "r" (value) : "memory")
+	__asm__ volatile ("lock "#instr" (%0)" : : "r" (value) : "memory")
 
 static inline void atomic_int_inc(volatile atomic_int_t* v)
 {
