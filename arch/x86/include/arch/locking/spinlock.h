@@ -9,11 +9,14 @@ typedef volatile uint32_t spinlock_t;
 
 static inline void spinlock_lock(spinlock_t* lock)
 {
-// %= format string:
-// https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#AssemblerTemplate
-	__asm__ volatile ("spin%=:\n"
-					  "	bts $0, (%0)\n"
-					  "	jc spin%="
+	__asm__ volatile ("acquire:\n"
+					  "	lock bts $0, (%0)\n"
+					  "	jnc end\n"
+					  ".spin:\n"
+					  " cmp $0, (%0)\n"
+					  " je acquire\n"
+					  " jmp .spin\n"
+					  "end:"
 					  :
 					  : "r" (lock)
 					  : "memory");
@@ -22,7 +25,7 @@ static inline void spinlock_lock(spinlock_t* lock)
 static inline bool spinlock_try(spinlock_t* lock)
 {
 	spinlock_t was_locked = 1;
-	__asm__ volatile ("bts $0, (%0)\n"
+	__asm__ volatile ("lock bts $0, (%0)\n"
 					  "jc 1f\n"
 					  "movl $0, %1\n"
 					  "1:"
@@ -35,7 +38,7 @@ static inline bool spinlock_try(spinlock_t* lock)
 
 static inline void spinlock_unlock(spinlock_t* lock)
 {
-	__asm__ volatile ("btr $0, (%0)\n"
+	__asm__ volatile ("lock btr $0, (%0)\n"
 					  :
 					  : "r" (lock)
 					  : "memory");
