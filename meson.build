@@ -8,15 +8,23 @@ subdir('fs')
 subdir('kernel')
 subdir('libk')
 
+# source files and headers
 src = arch_src + fs_src + kernel_src + libk_src
 inc = include_directories('include', join_paths('arch', arch, 'include'))
 
+# flags
 c_flags = ['-ffreestanding', '-Wall', '-pipe'] # -ggdb
+if host_machine.endian() == 'little'
+  c_flags += '-DARCH_ENDIAN_LITTLE'
+else
+  c_flags += '-DARCH_ENDIAN_BIG'
+endif
 ld_flags = [
   '-T@0@/@1@'.format(meson.current_source_dir(), linker_script[0]),
   '-nostdlib'
   ]
 
+# libgcc
 cc = meson.get_compiler('c')
 libgcc = cc.find_library('gcc', required: true)
 

@@ -7,7 +7,7 @@
 #include <kernel/paging.h>
 #include <kernel/types.h>
 #include <libk/libk.h>
-#include <libk/utils.h>
+#include <libk/endian.h>
 
 static inline bool check_magic(const struct elf_header* e_hdr)
 {
