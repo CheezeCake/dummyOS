@@ -1,29 +1,21 @@
 #!/bin/sh
 
 usage() {
-	echo "$0 qemu-system-suffix (kernel_bin | kernel_iso) qemu_flags..."
+	echo "$0 arch qemu_flags..."
 	exit 1
 }
 
-if [ $# -lt 2 ]
+if [ $# -lt 1 ]
 then
 	usage
 fi
 
-QEMU="$1"
-KERNEL_FLAG=
-case $2 in
-	*.iso)
-		KERNEL_FLAG="-cdrom $2"
-		;;
-	*.bin)
-		KERNEL_FLAG="-kernel $2"
-		;;
-	*)
-		usage
-esac
-shift 2
-QEMU_FLAGS=$*
+QEMU_SYSTEM="$1"
+shift
+if [ ${QEMU_SYSTEM} = 'x86' ]
+then
+	QEMU_SYSTEM='i386'
+fi
 
 cd "${MESON_BUILD_ROOT}"
-"qemu-system-${QEMU}" ${KERNEL_FLAG} ${QEMU_FLAGS}
+"qemu-system-${QEMU_SYSTEM}" $*
