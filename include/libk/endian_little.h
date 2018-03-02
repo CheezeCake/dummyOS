@@ -1,5 +1,5 @@
-#ifndef _ARCH_UTILS_H_
-#define _ARCH_UTILS_H_
+#ifndef _LIBK_ENDIAN_LITTLE_H_
+#define _LIBK_ENDIAN_LITTLE_H_
 
 #include <kernel/types.h>
 
