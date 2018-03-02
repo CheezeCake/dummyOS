@@ -122,7 +122,7 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 				goto end;
 			}
 
-			err = paging_map(page, map_addr, flags | VM_OPT_USER);
+			err = paging_map(page, map_addr, flags | VM_FLAG_USER);
 			if (err)
 				goto end;
 

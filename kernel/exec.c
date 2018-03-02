@@ -52,7 +52,7 @@ static int create_stack(v_addr_t* stack)
 		return -ENOMEM;
 
 	*stack = USER_VADDR_SPACE_END;
-	err = paging_map(frame, *stack - PAGE_SIZE, VM_OPT_USER | VM_OPT_WRITE);
+	err = paging_map(frame, *stack - PAGE_SIZE, VM_FLAG_USER | VM_FLAG_WRITE);
 
 	return err;
 }

@@ -35,7 +35,7 @@ size_t kheap_init(v_addr_t start, size_t initial_size)
 		if (!page_frame)
 			return 0;
 
-		if (paging_map(page_frame, addr, VM_OPT_WRITE) != 0) {
+		if (paging_map(page_frame, addr, VM_FLAG_WRITE) != 0) {
 			memory_page_frame_free(page_frame);
 			break;
 		}
@@ -71,7 +71,7 @@ size_t kheap_extend_pages(size_t nr_pages)
 						 "(%lu pages requested).\n", mapped_pages, nr_pages);
 			break;
 		}
-		if (paging_map(frame, map_to, VM_OPT_WRITE) != 0) {
+		if (paging_map(frame, map_to, VM_FLAG_WRITE) != 0) {
 			log_i_printf("Failed to map page frame %lu to address %p "
 						 "(%lu pages requested).\n", mapped_pages, (void*)map_to,
 						 nr_pages);

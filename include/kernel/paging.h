@@ -4,10 +4,10 @@
 #include <kernel/types.h>
 
 // read and write: ELF values
-#define VM_OPT_WRITE	(1 << 1)
-#define VM_OPT_READ		(1 << 2)
+#define VM_FLAG_WRITE	(1 << 1)
+#define VM_FLAG_READ		(1 << 2)
 
-#define VM_OPT_USER		(1 << 3)
+#define VM_FLAG_USER		(1 << 3)
 
 void paging_init(void);
 int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags);

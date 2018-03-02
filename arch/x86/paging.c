@@ -226,8 +226,8 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, uint8_t flags)
 		return -EFAULT;
 
 	pte->present = 1;
-	pte->read_write = (flags & VM_OPT_WRITE) ? 1 : 0;
-	pte->user = (flags & VM_OPT_USER) ? 1 : 0;
+	pte->read_write = (flags & VM_FLAG_WRITE) ? 1 : 0;
+	pte->user = (flags & VM_FLAG_USER) ? 1 : 0;
 	pte->address = p_addr2pt_addr(paddr);
 
 	paging_ref_page_table(index_in_pd(vaddr));
@@ -281,7 +281,7 @@ void paging_switch_cr3(p_addr_t cr3, bool init_userspace)
 		(struct page_directory_entry*)(MIRRORING_VADDR_BEGIN +
 			(index_in_pd(MIRRORING_VADDR_BEGIN) << PAGE_SIZE_SHIFT));
 
-	paging_map(cr3, (v_addr_t)cr3_map, VM_OPT_WRITE);
+	paging_map(cr3, (v_addr_t)cr3_map, VM_FLAG_WRITE);
 
 	const int kernel_vaddr_space_start_pd_index = index_in_pd(KERNEL_VADDR_SPACE_START);
 	// copy kernel space entries
