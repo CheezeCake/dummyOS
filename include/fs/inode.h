@@ -90,19 +90,19 @@ void vfs_inode_init(struct vfs_inode* inode, enum vfs_node_type type,
 					struct vfs_superblock* sb, struct vfs_inode_operations* op);
 
 /**
- * @brief Grabs the object. Increments the reference counter by one.
+ * @brief Increments the reference counter by one.
  */
-void vfs_inode_grab_ref(struct vfs_inode* inode);
+void vfs_inode_ref(struct vfs_inode* inode);
 
 /**
- * @brief Drops the object. Decrements the reference counter by one.
+ * @brief Decrements the reference counter by one.
  */
-void vfs_inode_drop_ref(struct vfs_inode* inode);
+void vfs_inode_unref(struct vfs_inode* inode);
 
 /**
  * @brief Decrements the reference counter by one, without destroying the object
  * if the count drops to zero.
  */
-void vfs_inode_release_ref(struct vfs_inode* inode);
+void vfs_inode_release(struct vfs_inode* inode);
 
 #endif

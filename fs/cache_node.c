@@ -51,7 +51,7 @@ int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
 
 	node->inode = inode;
 	if (inode)
-		vfs_inode_grab_ref(inode);
+		vfs_inode_ref(inode);
 
 	list_init(&node->children);
 	list_init(&node->cn_children_list);
@@ -69,11 +69,11 @@ static void destroy(struct vfs_cache_node* node)
 	vfs_path_destroy(&node->name);
 
 	if (node->inode)
-		vfs_inode_drop_ref(node->inode);
+		vfs_inode_unref(node->inode);
 
 	list_node_t* child;
 	list_foreach(&node->children, child) {
-		vfs_cache_node_drop_ref(container_of(child, struct vfs_cache_node,
+		vfs_cache_node_unref(container_of(child, struct vfs_cache_node,
 											 cn_children_list));
 	}
 }
@@ -172,12 +172,12 @@ vfs_cache_node_resolve_mounted_fs(struct vfs_cache_node* mountpoint)
 	return mounted;
 }
 
-void vfs_cache_node_grab_ref(struct vfs_cache_node* node)
+void vfs_cache_node_ref(struct vfs_cache_node* node)
 {
 	refcount_inc(&node->refcnt);
 }
 
-void vfs_cache_node_drop_ref(struct vfs_cache_node* node)
+void vfs_cache_node_unref(struct vfs_cache_node* node)
 {
 	refcount_dec(&node->refcnt);
 	if (refcount_get(&node->refcnt) == 0)

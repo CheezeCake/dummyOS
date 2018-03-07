@@ -104,7 +104,7 @@ fail_stack:
 fail_load_bin:
 	exec->inode->op->close(exec->inode, &file);
 fail_file:
-	vfs_cache_node_drop_ref(exec);
+	vfs_cache_node_unref(exec);
 fail_lookup:
 	vfs_path_destroy(&exec_path);
 

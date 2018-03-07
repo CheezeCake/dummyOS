@@ -99,14 +99,14 @@ struct vfs_cache_node*
 vfs_cache_node_resolve_mounted_fs(struct vfs_cache_node* mountpoint);
 
 /**
- * @brief Grabs the object. Increments the reference counter by one.
+ * @brief Increments the reference counter by one.
  */
-void vfs_cache_node_grab_ref(struct vfs_cache_node* node);
+void vfs_cache_node_ref(struct vfs_cache_node* node);
 
 /**
- * @brief Drops the object. Decrements the reference counter by one.
+ * @brief Decrements the reference counter by one.
  */
-void vfs_cache_node_drop_ref(struct vfs_cache_node* node);
+void vfs_cache_node_unref(struct vfs_cache_node* node);
 
 /**
  * @brief Returns the reference counter value.

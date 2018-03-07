@@ -120,7 +120,7 @@ static int create_root_node(struct vfs_superblock* sb,
 	if (!err) {
 		// grabs the inode
 		err = vfs_cache_node_create(&ramfs_inode->inode, NULL, result);
-		vfs_inode_drop_ref(&ramfs_inode->inode); // drop inode
+		vfs_inode_unref(&ramfs_inode->inode); // drop inode
 	}
 
 	return err;
@@ -253,7 +253,7 @@ static int superblock_destroy(struct vfs_filesystem* this,
 	if (vfs_cache_node_get_ref(sb->root) > 1)
 		return -EBUSY;
 
-	vfs_cache_node_drop_ref(sb->root);
+	vfs_cache_node_unref(sb->root);
 	kfree(sb->data);
 	kfree(sb);
 
