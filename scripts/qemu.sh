@@ -18,4 +18,4 @@ then
 fi
 
 cd "${MESON_BUILD_ROOT}"
-"qemu-system-${QEMU_SYSTEM}" $*
+"qemu-system-${QEMU_SYSTEM}" -debugcon stdio $*
