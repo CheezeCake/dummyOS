@@ -323,7 +323,7 @@ static int lookup(struct vfs_inode* this, const vfs_path_t* name,
 	return -ENOENT;
 }
 
-static int readlink(struct vfs_inode* this, vfs_path_t** target_path)
+static int readlink(struct vfs_inode* this, vfs_path_t** result)
 {
 	return -EINVAL; // symlinks are not supported
 }

@@ -62,7 +62,7 @@ struct vfs_inode_operations
 	 *
 	 * @note Only applies to type == SYMLINK
 	 */
-	int (*readlink)(struct vfs_inode* this, vfs_path_t** target_path);
+	int (*readlink)(struct vfs_inode* this, vfs_path_t** result);
 
 	/**
 	 * @brief Opens this inode as a file

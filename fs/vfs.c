@@ -94,22 +94,28 @@ static int readlink(const struct vfs_cache_node* symlink,
 					struct vfs_cache_node** target,
 					unsigned int recursion_level)
 {
+	vfs_path_t *target_path;
+	int err;
+
 	if (symlink->inode->type != SYMLINK)
 		return -EINVAL;
 
-	vfs_path_t target_path;
-	vfs_path_t* target_path_p = &target_path;
-
-	int err = symlink->inode->op->readlink(symlink->inode, &target_path_p);
+	// creates target_path
+	err = symlink->inode->op->readlink(symlink->inode, &target_path);
 	if (err)
 		return err;
 
 	struct vfs_cache_node* const start =
-		(vfs_path_absolute(target_path_p))
+		(vfs_path_absolute(target_path))
 		? root
 		: vfs_cache_node_get_parent(symlink);
 
-	return lookup_path(target_path_p, start, root, target, recursion_level + 1);
+	err = lookup_path(target_path, start, root, target, recursion_level + 1);
+
+	// destroy target_path
+	vfs_path_destroy(target_path);
+
+	return err;
 }
 
 /**
@@ -196,7 +202,7 @@ int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
 
 	err = lookup(&path_component, start, root, result, recursion_level);
 
-	vfs_path_destroy(&path_component.as_path);
+	vfs_path_component_reset(&path_component);
 
 	return err;
 }

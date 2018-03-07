@@ -108,7 +108,14 @@ int vfs_path_copy_create(const vfs_path_t* path, vfs_path_t** result);
 int vfs_path_copy_init(const vfs_path_t* path, vfs_path_t* copy);
 
 /**
+ * @brief Resets a vfs_path_t object destroying all its content without
+ * freeing the object itself.
+ */
+void vfs_path_reset(vfs_path_t* path);
+
+/**
  * @brief Destroys a vfs_path_t object
+ * The object is free()'d
  *
  * @param path path to destroy
  */
@@ -131,6 +138,18 @@ bool vfs_path_absolute(const vfs_path_t* path);
  * @return true if empty
  */
 bool vfs_path_empty(const vfs_path_t* path);
+
+/**
+ * @brief Initializes a vfs_path_component_t object
+ */
+int vfs_path_component_init(vfs_path_component_t* component,
+							const vfs_path_t* path);
+
+/**
+ * @brief Resets a vfs_path_component_t object destroying all its content
+ * without freeing the object itself.
+ */
+void vfs_path_component_reset(vfs_path_component_t* component);
 
 /**
  * @brief Starts splitting the path in components

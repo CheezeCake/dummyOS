@@ -106,7 +106,7 @@ fail_load_bin:
 fail_file:
 	vfs_cache_node_unref(exec);
 fail_lookup:
-	vfs_path_destroy(&exec_path);
+	vfs_path_reset(&exec_path);
 
 	return err;
 }

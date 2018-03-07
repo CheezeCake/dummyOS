@@ -143,14 +143,18 @@ int vfs_path_copy_init(const vfs_path_t* path, vfs_path_t* copy)
 	return 0;
 }
 
-void vfs_path_destroy(vfs_path_t* path)
+void vfs_path_reset(vfs_path_t* path)
 {
 	string_t* str = path->base_str;
 
 	refcount_dec(&str->refcnt);
 	if (refcount_get(&str->refcnt) == 0)
 		kfree(str);
+}
 
+void vfs_path_destroy(vfs_path_t* path)
+{
+	vfs_path_reset(path);
 	kfree(path);
 }
 
@@ -164,15 +168,33 @@ bool vfs_path_empty(const vfs_path_t* path)
 	return (path->size == 0 || !path->base_str || !path->base_str->str);
 }
 
-int vfs_path_get_component(const vfs_path_t* path,
-						   vfs_path_component_t* component)
+int vfs_path_component_init(vfs_path_component_t* component,
+							const vfs_path_t* path)
 {
 	int err;
 	vfs_path_t* component_path = &component->as_path;
 
 	err = vfs_path_copy_init(path, component_path);
+
+	return err;
+}
+
+void vfs_path_component_reset(vfs_path_component_t* component)
+{
+	// path was init()'d
+	vfs_path_reset(&component->as_path);
+}
+
+int vfs_path_get_component(const vfs_path_t* path,
+						   vfs_path_component_t* component)
+{
+	int err;
+
+	err = vfs_path_component_init(component, path);
 	if (err)
 		return err;
+
+	vfs_path_t* component_path = &component->as_path;
 
 	// find start offset of first component
 	const vfs_path_offset_t start = first_non_slash(get_string(component_path),
