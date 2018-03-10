@@ -40,10 +40,8 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 {
 	struct elf_header e_hdr;
 	struct elf_program_header* e_phdr;
-	off_t phdr_offset, shdr_offset;
+	off_t phdr_offset;
 	uint16_t phdr_size, phdr_num;
-	uint16_t shdr_size, shdr_num;
-	uint16_t e_shstrndx;
 	int err = 0;
 
 	if (binfile->op->read(binfile, &e_hdr, sizeof(e_hdr)) != sizeof(e_hdr))
@@ -54,22 +52,14 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 	*entry_point = le2h32(e_hdr.e_entry);
 
 	phdr_offset = le2h32(e_hdr.e_phoff); // program header offset
-	shdr_offset = le2h32(e_hdr.e_shoff); // section header offset
 
 	// program header table info
 	phdr_size = le2h16(e_hdr.e_phentsize);
 	phdr_num = le2h16(e_hdr.e_phnum);
 
-	// section header table info
-	shdr_size = le2h16(e_hdr.e_shentsize);
-	shdr_num = le2h16(e_hdr.e_shnum);
-
 	// consistency check
-	if (phdr_size != sizeof(struct elf_program_header) ||
-		shdr_size != sizeof(struct elf_section_header))
+	if (phdr_size != sizeof(struct elf_program_header))
 		return -ENOEXEC;
-
-	e_shstrndx = le2h16(e_hdr.e_shstrndx);
 
 	size_t size = phdr_size * phdr_num;
 	e_phdr = kmalloc(size);
