@@ -107,8 +107,8 @@ int vfs_path_create_from(const vfs_path_t* path,
 						 vfs_path_size_t size,
 						 vfs_path_t** result)
 {
-	int err;
 	vfs_path_t* new_path;
+	int err;
 
 	if (size > VFS_PATH_MAX_LEN)
 		return -ENAMETOOLONG;
@@ -117,6 +117,8 @@ int vfs_path_create_from(const vfs_path_t* path,
 	if (!err) {
 		new_path->offset += relative_offset;
 		new_path->size = size;
+
+		*result = new_path;
 	}
 
 	return err;
@@ -124,13 +126,20 @@ int vfs_path_create_from(const vfs_path_t* path,
 
 int vfs_path_copy_create(const vfs_path_t* path, vfs_path_t** result)
 {
-	vfs_path_t* new_path = kmalloc(sizeof(vfs_path_t));
+	vfs_path_t* new_path;
+	int err;
+
+	new_path = kmalloc(sizeof(vfs_path_t));
 	if (!new_path)
 		return -ENOMEM;
 
-	int err = vfs_path_copy_init(path, new_path);
-	if (err)
+	err = vfs_path_copy_init(path, new_path);
+	if (err) {
 		kfree(new_path);
+		new_path = NULL;
+	}
+
+	*result = new_path;
 
 	return err;
 }
