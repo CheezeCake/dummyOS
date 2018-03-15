@@ -11,7 +11,7 @@
 
 static inline bool check_magic(const struct elf_header* e_hdr)
 {
-	const uint8_t magic[] = { 0x7f, 0x45, 0x4c, 0x46 };
+	const uint8_t magic[] = { 0x7f, 'E', 'L', 'F' };
 	return (memcmp(e_hdr->e_ident, magic, sizeof(magic)) == 0);
 }
 
