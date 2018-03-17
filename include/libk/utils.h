@@ -15,4 +15,6 @@
 #define container_of(ptr, type, member) \
 	((type*)((void*)(1 ? (ptr) : &((type*)0)->member) - offsetof(type, member)))
 
+#define member_size(type, member) sizeof(((type *)0)->member)
+
 #endif

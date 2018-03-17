@@ -6,16 +6,9 @@
 
 #include <kernel/log.h>
 
-static inline const char* get_string(const vfs_path_t* path)
-{
-	return (path->base_str->str + path->offset);
-}
-
-static inline const char* get_next_string(const vfs_path_t* path)
-{
-	return (get_string(path) + path->size);
-}
-
+/*
+ * utils
+ */
 static inline vfs_path_offset_t first_x(const char* str, vfs_path_size_t size,
 										bool (*const predicate)(char))
 {
@@ -41,6 +34,10 @@ vfs_path_offset_t first_non_slash(const char* str, vfs_path_size_t size)
 	return first_x(str, size, non_slash_predicate);
 }
 
+
+/*
+ * string_t
+ */
 static char* copy_path_str(const char* path, vfs_path_size_t size)
 {
 	char* new_path = kmalloc(size);
@@ -52,6 +49,60 @@ static char* copy_path_str(const char* path, vfs_path_size_t size)
 	return new_path;
 }
 
+static int vfs_path_string_create(const char* path, vfs_path_size_t size,
+								   string_t** result)
+{
+	string_t* str;
+	char* path_cpy;
+
+	str = kmalloc(sizeof(string_t));
+	if (!str)
+		return -ENOMEM;
+
+	path_cpy = copy_path_str(path, size);
+	if (!path_cpy) {
+		kfree(str);
+		return -ENOMEM;
+	}
+
+	str->str = path_cpy;
+	str->size = size;
+	refcount_init(&str->refcnt);
+
+	*result = str;
+
+	return 0;
+}
+
+static void vfs_path_string_destroy(string_t* string)
+{
+	refcount_dec(&string->refcnt);
+	if (refcount_get(&string->refcnt) == 0) {
+		kfree(string->str);
+		kfree(string);
+	}
+}
+
+
+/*
+ * vfs_path_t
+ */
+int vfs_path_init(vfs_path_t* path, const char* path_str, vfs_path_size_t size)
+{
+	string_t* str;
+	int err;
+
+	if (size > VFS_PATH_MAX_LEN)
+		return -ENAMETOOLONG;
+
+	err = vfs_path_string_create(path_str, size, &str);
+
+	path->base_str = str;
+	path->offset = 0;
+	path->size = size;
+
+	return err;
+}
 
 int vfs_path_create(const char* path, vfs_path_size_t size, vfs_path_t** result)
 {
@@ -68,38 +119,6 @@ int vfs_path_create(const char* path, vfs_path_size_t size, vfs_path_t** result)
 	*result = new_path;
 
 	return err;
-}
-
-static inline void vfs_path_string_init(string_t* str, char* path,
-										vfs_path_size_t size)
-{
-	str->str = path;
-	str->size = size;
-	refcount_init(&str->refcnt);
-}
-
-int vfs_path_init(vfs_path_t* path, const char* path_str, vfs_path_size_t size)
-{
-	if (size > VFS_PATH_MAX_LEN)
-		return -ENAMETOOLONG;
-
-	string_t* str = kmalloc(sizeof(string_t));
-	if (!str)
-		return -ENOMEM;
-
-	char* new_path_str = copy_path_str(path_str, size);
-	if (!new_path_str) {
-		kfree(str);
-		return -ENOMEM;
-	}
-
-	vfs_path_string_init(str, new_path_str, size);
-
-	memset(path, 0, sizeof(vfs_path_t));
-	path->base_str = str;
-	path->size = size;
-
-	return 0;
 }
 
 int vfs_path_create_from(const vfs_path_t* path,
@@ -124,6 +143,14 @@ int vfs_path_create_from(const vfs_path_t* path,
 	return err;
 }
 
+int vfs_path_copy_init(const vfs_path_t* path, vfs_path_t* copy)
+{
+	memcpy(copy, path, sizeof(vfs_path_t));
+	refcount_inc(&path->base_str->refcnt);
+
+	return 0;
+}
+
 int vfs_path_copy_create(const vfs_path_t* path, vfs_path_t** result)
 {
 	vfs_path_t* new_path;
@@ -144,21 +171,9 @@ int vfs_path_copy_create(const vfs_path_t* path, vfs_path_t** result)
 	return err;
 }
 
-int vfs_path_copy_init(const vfs_path_t* path, vfs_path_t* copy)
-{
-	memcpy(copy, path, sizeof(vfs_path_t));
-	refcount_inc(&path->base_str->refcnt);
-
-	return 0;
-}
-
 void vfs_path_reset(vfs_path_t* path)
 {
-	string_t* str = path->base_str;
-
-	refcount_dec(&str->refcnt);
-	if (refcount_get(&str->refcnt) == 0)
-		kfree(str);
+	vfs_path_string_destroy(path->base_str);
 }
 
 void vfs_path_destroy(vfs_path_t* path)
@@ -169,7 +184,7 @@ void vfs_path_destroy(vfs_path_t* path)
 
 bool vfs_path_absolute(const vfs_path_t* path)
 {
-	return (path->size > 0) ? (*get_string(path) == '/') : false;
+	return (path->size > 0) ? (*vfs_path_get_str(path) == '/') : false;
 }
 
 bool vfs_path_empty(const vfs_path_t* path)
@@ -177,6 +192,10 @@ bool vfs_path_empty(const vfs_path_t* path)
 	return (path->size == 0 || !path->base_str || !path->base_str->str);
 }
 
+
+/*
+ * vfs_path_component_t
+ */
 int vfs_path_component_init(vfs_path_component_t* component,
 							const vfs_path_t* path)
 {
@@ -194,45 +213,20 @@ void vfs_path_component_reset(vfs_path_component_t* component)
 	vfs_path_reset(&component->as_path);
 }
 
-int vfs_path_get_component(const vfs_path_t* path,
-						   vfs_path_component_t* component)
+/**
+ * Isolate the first component of a path.
+ *
+ * @return 0 if a component was found and built
+ * -EINVAL if not
+ */
+static int build_component_path(vfs_path_t* path)
 {
-	int err;
+	const char* const str = vfs_path_get_str(path);
 
-	err = vfs_path_component_init(component, path);
-	if (err)
-		return err;
-
-	vfs_path_t* component_path = &component->as_path;
-
-	// find start offset of first component
-	const vfs_path_offset_t start = first_non_slash(get_string(component_path),
-													component_path->size);
-	// find end offset of first component starting from "start"
-	const vfs_path_offset_t end = start +
-		first_slash(get_string(component_path) + start,
-					component_path->size - start);
-
-	component_path->offset += start;
-	component_path->size = end - start;
-
-	return 0;
-}
-
-int vfs_path_next_component(vfs_path_component_t* component)
-{
-	vfs_path_t* path = &component->as_path;
-
-	if (vfs_path_empty(path))
-		return -EINVAL;
-
-	// shift path to the end of current component
-	path->offset = path->offset + path->size;
-	path->size = path->base_str->size - path->offset;
-
-	// first non slash starting from end of current component
-	const vfs_path_offset_t start = first_non_slash(get_string(path), path->size);
-	const vfs_path_offset_t end  = start + first_slash(get_string(path) + start,
+	// start = first non slash
+	const vfs_path_offset_t start = first_non_slash(str, path->size);
+	// end = first slash since start
+	const vfs_path_offset_t end  = start + first_slash(str + start,
 													   path->size - start);
 
 	path->offset += start;
@@ -241,27 +235,165 @@ int vfs_path_next_component(vfs_path_component_t* component)
 	return (vfs_path_empty(path)) ? -EINVAL : 0;
 }
 
-bool vfs_path_name_equals(const vfs_path_t* p1, const vfs_path_t* p2)
+int vfs_path_first_component(const vfs_path_t* path,
+						   vfs_path_component_t* component)
 {
-	const int cmp = memcmp(p1, p2, sizeof(vfs_path_t));
-	if (cmp == 0)
-		return true;
+	int err;
 
-	if (p1->size != p2->size)
-		return false;
+	err = vfs_path_component_init(component, path);
+	if (!err)
+		err = build_component_path(&component->as_path);
 
-	return vfs_path_name_str_equals(p1, get_string(p2), p2->size);
+	return err;
 }
 
-bool vfs_path_name_str_equals(const vfs_path_t* p1, const char* p2,
-							  vfs_path_size_t size)
+int vfs_path_component_next(vfs_path_component_t* component)
 {
-	return (p1->size == size && strncmp(get_string(p1), p2, size) == 0);
+	vfs_path_t* path = &component->as_path;
+
+	// shift path to the end of current component
+	path->offset = path->offset + path->size;
+	path->size = path->base_str->size - path->offset;
+
+	return build_component_path(path);
+}
+
+int vfs_path_basename(const vfs_path_t* path,
+					  vfs_path_component_t* basename)
+{
+	int err;
+
+	err = vfs_path_component_init(basename, path);
+	if (err)
+		return err;
+
+	vfs_path_t* basename_path = &basename->as_path;
+	const char* start = vfs_path_get_str(basename_path);
+	const char* end = start + basename_path->size;
+
+	// ignore trailing slashes
+	while (start < end - 1 && end[-1] == '/')
+		--end;
+
+	// basename start
+	const char* bname_start = end - 1;
+	while (start < bname_start && *bname_start != '/')
+		--bname_start;
+
+	if (start < bname_start)
+		++bname_start;
+
+	basename_path->offset += bname_start - start;
+	basename_path->size = end - bname_start;
+
+	return 0;
+}
+
+/**
+ * "strictly" compares two paths by comparing their underlying strings.
+ */
+static bool path_string_equals(const vfs_path_t* p1, const vfs_path_t* p2)
+{
+	// same object
+	if (p1 == p2)
+		return true;
+
+	// same underlying string, offset and size
+	if (p1->base_str == p2->base_str &&
+		p1->offset == p2->offset &&
+		p1->size == p2->size)
+		return true;
+
+	return (p1->size == p2->size &&
+			strncmp(vfs_path_get_str(p1), vfs_path_get_str(p2), p1->size) == 0);
+}
+
+bool vfs_path_component_equals(const vfs_path_component_t* c1,
+							   const vfs_path_component_t* c2)
+{
+	// same object or strict comparison on paths
+	return (c1 == c2 || path_string_equals(&c1->as_path, &c2->as_path));
+}
+
+static inline bool vfs_path_component_empty(const vfs_path_component_t* c)
+{
+	return vfs_path_empty(&c->as_path);
+}
+
+vfs_path_size_t vfs_path_get_size(const vfs_path_t* path)
+{
+	return path->size;
+}
+
+const char* vfs_path_get_str(const vfs_path_t* path)
+{
+	const char* const str = path->base_str->str;
+	return (str) ? str + path->offset : NULL;
+}
+
+/**
+ * Determines if two paths are equivalent by comparing them component by
+ * component. Deals with multi-slashes.
+ */
+static bool path_same(const vfs_path_t* p1, const vfs_path_t* p2)
+{
+	vfs_path_component_t c1;
+	vfs_path_component_t c2;
+	int err;
+	bool ret = false;
+
+	err = vfs_path_first_component(p1, &c1);
+	if (err)
+		goto fail_c1;
+	err = vfs_path_first_component(p2, &c2);
+	if (err)
+		goto fail_c2;
+
+	while (!vfs_path_component_empty(&c1) && !vfs_path_component_empty(&c2) &&
+		   vfs_path_component_equals(&c1, &c2))
+	{
+		vfs_path_component_next(&c1);
+		vfs_path_component_next(&c2);
+	}
+
+	ret = (vfs_path_component_empty(&c1) && vfs_path_component_empty(&c2));
+
+fail_c2:
+	vfs_path_component_reset(&c2);
+fail_c1:
+	vfs_path_component_reset(&c1);
+
+	return ret;
+}
+
+bool vfs_path_same(const vfs_path_t* p1, const vfs_path_t* p2)
+{
+	// string string comparison or equivalence
+	return (path_string_equals(p1, p2) || path_same(p1, p2));
+}
+
+bool vfs_path_str_same(const vfs_path_t* p, const char* s,
+					   vfs_path_size_t size)
+{
+	vfs_path_t sp;
+	bool ret;
+	int err;
+
+	err = vfs_path_init(&sp, s, size);
+	if (err) {
+		ret = false;
+	}
+	else {
+		ret = vfs_path_same(p, &sp);
+		vfs_path_reset(&sp);
+	}
+
+	return ret;
 }
 
 void print_path(const vfs_path_t* path)
 {
-	const char* str = get_string(path);
+	const char* str = vfs_path_get_str(path);
 	log_printf("[%d] -> ", path->size);
 	for (vfs_path_size_t i = 0; i < path->size; ++i)
 		log_printf("%c", str[i]);

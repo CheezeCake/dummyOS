@@ -151,7 +151,7 @@ static int lookup(vfs_path_component_t* path_component, struct vfs_cache_node* s
 	if (!start || !root)
 		return -EINVAL;
 
-	vfs_path_t* path = &path_component->as_path;
+	const vfs_path_t* path = vfs_path_component_as_path(path_component);
 	struct vfs_cache_node* current_node = start;
 
 	while (!vfs_path_empty(path)) {
@@ -170,8 +170,8 @@ static int lookup(vfs_path_component_t* path_component, struct vfs_cache_node* s
 			return -ENOTDIR;
 		}
 
-		struct vfs_cache_node* looked_up;
-		looked_up = vfs_cache_node_lookup_child(current_node, path);
+		struct vfs_cache_node* looked_up =
+			vfs_cache_node_lookup_child(current_node, path);
 		if (!looked_up) {
 			// node is not in the cache, fetch and cache it
 			int err = read_and_cache_inode(current_node, path, &looked_up);
@@ -179,7 +179,7 @@ static int lookup(vfs_path_component_t* path_component, struct vfs_cache_node* s
 				return err;
 		}
 
-		vfs_path_next_component(path_component);
+		vfs_path_component_next(path_component);
 		current_node = looked_up;
 	}
 
@@ -196,7 +196,7 @@ int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
 	vfs_path_component_t path_component;
 	struct vfs_cache_node* start = (vfs_path_absolute(path)) ? root : cwd;
 
-	err = vfs_path_get_component(path, &path_component);
+	err = vfs_path_first_component(path, &path_component);
 	if (err)
 		return err;
 

@@ -46,11 +46,45 @@ struct vfs_superblock_operations
 	/**
 	 * @brief Read inode from the device
 	 *
-	 * @note This "fills" the vfs_inode struct, the on-disk inode is located
-	 *		with the data stored in the enclosing file system dependent inode
-	 *		info struct.
+	 * @note This "fills" the vfs_inode struct.
+	 * The on-disk inode is located with the data stored in the enclosing
+	 * file-system dependent inode_info struct.
 	 */
 	int (*read_inode)(struct vfs_superblock* this, struct vfs_inode* inode);
 };
+
+/**
+ * @brief Initialiazes a vfs_superblock object
+ */
+int vfs_superblock_init(struct vfs_superblock* sb,
+						struct vfs_cache_node* device,
+						struct vfs_filesystem* fs,
+						struct vfs_cache_node* root,
+						void* data,
+						struct vfs_superblock_operations* op);
+
+/**
+ * @brief Creates a vfs_superblock object
+ *
+ * Allocates the memory for the result.
+ */
+int vfs_superblock_create(struct vfs_cache_node* device,
+						  struct vfs_filesystem* fs,
+						  struct vfs_cache_node* root,
+						  void* data,
+						  struct vfs_superblock_operations* op,
+						  struct vfs_superblock** result);
+
+/**
+ * @brief Resets a vfs_superblock object
+ */
+void vfs_superblock_reset(struct vfs_superblock* sb);
+
+/**
+ * @brief Destroys a vfs_superblock object
+ *
+ * Calls kfree on the object.
+ */
+void vfs_superblock_destroy(struct vfs_superblock* sb);
 
 #endif

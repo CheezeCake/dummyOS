@@ -106,10 +106,10 @@ vfs_cache_node_lookup_child(const struct vfs_cache_node* parent,
 {
 	const char dot[] = "..";
 	// "."
-	if (vfs_path_name_str_equals(name, dot, 1))
+	if (vfs_path_str_same(name, dot, 1))
 		return (struct vfs_cache_node*)parent;
 	// ".."
-	if (vfs_path_name_str_equals(name, dot, 2))
+	if (vfs_path_str_same(name, dot, 2))
 		return parent->parent;
 
 	list_node_t* it;
@@ -117,7 +117,7 @@ vfs_cache_node_lookup_child(const struct vfs_cache_node* parent,
 		struct vfs_cache_node* node_it = list_entry(it,
 													struct vfs_cache_node,
 													cn_children_list);
-		if (vfs_path_name_equals(name, &node_it->name))
+		if (vfs_path_same(name, &node_it->name))
 			return node_it;
 	}
 
