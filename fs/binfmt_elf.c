@@ -1,13 +1,12 @@
-#include <arch/vm.h>
 #include <fs/file.h>
 #include <kernel/elf.h>
 #include <kernel/errno.h>
 #include <kernel/kmalloc.h>
-#include <kernel/memory.h>
-#include <kernel/paging.h>
+#include <kernel/mm/memory.h>
+#include <kernel/mm/vmm.h>
 #include <kernel/types.h>
-#include <libk/libk.h>
 #include <libk/endian.h>
+#include <libk/libk.h>
 
 static inline bool check_magic(const struct elf_header* e_hdr)
 {
@@ -91,8 +90,8 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 		if (memsz == 0)
 			continue;
 
-		if (!virtual_memory_is_userspace_address(vaddr) ||
-			!virtual_memory_is_userspace_address(vaddr + memsz)) {
+		if (!vmm_is_userspace_address(vaddr) ||
+			!vmm_is_userspace_address(vaddr + memsz)) {
 			err = -ENOEXEC;
 			goto end;
 		}
@@ -101,23 +100,13 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 			goto end;
 		}
 
-		v_addr_t map_addr = vaddr;
-		int nb_pages = memsz / PAGE_SIZE;
-		if (memsz % PAGE_SIZE > 0)
-			++nb_pages;
-		for (int p = 0; p < nb_pages; ++p) {
-			p_addr_t page = memory_page_frame_alloc();
-			if (!page) {
-				err = -ENOMEM;
-				goto end;
-			}
-
-			err = paging_map(page, map_addr, flags | VM_FLAG_USER);
-			if (err)
-				goto end;
-
-			map_addr += PAGE_SIZE;
-		}
+		uint8_t vmm_flags = VMM_PROT_USER;
+		if (flags & PF_X) vmm_flags |= VMM_PROT_EXEC;
+		if (flags & PF_W) vmm_flags |= VMM_PROT_WRITE;
+		if (flags & PF_R) vmm_flags |= VMM_PROT_READ;
+		err = vmm_create_user_mapping(vaddr, memsz, vmm_flags, 0);
+		if (err)
+			goto end;
 
 
 		// read segment into memory
@@ -132,7 +121,7 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 
 		// zero fill
 		if (filesz < memsz)
-			memset((void*)vaddr + filesz, 0, memsz - filesz);
+			memset((int8_t*)vaddr + filesz, 0, memsz - filesz);
 	}
 
 end:

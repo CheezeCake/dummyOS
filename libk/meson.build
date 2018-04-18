@@ -8,6 +8,7 @@ libk_src = files(
   'strcat.c',
   'strcmp.c',
   'strcpy.c',
+  'strdup.c',
   'strlcpy.c',
   'strlen.c',
   'strncat.c',

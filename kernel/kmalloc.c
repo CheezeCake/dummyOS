@@ -6,6 +6,7 @@
 #include <kernel/locking/spinlock.h>
 #include <kernel/log.h>
 #include <kernel/panic.h>
+#include <libk/libk.h>
 #include <libk/utils.h>
 
 #define MAGIC 0xc001b10c
@@ -62,9 +63,14 @@ static inline void make_memory_block(memory_block_header_t* ptr,
 	ptr->used = used;
 }
 
+static inline memory_block_header_t* next_block(memory_block_header_t* block)
+{
+	return (memory_block_header_t*)((int8_t*)block + block->size);
+}
+
 void kmalloc_init(v_addr_t kheap_start, size_t kheap_size)
 {
-	kassert(IS_ALIGNED(kheap_start, ALIGNMENT));
+	kassert(is_aligned(kheap_start, ALIGNMENT));
 
 	memory_block_header_t* kheap = (memory_block_header_t*)kheap_start;
 	make_memory_block(kheap, NULL, kheap_size, false);
@@ -76,7 +82,7 @@ void* kmalloc(size_t size)
 {
 	memory_block_header_t* block;
 
-	size = ALIGN_UP(size + sizeof(memory_block_header_t), ALIGNMENT);
+	size = align_up(size + sizeof(memory_block_header_t), ALIGNMENT);
 
 	spinlock_lock(&lock);
 
@@ -87,17 +93,14 @@ void* kmalloc(size_t size)
 
 	// out of memory
 	if (block->size < size || block->used) {
-		size_t nr_pages = size / PAGE_SIZE;
-		if (size % PAGE_SIZE > 0)
-			++nr_pages;
-
-		if (kheap_extend_pages(nr_pages) != nr_pages) {
+		size_t increment = kheap_sbrk(size);
+		if (increment == 0) {
 			spinlock_unlock(&lock);
 			return NULL;
 		}
 
-		memory_block_header_t* new = (void*)block + block->size;
-		make_memory_block(new, NULL, nr_pages * PAGE_SIZE, false);
+		memory_block_header_t* new = next_block(block);
+		make_memory_block(new, NULL, increment, false);
 
 		block->next = new;
 
@@ -106,12 +109,13 @@ void* kmalloc(size_t size)
 
 	// is the block large enough to be split?
 	if (block->size > size * 2) {
-		memory_block_header_t* second_part = (void*)block + size;
-		make_memory_block(second_part, block->next,
-						  block->size - size, false);
+		size_t orig_size = block->size;
+
+		block->size = size;
+		memory_block_header_t* second_part = next_block(block);
+		make_memory_block(second_part, block->next, orig_size - size, false);
 
 		block->next = second_part;
-		block->size = size;
 	}
 
 	block->used = true;
@@ -125,12 +129,28 @@ void* kmalloc(size_t size)
 	return (block + 1);
 }
 
+void* kcalloc(size_t count, size_t size)
+{
+	void* mem;
+
+	if (SIZE_MAX / count < size) // overflow
+		return NULL;
+
+	size = count * size;
+	mem = kmalloc(size);
+	if (mem)
+		memset(mem, 0, size);
+
+	return mem;
+
+}
+
 void kfree(void* ptr)
 {
 	if (!ptr)
 		return;
 
-	if (!IS_ALIGNED((v_addr_t)ptr, ALIGNMENT)) {
+	if (!is_aligned((v_addr_t)ptr, ALIGNMENT)) {
 		log_i_printf("Trying to free invalid address! "
 					 "%p is not %d-byte aligned.\n",
 					 ptr, ALIGNMENT);
@@ -142,12 +162,12 @@ void kfree(void* ptr)
 	memory_block_header_t* block = (memory_block_header_t*)ptr - 1;
 
 	if (!block->used) {
-		log_i_printf("Trying to free a free block! (%p)\n", block);
+		log_i_printf("Trying to free a free block! (%p)\n", (void*)block);
 		goto end;
 	}
 	if (block->magic != MAGIC) {
 		log_i_printf("Trying to free an invalid block! "
-					 "Invalid magic number (%p)\n", block);
+					 "Invalid magic number (%p)\n", (void*)block);
 		goto end;
 	}
 

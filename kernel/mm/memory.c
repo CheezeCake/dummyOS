@@ -3,7 +3,7 @@
 #include <kernel/kernel_image.h>
 #include <kernel/kmalloc.h>
 #include <kernel/log.h>
-#include <kernel/memory.h>
+#include <kernel/mm/memory.h>
 #include <kernel/page_frame_status.h>
 #include <libk/libk.h>
 #include <libk/list.h>
@@ -98,7 +98,7 @@ static inline struct page_frame* get_page_frame_at(p_addr_t addr)
 {
 	// check if addr is PAGE_SIZE aligned
 	// if it isn't, it's not a page frame address
-	if (IS_ALIGNED(addr, PAGE_SIZE)) {
+	if (is_aligned(addr, PAGE_SIZE)) {
 		if (addr >= memory_base && addr < memory_top)
 			return (page_frame_descriptors + (addr >> PAGE_SIZE_SHIFT));
 	}

@@ -179,8 +179,7 @@ void vfs_cache_node_ref(struct vfs_cache_node* node)
 
 void vfs_cache_node_unref(struct vfs_cache_node* node)
 {
-	refcount_dec(&node->refcnt);
-	if (refcount_get(&node->refcnt) == 0)
+	if (refcount_dec(&node->refcnt) == 0)
 		destroy(node);
 }
 

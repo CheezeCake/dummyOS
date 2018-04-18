@@ -13,6 +13,9 @@
 #define CODE_DATA_SEGMENT 1
 
 #ifndef ASSEMBLY
+
+#include <kernel/types.h>
+
 // Intel Architecture Software Developer’s Manual Volume 3, section 3.4.3.1
 enum code_data_segment_types
 {
@@ -31,6 +34,12 @@ enum privilege_level
 	PRIVILEGE_KERNEL = 0,
 	PRIVILEGE_USER = 3
 };
+
+static inline bool segment_is_user(uint16_t segment)
+{
+	return ((segment & 3) == PRIVILEGE_USER);
+}
+
 #else
 // mirror enum privilege_level values for use in assembly code
 # define PRIVILEGE_KERNEL	0

@@ -31,7 +31,7 @@ static inline void print_integer(char* str, size_t size, size_t* pos,
 		value = -value;
 	}
 
-	return print_unsigned_integer(str, size, pos, value, 10);
+	print_unsigned_integer(str, size, pos, value, 10);
 }
 
 #define PUTSTR(str)			\

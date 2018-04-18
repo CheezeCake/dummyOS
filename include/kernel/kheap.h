@@ -20,12 +20,12 @@
 size_t kheap_init(v_addr_t start, size_t initial_size);
 
 /**
- * @brief Increases the heap size by a certain number of pages
+ * @brief Increases the heap size by a certain increment in bytes
  *
- * @param nr_pages the number of pages to add at the end of the heap
- * @return the number of pages added to the heap
+ * @param increment increment in bytes
+ * @return the number of bytes added to the heap
  */
-size_t kheap_extend_pages(size_t nr_pages);
+size_t kheap_sbrk(size_t increment);
 
 /**
  * @brief Returns the starting address of the heap

@@ -17,6 +17,12 @@ typedef struct list_node list_t;
  */
 #define LIST_NODE_NULL { .prev = NULL, .next = NULL }
 
+static inline void list_node_init(list_node_t* node)
+{
+	node->prev = NULL;
+	node->next = NULL;
+}
+
 #define LIST_DEFINE(list) list_t list = { .prev = &list, .next = &list }
 
 static inline void list_init(list_t* list)
@@ -45,6 +51,12 @@ static inline list_node_t* list_back(const list_t* list)
  */
 #define list_entry(ptr, type, member) \
 		container_of(ptr, type, member)
+
+
+static inline bool list_node_chained(const list_node_t* node)
+{
+	return (node->prev && node->next);
+}
 
 
 /*

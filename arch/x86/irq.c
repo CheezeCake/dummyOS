@@ -1,46 +1,45 @@
+#include <kernel/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/types.h>
 #include "irq.h"
 #include "i8259.h"
 #include "idt.h"
 
-interrupt_handler_t irq_handlers[IRQ_NB] = { NULL, };
+interrupt_handler_t irq_handlers[IRQ_COUNT] = { NULL, };
 
 int irq_set_handler(uint8_t irq, interrupt_handler_t handler)
 {
-	if (irq < 0 || irq > IRQ_MAX || handler == NULL)
-		return -1;
+	int err;
 
-	irq_state_t state;
-	irq_save_state(state);
+	if (irq > IRQ_MAX || !handler)
+		return -EINVAL;
+
 	irq_disable();
 
-	int ret = idt_set_handler(IRQ_IDT_INDEX(irq), INTGATE);
+	err = idt_set_irq_handler_present(irq, INTGATE);
 
-	if (ret == 0) {
+	if (!err) {
 		irq_handlers[irq] = handler;
 		i8259_irq_enable(irq); // update PIC
 	}
 
-	irq_restore_state(state);
+	irq_enable();
 
-	return ret;
+	return err;
 }
 
 int irq_unset_handler(uint8_t irq)
 {
-	if (irq < 0 || irq > IRQ_MAX)
-		return -1;
+	if (irq > IRQ_MAX)
+		return -EINVAL;
 
-	irq_state_t state;
-	irq_save_state(state);
 	irq_disable();
 
-	idt_unset_handler(IRQ_IDT_INDEX(irq));
+	idt_unset_irq_handler_present(irq);
 	irq_handlers[irq] = NULL;
 	i8259_irq_disable(irq); // update PIC
 
-	irq_restore_state(state);
+	irq_enable();
 
 	return 0;
 }

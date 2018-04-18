@@ -4,14 +4,11 @@
 #include <kernel/elf.h>
 #include <kernel/errno.h>
 #include <kernel/exec.h>
-#include <kernel/memory.h>
-#include <kernel/paging.h>
 #include <kernel/sched/sched.h>
-#include <kernel/usermode.h>
+#include <kernel/mm/vmm.h>
 #include <libk/libk.h>
 
-static int unschedule_process_threads(struct process* proc,
-									  struct thread* current_thread)
+static int kill_process_threads(struct process* proc)
 {
 	int err;
 	list_node_t* it;
@@ -19,56 +16,54 @@ static int unschedule_process_threads(struct process* proc,
 	list_foreach(&proc->threads, it) {
 		struct thread* thread = list_entry(it, struct thread, p_thr_list);
 
-		if (current_thread != thread) {
-			thread->state = THREAD_STOPPED;
-			if ((err = sched_remove_thread(thread)) != 0)
-				return err;
-		}
+		thread_set_state(thread, THREAD_DEAD);
+		err = sched_remove_thread(thread);
+		if (err)
+			return err;
 	}
 
 	return 0;
 }
 
-static int prepare_exec(struct process* proc, struct thread* current_thread)
+static int create_user_stack(v_addr_t* stack_top)
 {
+	v_addr_t stack_bottom;
+	const size_t stack_size = PAGE_SIZE;
 	int err;
 
-	err = unschedule_process_threads(proc, current_thread);
-	if (err)
-		return err;
+	*stack_top = USER_SPACE_END;
+	stack_bottom = *stack_top - stack_size;
 
-	process_prepare_exec(proc, current_thread);
+	err = vmm_create_user_mapping(stack_bottom, stack_size,
+								  VMM_PROT_USER | VMM_PROT_WRITE,
+								  VMM_MAP_GROWSDOW);
 
 	return err;
 }
 
-static int create_stack(v_addr_t* stack)
-{
-	p_addr_t frame;
-	int err;
-
-	frame = memory_page_frame_alloc();
-	if (!frame)
-		return -ENOMEM;
-
-	*stack = USER_VADDR_SPACE_END;
-	err = paging_map(frame, *stack - PAGE_SIZE, VM_FLAG_USER | VM_FLAG_WRITE);
-
-	return err;
-}
-
+#include <kernel/log.h>
 int exec(const char* __kernel path, char* const __kernel argv[],
 		 char* const __kernel envp[])
 {
 	struct thread* thread = sched_get_current_thread();
 	struct process* proc = thread->process;
-	v_addr_t entry_point, stack;
+	pid_t proc_pid = proc->pid;
+	v_addr_t entry_point, stack_top;
 	int err;
+
+	const char* new_proc_name = (argv && argv[0]) ? argv[0] : path;
+	struct process* new_proc;
+	err = process_create(new_proc_name, &new_proc);
+	if (err)
+		return err;
 
 	vfs_path_t exec_path;
 	err = vfs_path_init(&exec_path, path, strlen(path));
 	if (err)
 		return err;
+
+	log_puts("exec vmm_switch_to new\n");
+	vmm_switch_to(new_proc->vmm);
 
 	struct vfs_cache_node* exec;
 	err = vfs_lookup(&exec_path, proc->root, proc->cwd, &exec);
@@ -81,23 +76,36 @@ int exec(const char* __kernel path, char* const __kernel argv[],
 	if (err)
 		goto fail_file;
 
-	// TODO: save usr context
-	// clear process
-	err = prepare_exec(proc, thread);
-	if (err)
-		goto fail_load_bin;
-
 	err = elf_load_binary(&file, &entry_point);
 	if (err)
 		goto fail_load_bin;
 
-	err = create_stack(&stack);
+	// XXX:
+	err = create_user_stack(&stack_top);
 	if (err)
 		goto fail_stack;
 
+	struct thread* new_proc_main_thr;
+	err = thread_create(entry_point, stack_top, &new_proc_main_thr);
+	if (err) {
+		// XXX:
+	}
+	err = process_add_thread(new_proc, new_proc_main_thr);
+	err = sched_add_thread(new_proc_main_thr);
+	thread_unref(new_proc_main_thr);
 
-	// no return
-	usermode_entry(entry_point, stack);
+	// XXX: ...
+	err = process_register_pid(new_proc, proc_pid);
+	if (err) {
+	}
+
+	log_puts("exec vmm_switch_to old\n");
+	vmm_switch_to(proc->vmm);
+
+	kill_process_threads(proc);
+	process_destroy(proc);
+
+	sched_exit();
 
 fail_stack:
 
@@ -107,6 +115,8 @@ fail_file:
 	vfs_cache_node_unref(exec);
 fail_lookup:
 	vfs_path_reset(&exec_path);
+
+	vmm_switch_to(proc->vmm);
 
 	return err;
 }

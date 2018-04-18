@@ -3,8 +3,8 @@
 
 #include <kernel/types.h>
 
-#define irq_disable() __asm__ ("cli")
-#define irq_enable() __asm__ ("sti")
+#define __irq_disable() __asm__ ("cli")
+#define __irq_enable() __asm__ ("sti")
 
 typedef uint32_t irq_state_t;
 

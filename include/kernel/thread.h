@@ -1,8 +1,8 @@
 #ifndef _KERNEL_THREAD_H_
 #define _KERNEL_THREAD_H_
 
-#include <arch/cpu_context.h>
 #include <dummyos/const.h>
+#include <kernel/cpu_context.h>
 #include <kernel/sched/wait.h>
 #include <kernel/time/time.h>
 #include <kernel/types.h>
@@ -11,37 +11,46 @@
 
 struct process;
 
-typedef int (*start_func_t)(void* data);
 typedef unsigned int thread_priority_t;
 
-#define MAX_THREAD_NAME_LENGTH 16
+#define DEFAULT_KSTACK_SIZE PAGE_SIZE
 
 enum thread_state
 {
-	THREAD_CREATED,
 	THREAD_RUNNING,
 	THREAD_READY,
-	THREAD_BLOCKED,
 	THREAD_SLEEPING,
-	THREAD_STOPPED,
-	THREAD_ZOMBIE
+	THREAD_DEAD
 };
-enum thread_type { KTHREAD, UTHREAD };
+
+enum thread_type
+{
+	KTHREAD,
+	UTHREAD
+};
+
+struct stack
+{
+	v_addr_t sp;
+	size_t size;
+};
 
 struct thread
 {
-	char name[MAX_THREAD_NAME_LENGTH];
+	char* name;
+
+	union
+	{
+		struct process* process;
+		void* kthr_data;
+	};
 
 	struct cpu_context* cpu_context;
-
-	struct process* process;
+	/**< */
+	struct vmm* running_vmm;
 
 	// kernel stack
-	struct
-	{
-		v_addr_t sp;
-		size_t size;
-	} kstack;
+	struct stack kstack;
 
 	enum thread_state state;
 	enum thread_type type;
@@ -57,20 +66,16 @@ struct thread
 	wait_queue_entry_t wqe; /**< Chained in wait_queue_t::threads */
 };
 
-int thread_kthread_create(const char* name, start_func_t start,
-						  void* start_args, struct thread** result);
-
-int thread_uthread_create(const char* name, start_func_t __user start,
-						  void* __user start_args, struct thread** result);
+int __kthread_create(char* name, v_addr_t start, struct thread** result);
+int thread_create(v_addr_t start, v_addr_t stack, struct thread** result);
 
 void thread_ref(struct thread* thread);
 void thread_unref(struct thread* thread);
 int thread_get_ref(const struct thread* thread);
 
-void thread_yield(void);
-void thread_sleep(unsigned int millis);
+void thread_set_state(struct thread* thread, enum thread_state state);
+enum thread_state thread_get_state(const struct thread* thread);
 
-thread_priority_t thread_get_priority(void);
-int thread_set_priority(thread_priority_t priority);
+struct cpu_context* thread_switch_setup(struct thread* thread, struct thread* prev);
 
 #endif

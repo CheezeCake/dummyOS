@@ -40,8 +40,7 @@ void timer_ref(struct timer* timer)
 
 void timer_unref(struct timer* timer)
 {
-	refcount_dec(&timer->refcnt);
-	if (timer_get_ref(timer) == 0)
+	if (refcount_dec(&timer->refcnt) == 0)
 		timer_destroy(timer);
 }
 

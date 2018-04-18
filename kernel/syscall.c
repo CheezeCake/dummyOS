@@ -1,11 +1,12 @@
 #include <kernel/syscall.h>
+#include <kernel/types.h>
 
 static int nosys(void);
 extern void sys_exit(int);
 
-void* syscall_table[SYSCALL_NR_COUNT] = {
-	[NR_nosys] = nosys,
-	[NR_exit] = sys_exit,
+v_addr_t syscall_table[SYSCALL_NR_COUNT] = {
+	[NR_nosys] = (v_addr_t)nosys,
+	[NR_exit] = (v_addr_t)sys_exit,
 };
 
 static int nosys(void)

@@ -6,10 +6,12 @@
 
 /*
  * +---+------------------+ 4GB - 1 (0xffffffff)
- * |   |                  |
- * |   |  mirroring zone  |
- * |   |                  |
- * |   +------------------+ 4GB - 1 - 4MB (0xffc00000)
+ * |   |current           |
+ * |   |recursive mapping |
+ * |   +------------------+ 4GB - 4MB (0xffc00000)
+ * |   |temp              |
+ * |   |recursive mapping |
+ * |   +------------------+ 4GB - 8MB (0xff800000)
  * |                      |
  * | kernel address space |
  * |                      |
@@ -40,34 +42,31 @@
 /*
  * address space sizes
  */
-#define VADDR_SPACE_SIZE		0xffffffff // 4GB - 1
-#define KERNEL_VADDR_SPACE_SIZE 0x40000000 // 1GB
-#define USER_VADDR_SPACE_SIZE	0xc0000000 // 3GB
+#define ADDR_SPACE_SIZE		0xffffffff // 4GB - 1
+#define KERNEL_SPACE_SIZE	0x40000000 // 1GB
+#define USER_SPACE_SIZE		0xc0000000 // 3GB
 
 /*
  * limits
  */
-#define KERNEL_VADDR_SPACE_START	0xc0000000 // 3GB
-#define KERNEL_VADDR_SPACE_END		0xffffffff // 4GB
-#define MIRRORING_VADDR_BEGIN		0xffc00000 // 4GB - 1 - 4MB
-#define KERNEL_VADDR_SPACE_LIMIT	MIRRORING_VADDR_BEGIN
-#define KERNEL_VADDR_SPACE_RESERVED KERNEL_VADDR_SPACE_START
+#define KERNEL_SPACE_START	0xc0000000 // 3GB
+#define KERNEL_SPACE_END		0xffffffff // 4GB
+#define RECURSIVE_ENTRY_START		0xffc00000 // 4GB - 4MB
+#define KERNEL_SPACE_LIMIT	RECURSIVE_ENTRY_START
+#define KERNEL_SPACE_RESERVED KERNEL_SPACE_START
 
-#define USER_VADDR_SPACE_START	0x0
-#define USER_VADDR_SPACE_END	0xc0000000 // 3GB
+#define TEMP_RECURSIVE_ENTRY_START		0xff800000 // 4GB - 8MB
+
+#define USER_SPACE_START	0x0
+#define USER_SPACE_END	0xc0000000 // 3GB
 
 /*
  * page directory entry count
  */
 #define VM_COVERED_PER_PD_ENTRY 0x400000 // 4MB
-#define KERNEL_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES \
-	(KERNEL_VADDR_SPACE_SIZE / VM_COVERED_PER_PD_ENTRY) // 256
-#define USER_VADDR_SPACE_PAGE_DIRECTORY_ENTRIES \
-	(USER_VADDR_SPACE_SIZE / VM_COVERED_PER_PD_ENTRY) // 768
-
-static inline bool virtual_memory_is_userspace_address(v_addr_t address)
-{
-	return (address < KERNEL_VADDR_SPACE_START);
-}
+#define KERNEL_SPACE_PD_ENTRIES \
+	(KERNEL_SPACE_SIZE / VM_COVERED_PER_PD_ENTRY) // 256
+#define USER_SPACE_PD_ENTRIES \
+	(USER_SPACE_SIZE / VM_COVERED_PER_PD_ENTRY) // 768
 
 #endif

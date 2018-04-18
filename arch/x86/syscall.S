@@ -1,17 +1,15 @@
 #define ASSEMBLY
 
 #include <kernel/syscall.h>
+#include "interrupt.S" /* common macros */
 
-#include "interrupt.h"
-#include "segment.h"
+.text
 
 /* see kernel/syscall.c */
 .extern syscall_table
 
-.globl syscall_handler
-
-.text
-
+.global syscall_handler
+.type syscall_handler, @function
 /*
 	eax =  syscall number
 	ebx =  arg1
@@ -27,32 +25,21 @@ syscall_handler:
 	jle 1f
 	movl $-1, %eax
 	iret
+
 1:
-	SAVE_CONTEXT()
+	pushl $0 /* error code */
+	interrupt_enter
 
-	/* pass the arguments */
-	pushl %ebp
-	pushl %edi
-	pushl %esi
-	pushl %edx
-	pushl %ecx
-	pushl %ebx
-
-	pushl %eax /* save eax */
-	SET_DATA_SEGMENT_REGISTERS(PRIVILEGE_KERNEL, KDATA)
+	/* esp = cpu_ctx -> eax, ebx, ecx, edx, esi, edi, ebp */
 	popl %eax
+	/* esp = cpu_ctx + 4 -> ebx, ecx, edx, esi, edi, ebp  (syscall args) */
 
 	leal syscall_table, %edi
-	call *(%edi, %eax, 4)
+	call *(%edi, %eax, 4) /* call C handler */
 
-	/* pop the arguments */
-	popl %ebx
-	popl %ecx
-	popl %edx
-	popl %esi
-	popl %edi
-	popl %ebp
+	/* syscall return value */
+	/* override cpu_ctx.eax and restore esp at the same time */
+	pushl %eax
+	/* esp = cpu_ctx */
 
-	RESTORE_CONTEXT()
-
-	iret
+	interrupt_leave

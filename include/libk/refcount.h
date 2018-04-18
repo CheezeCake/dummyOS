@@ -18,12 +18,12 @@ void refcount_init(refcount_t* r);
 /**
  * @brief Increments the reference counter by one
  */
-void refcount_inc(refcount_t* r);
+int refcount_inc(refcount_t* r);
 
 /**
  * @brief Decrements the reference counter by one
  */
-void refcount_dec(refcount_t* r);
+int refcount_dec(refcount_t* r);
 
 /**
  * @brief Returns the reference counter value

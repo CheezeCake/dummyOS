@@ -17,7 +17,7 @@ int wait_wait(wait_queue_t* wq)
 
 	list_push_back(&wq->threads, &thread->wqe);
 	thread_ref(thread);
-	sched_block_current_thread();
+	sched_sleep_event();
 
 	return 0;
 }
@@ -33,7 +33,7 @@ int wait_wake(wait_queue_t* wq, unsigned int nb_threads)
 										   struct thread, wqe);
 		list_pop_front(&wq->threads);
 
-		if (thread->state != THREAD_ZOMBIE && sched_add_thread(thread) == 0)
+		if (sched_add_thread(thread) == 0)
 			++n;
 
 		thread_unref(thread);

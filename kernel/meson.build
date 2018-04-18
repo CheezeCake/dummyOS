@@ -6,14 +6,16 @@ kernel_src = files(
   'kernel_image.c',
   'kheap.c',
   'kmalloc.c',
-  'memory.c',
   'process.c',
   'syscall.c',
-  'thread.c'
+  'thread.c',
   )
 
 subdir('locking')
 kernel_src += kernel_locking_src
+
+subdir('mm')
+kernel_src += kernel_mm_src
 
 subdir('sched')
 kernel_src += kernel_sched_src

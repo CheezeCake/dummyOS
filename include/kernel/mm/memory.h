@@ -1,5 +1,5 @@
-#ifndef _KERNEL_MEMORY_H_
-#define _KERNEL_MEMORY_H_
+#ifndef _KERNEL_MM_MEMORY_H_
+#define _KERNEL_MM_MEMORY_H_
 
 #include <kernel/page_frame_status.h>
 #include <kernel/types.h>
@@ -21,14 +21,14 @@ get_page_frame_status(p_addr_t pf, p_addr_t mem_base, p_addr_t mem_top,
 # error "arch/memory.h must define PAGE_SIZE_SHIFT"
 #endif
 
-static inline p_addr_t page_frame_align_down(p_addr_t addr)
+static inline p_addr_t page_align_down(p_addr_t addr)
 {
-	return ALIGN_DOWN(addr, PAGE_SIZE);
+	return align_down(addr, PAGE_SIZE);
 }
 
-static inline p_addr_t page_frame_align_up(p_addr_t addr)
+static inline p_addr_t page_align_up(p_addr_t addr)
 {
-	return ALIGN_UP(addr, PAGE_SIZE);
+	return align_up(addr, PAGE_SIZE);
 }
 
 void memory_init(size_t ram_size_bytes);

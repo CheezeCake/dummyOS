@@ -1,6 +1,7 @@
 #include <arch/vm.h>
 #include <kernel/debug.h>
 #include <kernel/log.h>
+#include <kernel/mm/vmm.h>
 
 #define print_register(reg, value) \
 	log_e_printf("%s = 0x%x\t", reg, value)
@@ -9,21 +10,27 @@ static void debug_stacktrace(int frame, uint32_t* ebp)
 {
 	for (int i = 0; i < frame; i++) {
 		const uint32_t eip = ebp[1];
-		if (eip == 0)
+		ebp = (uint32_t*)ebp[0];
+		const uint32_t* args = ebp + 2;
+
+		if (!eip)
 			return;
 
 		log_e_printf("#%d: [0x%x] ", i, (unsigned int)eip);
 
-		if (virtual_memory_is_userspace_address(eip)) {
+		if (vmm_is_userspace_address(eip)) {
 			log_e_print("<-- userspace\n");
 			return;
 		}
 
-		ebp = (uint32_t*)ebp[0];
-		const uint32_t* args = ebp + 2;
-
-		log_e_printf("(0x%x, 0x%x, 0x%x)\n", (unsigned int)args[0],
-				(unsigned int)args[1], (unsigned int)args[2]);
+		if (ebp) {
+			log_e_printf("(0x%x, 0x%x, 0x%x)\n", (unsigned int)args[0],
+						 (unsigned int)args[1], (unsigned int)args[2]);
+		}
+		else {
+			log_e_putchar('\n');
+			return;
+		}
 	}
 }
 

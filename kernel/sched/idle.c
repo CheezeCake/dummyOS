@@ -1,38 +1,31 @@
 #include <kernel/kassert.h>
+#include <kernel/kthread.h>
 #include <kernel/process.h>
 #include <kernel/sched/idle.h>
 #include <kernel/sched/sched.h>
 
-static int test(void* args)
+static void test(void* data)
 {
-	/* return; */
 	while (1) {
 		terminal_putchar('t');
-		thread_sleep(500);
+		sched_sleep_millis(500);
 	}
-
-	/* log_e_print("EXIT\n"); */
-	/* sched_remove_current_thread(); */
-	return 0;
 }
 
-static int idle_kthread_do(void* args)
+static void idle_kthread_do(void* data)
 {
 	while (1)
-		thread_yield();
-
-	return 0;
+		sched_yield();
 }
 
 void idle_init(void)
 {
 	struct thread* idle;
 
-	kassert(process_kprocess_init() == 0);
-
-	kassert(process_create_kthread("[idle]", idle_kthread_do, NULL, &idle) == 0);
+	kassert(kthread_create("[idle]", idle_kthread_do, NULL, &idle) == 0);
+	idle->priority = SCHED_PRIORITY_LEVEL_MIN;
 	kassert(sched_add_thread(idle) == 0);
 	// test
-	kassert(process_create_kthread("[test]", test, NULL, &idle) == 0);
+	kassert(kthread_create("[test]", test, NULL, &idle) == 0);
 	kassert(sched_add_thread(idle) == 0);
 }

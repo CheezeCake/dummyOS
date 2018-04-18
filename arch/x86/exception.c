@@ -1,3 +1,4 @@
+#include <kernel/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/panic.h>
 #include <kernel/terminal.h>
@@ -6,48 +7,42 @@
 #include "idt.h"
 #include "irq.h"
 
-interrupt_handler_t exception_handlers[EXCEPTION_NB] = { NULL, };
+interrupt_handler_t exception_handlers[EXCEPTION_COUNT] = { NULL, };
 
-int exception_set_handler(unsigned int exception, interrupt_handler_t handler)
+int exception_set_handler(uint8_t exception, interrupt_handler_t handler)
 {
-	if (exception > EXCEPTION_MAX || handler == NULL)
-		return -1;
+	int err;
 
-	// do not change doublefault handler
-	if (exception == EXCEPTION_DOUBLE_FAULT)
-		return -1;
+	if (exception > EXCEPTION_MAX || !handler)
+		return -EINVAL;
 
-	irq_state_t state;
-	irq_save_state(state);
 	irq_disable();
 
-	int ret = idt_set_handler(EXCEPTION_IDT_INDEX(exception), INTGATE);
-	if (ret == 0)
+	err = idt_set_exception_handler_present(exception, INTGATE);
+	if (!err)
 		exception_handlers[exception] = handler;
 
-	irq_restore_state(state);
+	irq_enable();
 
-	return ret;
+	return err;
 }
 
-int exception_unset_handler(unsigned int exception)
+int exception_unset_handler(uint8_t exception)
 {
 	if (exception > EXCEPTION_MAX)
-		return -1;
+		return -EINVAL;
 
-	irq_state_t state;
-	irq_save_state(state);
 	irq_disable();
 
-	idt_unset_handler(EXCEPTION_IDT_INDEX(exception));
+	idt_unset_exception_handler_present(exception);
 	exception_handlers[exception] = NULL;
 
-	irq_restore_state(state);
+	irq_enable();
 
 	return 0;
 }
 
-static void doublefault_handler(void)
+static void doublefault_handler(int nr, struct cpu_context* interrupted_ctx)
 {
 	PANIC("double fault");
 }
@@ -55,7 +50,7 @@ static void doublefault_handler(void)
 int exception_init(void)
 {
 	// setup double fault handler
-	int ret = exception_set_handler(EXCEPTION_DOUBLE_FAULT, doublefault_handler);
+	int err = exception_set_handler(EXCEPTION_DOUBLE_FAULT, doublefault_handler);
 
-	return ret;
+	return err;
 }

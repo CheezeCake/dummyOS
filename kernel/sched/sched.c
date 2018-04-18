@@ -1,6 +1,6 @@
-#include <kernel/context_switch.h>
+#include <kernel/errno.h>
+#include <kernel/interrupt.h>
 #include <kernel/kassert.h>
-#include <kernel/locking/spinlock.h>
 #include <kernel/sched/idle.h>
 #include <kernel/sched/sched.h>
 #include <kernel/time/time.h>
@@ -24,67 +24,124 @@ static sched_queue_t ready_queues[SCHED_PRIORITY_LEVELS];
 #define get_thread_queue(thread) ready_queues[(thread)->priority]
 #define get_thread_list_entry(node) list_entry(node, struct thread, s_ready_queue)
 
-static spinlock_t access_lock = SPINLOCK_NULL;
-
+#if 0
+static void ready_queues_dump(void)
+{
+	for (int i = 0; i < SCHED_PRIORITY_LEVELS; ++i) {
+		list_node_t* it;
+		log_printf("[%d]: ", i);
+		list_foreach(&ready_queues[i], it) {
+			struct thread* thr = list_entry(it, struct thread, s_ready_queue);
+			log_printf("%s(%p)state=%d | ", thr->name, (void*)thr, thr->state);
+		}
+		log_putchar('\n');
+	}
+}
+#endif
 
 static inline thread_priority_t first_non_empty_queue_priority(void)
 {
-	thread_priority_t i = 0;
-	while (list_empty(&ready_queues[i]) && i < SCHED_PRIORITY_LEVELS)
-			++i;
+	thread_priority_t i = SCHED_PRIORITY_LEVEL_MAX;
+	while (list_empty(&ready_queues[i]) && i > 0)
+			--i;
 	return i;
 }
 
-static inline bool idle(void)
+static inline bool idling(void)
 {
-	return (first_non_empty_queue_priority() >= SCHED_PRIORITY_LEVELS);
+	return (first_non_empty_queue_priority() == SCHED_PRIORITY_LEVEL_MIN);
 }
 
-static void preempt(void)
+static void preempt_current(void)
 {
-	const thread_priority_t p = first_non_empty_queue_priority();
-	kassert(p < SCHED_PRIORITY_LEVELS); // every queue is empty
-	sched_queue_t* ready_queue = &ready_queues[p];
+	cpu_context_preempt();
+}
 
-
-	struct thread* from = current_thread;
-	log_printf("switching from %s ", (from) ? from->name : NULL);
-
-	struct thread* to = get_thread_list_entry(list_front(ready_queue));
-	to->state = THREAD_RUNNING;
-	log_printf("to %s\n", to->name);
-
-	current_thread = to;
-	list_pop_front(ready_queue);
-
-	context_switch(from, to);
+static inline bool preemptible(struct cpu_context* cpu_ctx)
+{
+	// threads in kernel mode are non-preemptible
+	return cpu_context_is_usermode(cpu_ctx);
 }
 
 /*
  * called from time tick interrupt handler
  */
-void sched_schedule(void)
+void sched_tick(struct cpu_context* interrupted_ctx)
 {
-	// kernel threads are non-interruptible
-	if (current_thread->type == KTHREAD)
-		return;
+}
 
-	if (spinlock_locked(&access_lock))
-		return;
-
+static bool quatum_expired(struct thread* thr, const struct time* start)
+{
 	struct time current_time;
+	const quantum_ms_t quantum = get_thread_quantum(thr);
+
 	time_get_current(&current_time);
-	const quantum_ms_t quantum = get_thread_quantum(current_thread);
 
-	if (time_diff_ms(&current_time, &current_thread_start) > quantum) {
-		current_thread_start = current_time;
+	return (time_diff_ms(&current_time, start) > quantum);
+}
 
-		current_thread->state = THREAD_READY;
-		list_push_back(&get_thread_queue(current_thread),
-				&current_thread->s_ready_queue);
+static struct thread* next_thread(struct thread* prev_thr,
+								  struct cpu_context* prev_ctx)
+{
+	const thread_priority_t p = first_non_empty_queue_priority();
+	kassert(p < SCHED_PRIORITY_LEVELS); // every queue is empty
+	sched_queue_t* ready_queue = &ready_queues[p];
 
-		preempt();
+	if (prev_thr)
+		prev_thr->cpu_context = prev_ctx; // update cpu_context
+	log_printf("switching from %s ", (prev_thr) ? prev_thr->name : NULL);
+
+	struct thread* next = get_thread_list_entry(list_front(ready_queue));
+	log_printf("to %s\n", next->name);
+	list_pop_front(ready_queue);
+
+	return next;
+}
+
+static inline void set_current_thread(struct thread* thr)
+{
+	struct time current_time;
+
+	kassert(thr != NULL);
+
+	time_get_current(&current_time);
+
+	current_thread = thr;
+	current_thread_start = current_time;
+
+	thread_set_state(thr, THREAD_RUNNING);
+}
+
+struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
+{
+	struct thread* cur;
+	struct thread* next;
+
+	irq_disable();
+
+	cur = current_thread;
+	next = next_thread(current_thread, cpu_ctx);
+
+	if (current_thread && current_thread->state == THREAD_RUNNING)
+		sched_add_thread(current_thread);
+	set_current_thread(next);
+
+	irq_enable();
+
+	return thread_switch_setup(next, cur);
+	/* return next->cpu_context; */
+}
+
+struct cpu_context* sched_schedule(struct cpu_context* cpu_ctx)
+{
+	if (!current_thread ||
+		(preemptible(cpu_ctx) &&
+		 quatum_expired(current_thread, &current_thread_start)))
+	{
+		return sched_schedule_yield(cpu_ctx);
 	}
+
+	return cpu_ctx;
 }
 
 /*
@@ -92,15 +149,26 @@ void sched_schedule(void)
  */
 int sched_add_thread(struct thread* thread)
 {
+	irq_disable();
+
 	kassert(thread != NULL);
-	/* kassert(thread->state == THREAD_READY); */
+	if (thread->state != THREAD_RUNNING)
+		log_printf("%s(): %s (%p) state=%d\n", __func__, thread->name,
+				   (void*)thread, thread->state);
 
-	log_printf("sched add %s (%p)\n", thread->name, thread);
+	if (thread->state != THREAD_DEAD) {
+		thread_set_state(thread, THREAD_READY);
 
-	thread_ref(thread);
-	thread->state = THREAD_READY;
+		if (thread->type == UTHREAD && thread->process->state == PROC_LOCKED) {
+			log_printf("%s(): process locked !\n", __func__);
+		}
+		else {
+			list_push_back(&get_thread_queue(thread), &thread->s_ready_queue);
+			thread_ref(thread);
+		}
+	}
 
-	list_push_back(&get_thread_queue(thread), &thread->s_ready_queue);
+	irq_enable();
 
 	return 0;
 }
@@ -110,34 +178,23 @@ int sched_add_thread(struct thread* thread)
  */
 int sched_remove_thread(struct thread* thread)
 {
+	int err = 0;
+
+	irq_disable();
+
 	sched_queue_t* ready_queue = &get_thread_queue(thread);
-	list_node_t* it;
 
-	list_foreach(ready_queue, it) {
-		struct thread* it_thread = get_thread_list_entry(it);
-		if (it_thread == thread) {
-			list_erase(ready_queue, it);
-			thread_unref(it_thread);
-
-			return 0;
-		}
+	if (list_node_chained(&thread->s_ready_queue)) {
+		list_erase(ready_queue, &thread->s_ready_queue);
+		thread_unref(thread);
+	}
+	else {
+		err = -EINVAL;
 	}
 
-	return -1;
-}
+	irq_enable();
 
-int sched_remove_process(struct process* proc)
-{
-	int ret = 0;
-	list_node_t* it;
-
-	list_foreach(&proc->threads, it) {
-		struct thread* thread = list_entry(it, struct thread, p_thr_list);
-		if (sched_remove_thread(thread) != 0)
-			ret = -1;
-	}
-
-	return ret;
+	return err;
 }
 
 
@@ -151,89 +208,75 @@ struct thread* sched_get_current_thread(void)
 
 struct process* sched_get_current_process(void)
 {
-	return sched_get_current_thread()->process;
+	return (current_thread->type == UTHREAD) ? current_thread->process : NULL;
 }
 
 
 /*
  * sched operations
  */
-void sched_yield_current_thread(void)
+void sched_yield(void)
 {
-	if (idle())
+	if (idling())
 		return;
 
-	spinlock_lock(&access_lock);
-
-	current_thread->state = THREAD_READY;
-	list_push_back(&get_thread_queue(current_thread), &current_thread->s_ready_queue);
-
-	spinlock_unlock(&access_lock);
-
-	preempt();
+	preempt_current();
 }
 
-void sched_block_current_thread(void)
+void sched_exit(void)
 {
-	log_printf("sched_block %s\n", current_thread->name);
+	__irq_disable();
 
-	spinlock_lock(&access_lock);
-
-	current_thread->state = THREAD_BLOCKED;
-
-	kassert(thread_get_ref(current_thread) > 1 &&
-			"blocking thread without taking ownership");
+	thread_set_state(current_thread, THREAD_DEAD);
 	thread_unref(current_thread);
 
-	spinlock_unlock(&access_lock);
-
-	preempt();
-}
-
-void sched_remove_current_thread(void)
-{
-	spinlock_lock(&access_lock);
-
-	thread_unref(current_thread);
-	current_thread = NULL;
-
-	spinlock_unlock(&access_lock);
-
-	preempt();
+	preempt_current();
 }
 
 static int sched_timer_callback(void* data)
 {
-	spinlock_lock(&access_lock);
-
 	struct thread* thread = (struct thread*)data;
 	sched_add_thread(thread);
 	// timer drops ownership
 	thread_unref(thread);
 
-	spinlock_unlock(&access_lock);
-
 	return 0;
 }
 
-void sched_sleep_current_thread(unsigned int millis)
+static void __sched_sleep()
 {
-	log_printf("sched_sleep %s\n", current_thread->name);
-
-	spinlock_lock(&access_lock);
-
 	current_thread->state = THREAD_SLEEPING;
 
-	// don't unref the thread, the ownership is transfered to the timer
+	kassert(thread_get_ref(current_thread) > 1 &&
+			"putting thread to sleep without taking ownership");
+	thread_unref(current_thread);
+}
+
+void sched_sleep_millis(unsigned int millis)
+{
+	log_printf("%s(): %s (%p) state=%d\n", __func__, current_thread->name,
+			   (void*)current_thread, current_thread->state);
+
 	struct timer* timer = timer_create(millis, sched_timer_callback,
 			current_thread);
 	kassert(timer != NULL);
+	thread_ref(current_thread); // the timer refererences the thread
 	timer_register(timer);
 	timer_unref(timer);
 
-	spinlock_unlock(&access_lock);
+	__sched_sleep();
 
-	preempt();
+	preempt_current();
+}
+
+void sched_sleep_event(void)
+{
+	log_printf("%s(): %s (%p) state=%d\n", __func__, current_thread->name,
+			   (void*)current_thread, current_thread->state);
+
+	__sched_sleep();
+
+	preempt_current();
 }
 
 
@@ -245,7 +288,7 @@ void sched_start(void)
 	log_puts("sched_start()\n");
 
 	kassert(current_thread == NULL);
-	preempt();
+	preempt_current();
 }
 
 void sched_init()

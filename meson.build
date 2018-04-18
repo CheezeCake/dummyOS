@@ -13,7 +13,7 @@ src = arch_src + fs_src + kernel_src + libk_src
 inc = include_directories('include', join_paths('arch', arch, 'include'))
 
 # flags
-c_flags = ['-ffreestanding', '-Wall', '-pipe'] # -ggdb
+c_flags = ['-ffreestanding', '-Wall', '-Wpedantic', '-pipe'] # -ggdb
 if host_machine.endian() == 'little'
   c_flags += '-DARCH_ENDIAN_LITTLE'
 else

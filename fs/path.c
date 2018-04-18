@@ -156,8 +156,7 @@ void vfs_path_reset(vfs_path_t* path)
 {
 	string_t* str = path->base_str;
 
-	refcount_dec(&str->refcnt);
-	if (refcount_get(&str->refcnt) == 0)
+	if (refcount_dec(&str->refcnt) == 0)
 		kfree(str);
 }
 

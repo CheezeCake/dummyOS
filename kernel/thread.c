@@ -1,37 +1,66 @@
 #include <kernel/cpu_context.h>
 #include <kernel/errno.h>
+#include <kernel/interrupt.h>
 #include <kernel/kmalloc.h>
 #include <kernel/sched/sched.h>
 #include <kernel/thread.h>
-#include <kernel/usermode.h>
 #include <libk/libk.h>
 
-#define DEFAULT_STACK_SIZE 2048
-
-static void thread_destroy(struct thread* thread)
+static int create_kstack(struct stack* kstack, size_t size)
 {
-	kfree(thread->cpu_context);
-	if (thread->kstack.sp != (v_addr_t)NULL)
-		kfree((void*)thread->kstack.sp);
-	kfree(thread);
-}
-
-static int create_stack(v_addr_t* sp, size_t* size, size_t stack_size)
-{
-	void* stack = kmalloc(stack_size);
-	if (!stack)
+	void* sp = kmalloc(size);
+	if (!sp)
 		return -ENOMEM;
 
-	*sp = (v_addr_t)stack;
-	*size = stack_size;
+	kstack->sp = (v_addr_t)sp;
+	kstack->size = size;
 
 	return 0;
 }
 
-static int thread_create(const char* name, size_t stack_size,
-						 start_func_t start, void* start_args,
-						 enum thread_type type,
-						 struct thread** result)
+static inline void free_kstack(struct stack* kstack)
+{
+	kfree((void*)kstack->sp);
+}
+
+#include <kernel/log.h>
+static void thread_destroy(struct thread* thread)
+{
+	log_printf("#### %s(): %s (%p) state=%d\n", __func__, thread->name,
+			   (void*)thread, thread->state);
+	if (thread->type == KTHREAD)
+		kfree(thread->name);
+	free_kstack(&thread->kstack);
+	kfree(thread);
+}
+
+static int init(struct thread* thread, char* name, size_t kstack_size,
+				enum thread_type type)
+{
+	int err;
+
+	memset(thread, 0, sizeof(struct thread));
+
+	thread->name = name;
+
+	err = create_kstack(&thread->kstack, kstack_size);
+	if (!err) {
+		const v_addr_t stack_top = thread->kstack.sp + kstack_size;
+		thread->cpu_context = (struct cpu_context*)(stack_top -
+													cpu_context_sizeof());
+
+		thread->state = THREAD_READY;
+		thread->type = type;
+		thread->priority = SCHED_PRIORITY_LEVEL_DEFAULT;
+
+		refcount_init(&thread->refcnt);
+	}
+
+	return err;
+}
+
+static int __thread_create(char* name, size_t kstack_size,
+					enum thread_type type, struct thread** result)
 {
 	int err;
 
@@ -39,58 +68,37 @@ static int thread_create(const char* name, size_t stack_size,
 	if (!thread)
 		return -ENOMEM;
 
-	memset(thread, 0, sizeof(struct thread));
-
-	strncpy(thread->name, name, MAX_THREAD_NAME_LENGTH);
-
-	err = create_stack(&thread->kstack.sp, &thread->kstack.size, stack_size);
-	if (err)
-		goto out_thread;
-
-	thread->cpu_context = kmalloc(sizeof(struct cpu_context));
-	if (!thread->cpu_context) {
-		err = -ENOMEM;
-		goto out_stack;
+	err = init(thread, name, kstack_size, type);
+	if (err) {
+		kfree(thread);
+		thread = NULL;
 	}
 
-	const v_addr_t stack_top = thread->kstack.sp + stack_size;
-
-	cpu_context_create(thread->cpu_context, stack_top, (v_addr_t)start);
-	cpu_context_pass_arg(thread->cpu_context, 2, 0);
-	cpu_context_pass_arg(thread->cpu_context, 1, (v_addr_t)start_args);
-	cpu_context_set_ret_ip(thread->cpu_context, (v_addr_t)NULL);
-
-	thread->state = THREAD_CREATED;
-	thread->type = type;
-
-	thread->priority = SCHED_PRIORITY_LEVEL_DEFAULT;
-
-	refcount_init(&thread->refcnt);
-
 	*result = thread;
-	return 0;
-
-out_stack:
-	kfree((void*)thread->kstack.sp);
-
-out_thread:
-	kfree(thread);
 
 	return err;
 }
 
-int thread_kthread_create(const char* name, start_func_t start,
-						  void* start_args, struct thread** result)
+int __kthread_create(char* name, v_addr_t start, struct thread** result)
 {
-	return thread_create(name, DEFAULT_STACK_SIZE, start, start_args, KTHREAD,
-						 result);
+	int err;
+
+	err = __thread_create(name, DEFAULT_KSTACK_SIZE, KTHREAD, result);
+	if (!err)
+		cpu_context_kernel_init((*result)->cpu_context, start);
+
+	return err;
 }
 
-int thread_uthread_create(const char* name, start_func_t start,
-						  void* start_args, struct thread** result)
+int thread_create(v_addr_t start, v_addr_t stack, struct thread** result)
 {
-	return thread_create(name, DEFAULT_STACK_SIZE, start, start_args, UTHREAD,
-						 result);
+	int err;
+
+	err = __thread_create(NULL, DEFAULT_KSTACK_SIZE, UTHREAD, result);
+	if (!err)
+		cpu_context_user_init((*result)->cpu_context, start, stack);
+
+	return err;
 }
 
 void thread_ref(struct thread* thread)
@@ -100,9 +108,7 @@ void thread_ref(struct thread* thread)
 
 void thread_unref(struct thread* thread)
 {
-	refcount_dec(&thread->refcnt);
-
-	if (thread_get_ref(thread) == 0)
+	if (refcount_dec(&thread->refcnt) == 0)
 		thread_destroy(thread);
 }
 
@@ -111,29 +117,48 @@ int thread_get_ref(const struct thread* thread)
 	return refcount_get(&thread->refcnt);
 }
 
-thread_priority_t sched_get_priority(const struct thread* thread)
+void thread_set_state(struct thread* thread, enum thread_state state)
 {
-	return thread->priority;
+	irq_disable();
+
+	thread->state = state;
+
+	irq_enable();
 }
 
-int sched_set_priority(struct thread* thread, thread_priority_t priority)
+enum thread_state thread_get_state(const struct thread* thread)
 {
-	if (priority >= SCHED_PRIORITY_LEVEL_MIN &&
-			priority <= SCHED_PRIORITY_LEVEL_MAX) {
-		thread->priority = priority;
-		return 0;
+	return thread->state;
+}
+
+static void thread_set_running_vmm(struct thread* thread, struct vmm* vmm)
+{
+	if (thread->running_vmm)
+		vmm_unref(thread->running_vmm);
+
+	thread->running_vmm = vmm;
+
+	if (vmm)
+		vmm_ref(vmm);
+}
+
+struct cpu_context* thread_switch_setup(struct thread* thread,
+										struct thread* prev)
+{
+	if (cpu_context_is_usermode(thread->cpu_context))
+	{
+		thread_set_running_vmm(thread, thread->process->vmm);
+
+		if (!prev || prev->running_vmm != thread->process->vmm)
+			vmm_switch_to(thread->process->vmm);
+	}
+	else {
+		if (prev)
+			thread_set_running_vmm(thread, prev->running_vmm);
 	}
 
-	return -EINVAL;
-}
+	if (prev)
+		thread_set_running_vmm(prev, NULL);
 
-
-void thread_yield(void)
-{
-	sched_yield_current_thread();
-}
-
-void thread_sleep(unsigned int millis)
-{
-	sched_sleep_current_thread(millis);
+	return thread->cpu_context;
 }

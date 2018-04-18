@@ -15,9 +15,9 @@
 void sched_init(void);
 void sched_start(void);
 
-void sched_schedule(void);
-
-int sched_remove_process(struct process* proc);
+void sched_tick(struct cpu_context* interrupted_ctx);
+struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx);
+struct cpu_context* sched_schedule(struct cpu_context* cpu_ctx);
 
 int sched_add_thread(struct thread* thread);
 int sched_remove_thread(struct thread* thread);
@@ -25,9 +25,17 @@ int sched_remove_thread(struct thread* thread);
 struct thread* sched_get_current_thread(void);
 struct process* sched_get_current_process(void);
 
-void sched_remove_current_thread(void);
-void sched_yield_current_thread(void);
-void sched_sleep_current_thread(unsigned int millis);
-void sched_block_current_thread(void);
+void sched_exit(void);
+
+void sched_yield(void);
+
+#if 0
+#define sched_sleep(...) _Generic((__VA_ARGS__+0), \
+								  unsigned int: sched_sleep_millis, \
+								  default: sched_sleep_event)(__VA_ARGS__)
+#endif
+void sched_sleep_event(void);
+
+void sched_sleep_millis(unsigned int millis);
 
 #endif

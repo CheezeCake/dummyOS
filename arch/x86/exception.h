@@ -42,23 +42,17 @@
 #define EXCEPTION_RESERVED_14 31
 
 
+#define EXCEPTION_MIN	0
+#define EXCEPTION_MAX	31
+#define EXCEPTION_COUNT (EXCEPTION_MAX + 1)
+
 #ifndef ASSEMBLY
 
-#define EXCEPTION_BASE 0 // base index in IDT
-#define EXCEPTION_MAX 31
-#define EXCEPTION_NB (EXCEPTION_MAX + 1)
+int exception_set_handler(uint8_t exception, interrupt_handler_t handler);
 
-#define EXCEPTION_IDT_INDEX(exception) (EXCEPTION_BASE + exception)
+int exception_unset_handler(uint8_t exception);
 
-int exception_set_handler(unsigned int exception, interrupt_handler_t handler);
-int exception_unset_handler(unsigned int exception);
 int exception_init(void);
-
-static inline int exception_set_handler_generic(unsigned int exception,
-		void (*handler)(unsigned int))
-{
-	return exception_set_handler(exception, (interrupt_handler_t)handler);
-}
 
 #endif // ! ASSEMBLY
 

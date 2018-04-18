@@ -9,6 +9,8 @@ void kmalloc_init(v_addr_t kheap_start, size_t kheap_size);
 
 void* kmalloc(size_t size);
 
+void* kcalloc(size_t count, size_t size);
+
 void kfree(void* ptr);
 
 #endif

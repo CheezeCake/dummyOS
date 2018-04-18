@@ -1,6 +1,5 @@
 *.swp
 isodir
-TODO
 compile_commands.json
 .gdb_history
 .gdbinit

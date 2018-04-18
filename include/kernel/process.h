@@ -3,16 +3,20 @@
 
 #include <dummyos/const.h>
 #include <fs/cache_node.h>
+#include <kernel/mm/vmm.h>
 #include <kernel/thread.h>
-#include <kernel/vm_context.h>
 
 #define PROCESS_NAME_MAX_LENGTH 16
 
 typedef short int pid_t;
 
-#define PROCESS_INIT_PID		1
-#define PROCESS_KTHREADD_PID	2
-
+enum process_state
+{
+	PROC_RUNNABLE,
+	PROC_STOPPED,
+	PROC_LOCKED,
+	PROC_ZOMBIE
+};
 
 /**
  * @brief Process
@@ -21,38 +25,41 @@ struct process
 {
 	pid_t pid;
 	char name[PROCESS_NAME_MAX_LENGTH];
+	enum process_state state;
 
 	struct vfs_cache_node* cwd;
 	struct vfs_cache_node* root;
-	struct vfs_cache_node* exec;
 
 	struct process* parent;
 	list_t children;
 
-	struct vm_context vm_ctx;
+	struct vmm* vmm;
 
 	thread_list_t threads;
-
-	list_node_t p_list; /**< Chained in process.c::@ref ::process_list */
 };
 
-int process_kprocess_init(void);
-struct process* process_get_kprocess(void);
+/**
+ * @brief Creates a process object
+ *
+ * Creates a new process and places it in the process table
+ *
+ * @param result the created process
+ */
+int process_create(const char* name, struct process** result);
 
-int process_init(struct process* proc, const char* name, start_func_t start,
-				 void* start_args);
-int process_create(const char* name, start_func_t start, void* start_args,
-				   struct process** result);
+pid_t process_register(struct process* proc);
 
-void process_prepare_exec(struct process* proc, const struct thread* save);
+pid_t process_register_pid(struct process* proc, pid_t pid);
+
+int process_add_thread(struct process* proc, struct thread* thr);
+
+/**
+ * @brief Resets and free() a process object
+ */
 void process_destroy(struct process* proc);
 
-int process_create_uthread(struct process* proc, const char* name,
-						  start_func_t __user start, void* __user start_args);
+int process_lock(struct process* proc, const struct thread* cur);
 
-int process_create_kthread(const char* name, start_func_t start,
-						   void* start_args, struct thread** result);
-
-struct thread* process_get_initial_thread(const struct process* proc);
+int process_unlock(struct process* proc);
 
 #endif

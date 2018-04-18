@@ -33,9 +33,9 @@ int semaphore_up(sem_t* sem)
 
 int semaphore_down(sem_t* sem)
 {
-	atomic_int_dec(&sem->value);
+	int v = atomic_int_dec_return(&sem->value);
 
-	if (sem->value < 0)
+	if (v < 0)
 		wait_wait(&sem->wait_queue);
 
 	return 0;

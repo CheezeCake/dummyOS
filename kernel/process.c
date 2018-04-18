@@ -4,104 +4,20 @@
 #include <kernel/kmalloc.h>
 #include <kernel/locking/spinlock.h>
 #include <kernel/process.h>
+#include <kernel/sched/sched.h>
 #include <libk/libk.h>
 
 #define INVALID_PID	0
 #define PID_MIN		PROCESS_INIT_PID
 
-/**
- * @brief list of existing processes
- * This list is sorted by pid.
- */
-static LIST_DEFINE(process_list);
+#define PROCESS_TABLE_SIZE 64
+static struct process* process_table[PROCESS_TABLE_SIZE + 1] = { NULL, };
 
 /**
  * @brief process_list spinlock
  */
-static spinlock_t process_list_lock = SPINLOCK_NULL;
+static spinlock_t process_table_lock = SPINLOCK_NULL;
 
-/**
- * @brief "Kernel" process
- *
- * The process to which kernel threads are attached
- */
-static struct process kprocess;
-
-/**
- * @brief Finds a free pid for a new process
- *
- * @return the process after which the new process with pid
- * return_value->pid + 1 should be inserted.
- *
- * @note the process_list should be locked before calling ths function.
- */
-static struct process* find_next_free_pid(void)
-{
-	list_node_t* it;
-	struct process* previous = NULL;
-	struct process *current;
-
-	if (list_empty(&process_list))
-		return NULL;
-
-	// last process
-	current = list_entry(list_back(&process_list), struct process, p_list);
-	if (current->pid + 1 != INVALID_PID)
-		return current;
-
-	// first process
-	it = list_front(&process_list);
-	current = list_entry(it, struct process, p_list);
-	it = list_it_next(it);
-	while (it != list_end(&process_list)) {
-		previous = current;
-		current = list_entry(it, struct process, p_list);
-
-		if (current->pid - previous->pid > 1)
-			return previous;
-
-		it = list_it_next(it);
-	}
-
-	return NULL;
-}
-
-/**
- * @brief Assigns a pid to the process and inserts it in the process_list
- *
- * @return 0 on sucess
- * -EAGAIN if no free pid was found
- */
-static int register_process(struct process* proc)
-{
-	struct process* previous;
-	int err = 0;
-
-	spinlock_lock(&process_list_lock);
-
-	if (list_empty(&process_list)) {
-		proc->pid = PID_MIN;
-		list_push_back(&process_list, &proc->p_list);
-	}
-	else {
-		previous = find_next_free_pid();
-
-		// no pid available
-		if (!previous) {
-			err = -EAGAIN;
-		}
-		else {
-			proc->pid = previous->pid + 1;
-			// insert after previous pid
-			list_insert_after(&previous->p_list, &proc->p_list);
-		}
-	}
-
-	spinlock_unlock(&process_list_lock);
-
-	return err;
-
-}
 
 static void destroy_threads_except(struct process* proc,
 								   const struct thread* save)
@@ -111,11 +27,13 @@ static void destroy_threads_except(struct process* proc,
 
 	list_foreach_safe(&proc->threads, it, next) {
 		struct thread* thread = list_entry(it, struct thread, p_thr_list);
-		if (thread != save)
+		if (thread != save) {
 			thread_unref(thread);
+			list_erase(&proc->threads, &thread->p_thr_list);
+		}
 	}
 
-	list_clear(&proc->threads);
+	/* list_clear(&proc->threads); */
 }
 
 static void destroy_threads(struct process* proc)
@@ -123,49 +41,68 @@ static void destroy_threads(struct process* proc)
 	destroy_threads_except(proc, NULL);
 }
 
-static int create(struct process* proc, const char* name)
+static pid_t find_free_pid(void)
+{
+	for (pid_t pid = 1; pid < PROCESS_TABLE_SIZE; ++pid) {
+		if (!process_table[pid])
+			return pid;
+	}
+
+	return -1;
+}
+
+pid_t process_register_pid(struct process* proc, pid_t pid)
+{
+	if (pid > 0 && pid < PROCESS_TABLE_SIZE && !process_table[pid]) {
+		process_table[pid] = proc;
+		proc->pid = pid;
+		return pid;
+	}
+
+	return -ENOSPC;
+}
+
+pid_t process_register(struct process* proc)
+{
+	pid_t pid;
+
+	spinlock_lock(&process_table_lock);
+
+	pid = process_register_pid(proc, find_free_pid());
+
+	spinlock_unlock(&process_table_lock);
+
+	return pid;
+}
+
+static inline void unregister_process(struct process* proc)
+{
+	process_table[proc->pid] = NULL;
+}
+
+static int process_init(struct process* proc, const char* name)
 {
 	int err;
 
 	memset(proc, 0, sizeof(struct process));
 
-	err = vm_context_create(&proc->vm_ctx);
+	err = vmm_create(&proc->vmm);
 	if (err)
 		return err;
+	log_printf("%s() proc=%s vmm=%p\n", __func__, name, (void*)proc->vmm);
 
 	strlcpy(proc->name, name, PROCESS_NAME_MAX_LENGTH);
-
+	proc->state = PROC_RUNNABLE;
 	proc->root = vfs_cache_node_get_root();
-
 	proc->parent = NULL;
-	list_init(&proc->children);
 
+	list_init(&proc->children);
 	list_init(&proc->threads);
 
-	err = register_process(proc);
-	if (err)
-		process_destroy(proc);
-
 	return err;
 }
 
-int process_init(struct process* proc, const char* name, start_func_t start,
-				 void* start_args)
-{
-	int err;
-
-	err = create(proc, name);
-	if (!err) {
-		err = process_create_uthread(proc, name, start, start_args);
-		if (err)
-			process_destroy(proc);
-	}
-
-	return err;
-}
-
-int process_create(const char* name, start_func_t start, void* start_args,
-				   struct process** result)
+int process_create(const char* name, struct process** result)
 {
 	struct process* proc;
 	int err;
@@ -174,105 +111,89 @@ int process_create(const char* name, start_func_t start, void* start_args,
 	if (!proc)
 		return -ENOMEM;
 
-	err = process_init(proc, name, start, start_args);
+	err = process_init(proc, name);
 	if (err) {
 		kfree(proc);
 		proc = NULL;
 	}
 
-	*result = proc;
+	if (result)
+		*result = proc;
 
 	return err;
 }
 
-void process_prepare_exec(struct process* proc, const struct thread* save)
+static int lock_threads(struct process* proc, const struct thread* cur)
 {
-	/* vfs_cache_node_drop_ref(proc->exec); */
-	proc->exec = NULL;
+	int err;
+	list_node_t* it;
 
-	vm_context_clear_userspace(&proc->vm_ctx);
+	list_foreach(&proc->threads, it) {
+		struct thread* thread = list_entry(it, struct thread, p_thr_list);
 
-	destroy_threads_except(proc, save);
-}
-
-int process_kprocess_init(void)
-{
-	int err = create(&kprocess, "kthreadd");
-	if (!err)
-		kassert(kprocess.pid == PROCESS_KTHREADD_PID);
-
-	return err;
-}
-
-struct process* process_get_kprocess(void)
-{
-	return &kprocess;
-}
-
-static int add_thread(struct process* proc, struct thread* thread,
-					  enum thread_type expected)
-{
-	if (thread->type != expected)
-		return -EINVAL;
-
-	if (!list_empty(&proc->threads)) {
-		const struct thread* head =
-			list_entry(list_front(&proc->threads), struct thread, p_thr_list);
-		kassert(head->type == thread->type);
+		if (cur != thread) {
+			err = sched_remove_thread(thread);
+			if (err)
+				return err;
+		}
 	}
-
-	thread->process = proc;
-
-	list_push_back(&proc->threads, &thread->p_thr_list);
-	thread_ref(thread);
 
 	return 0;
 }
 
-static int
-process_create_thread(struct process* proc, enum thread_type type,
-					  int (*__thread_create)(const char*, start_func_t, void*,
-											 struct thread**),
-					  const char* name, start_func_t start, void* start_args,
-					  struct thread** result)
+int process_lock(struct process* proc, const struct thread* cur)
 {
-	struct thread* thread;
 	int err;
 
-	err = __thread_create(name, start, start_args, &thread);
-	if (!err) {
-		err = add_thread(proc, thread, type);
-		thread_unref(thread);
-	}
-
-	if (result)
-		*result = thread;
+	err = lock_threads(proc, cur);
+	if (!err)
+		proc->state = PROC_LOCKED;
 
 	return err;
 }
 
-int process_create_uthread(struct process* proc, const char* name,
-						  start_func_t __user start, void* __user start_args)
+static int unlock_threads(struct process* proc)
 {
-	return process_create_thread(proc, UTHREAD, thread_uthread_create, name,
-								 start, start_args, NULL);
+	int err;
+	list_node_t* it;
+
+	list_foreach(&proc->threads, it) {
+		struct thread* thread = list_entry(it, struct thread, p_thr_list);
+
+		if (thread->state == THREAD_READY) {
+			err = sched_add_thread(thread);
+			if (err)
+				return err;
+		}
+	}
+
+	return 0;
 }
 
-int process_create_kthread(const char* name, start_func_t start,
-						   void* start_args, struct thread** result)
+int process_unlock(struct process* proc)
 {
-	return process_create_thread(&kprocess, KTHREAD, thread_kthread_create,
-								 name, start, start_args, result);
+	proc->state = PROC_RUNNABLE;
+	return unlock_threads(proc);
 }
 
-struct thread* process_get_initial_thread(const struct process* proc)
+int process_add_thread(struct process* proc, struct thread* thr)
 {
-	return list_entry(list_front(&proc->threads), struct thread, p_thr_list);
+	kassert(thr->type == UTHREAD);
+
+	list_push_back(&proc->threads, &thr->p_thr_list);
+	thread_ref(thr);
+
+	thr->name = proc->name;
+	thr->process = proc;
+
+	return 0;
 }
 
 void process_destroy(struct process* proc)
 {
-	vm_context_destroy(&proc->vm_ctx);
+	vmm_unref(proc->vmm);
 	destroy_threads(proc);
-	list_erase(&process_list, &proc->p_list);
+	unregister_process(proc);
+
+	kfree(proc);
 }
