@@ -1,11 +1,11 @@
 /**
  * @brief ramfs file system
  *
- * Simple read-only in-memory file system that uses the "ar" format with
- * SystemV/GNU extensions.
- * https://en.wikipedia.org/wiki/Ar_(Unix)
+ * Simple read-only in-memory file system that uses the "UStar" format.
+ * https://en.wikipedia.org/wiki/Tar_(computing)#UStar_format
  */
 
+#include <dummyos/compiler.h>
 #include <fs/file.h>
 #include <fs/filesystem.h>
 #include <fs/inode.h>
@@ -19,57 +19,225 @@
 
 #include <kernel/log.h>
 
-#define AR_MAGIC		"!<arch>\n"
-#define AR_MAGIC_SIZE	8
-
-#define AR_MAX_REGULAR_FILENAME_LENGTH 15
+#define TMAGIC		"ustar\0"
+#define BLOCK_SIZE	512
 
 /**
- * @brief AR header
+ * @brief UStar header
  *
- * 60 bytes long file header
+ * 512 bytes long file header
  */
-struct ar_header
+struct ustar_header
 {
-	char name[16];
-	char date[12];
-	char uid[6];
-	char gid[6];
-	char mode[8];
-	char size[10];
-	char end[2];
+	int8_t name[100];
+	int8_t mode[8];
+	int8_t uid[8];
+	int8_t gid[8];
+	int8_t size[12];
+	int8_t mtime[12];
+	int8_t cksum[8];
+	int8_t typeflag;
+	int8_t linkname[100];
+	int8_t magic[6];
+	int8_t version[2];
+	int8_t uname[32];
+	int8_t gname[32];
+	int8_t devmajor[8];
+	int8_t devminor[8];
+	int8_t prefix[155];
+
+	int8_t padding[12];
 };
+
+static_assert(sizeof(struct ustar_header) == BLOCK_SIZE,
+			   "sizeof(struct ustar_header)");
+
+/*
+ * ustar_header::typeflag values
+ */
+#define REGTYPE 	'0' 	/**< Regular file. */
+#define AREGTYPE 	'\0' 	/**< Regular file. */
+#define LNKTYPE 	'1' 	/**< Link. */
+#define SYMTYPE 	'2' 	/**< Reserved. */
+#define CHRTYPE 	'3' 	/**< Character special. */
+#define BLKTYPE 	'4' 	/**< Block special. */
+#define DIRTYPE 	'5' 	/**< Directory. */
+#define FIFOTYPE 	'6' 	/**< FIFO special. */
+#define CONTTYPE 	'7' 	/**< Reserved. */
+
+static inline enum vfs_node_type ustar2vfs_type(uint8_t type)
+{
+	switch (type) {
+		case REGTYPE:
+		case AREGTYPE:
+			return REGULAR;
+		case LNKTYPE:
+			return SYMLINK;
+		case CHRTYPE:
+			return DEVCHAR;
+		case BLKTYPE:
+			return DEVBLOCK;
+		case DIRTYPE:
+			return DIRECTORY;
+		case FIFOTYPE:
+		default:
+			return -1;
+	}
+}
+
+/*
+ * ustar_header
+ */
+static inline size_t name_field_len(const char* name, size_t field_size)
+{
+	return (name[field_size - 1] == '\0') ? strlen(name) : field_size;
+}
+
+static inline size_t ustar_header_prefix_len(const struct ustar_header* h)
+{
+	return name_field_len((const char*)h->prefix, sizeof(h->prefix));
+}
+
+static inline size_t ustar_header_name_len(const struct ustar_header* h)
+{
+	return name_field_len((const char*)h->name, sizeof(h->name));
+}
+
+static inline size_t ustar_header_linkname_len(const struct ustar_header* h)
+{
+	return name_field_len((const char*)h->linkname, sizeof(h->linkname));
+}
+
+static inline struct ustar_header*
+ustar_header_get_next_header(const struct ustar_header* header)
+{
+	size_t file_size = strntol((const char*)header->size, sizeof(header->size),
+							   NULL, 8);
+	return (struct ustar_header*)((int8_t*)(header + 1) +
+								  align_up(file_size, BLOCK_SIZE));
+}
+
+static inline bool ustar_header_valid(const struct ustar_header* header)
+{
+	// TODO: checksum
+	return (memcmp(header->magic, TMAGIC, sizeof(header->magic)) == 0);
+}
+
+#define USTAR_FULLNAME_MAX_LEN (member_size(struct ustar_header, prefix) + \
+								member_size(struct ustar_header, name))
+
+static inline void ustar_header_fullname_len(const struct ustar_header* h,
+											   size_t* prefix_len,
+											   size_t* name_len)
+{
+	if (prefix_len)
+		*prefix_len = (h) ? ustar_header_prefix_len(h) : 0;
+	if (name_len)
+		*name_len = (h) ? ustar_header_name_len(h) : 0;
+}
 
 /**
- * @brief Ramfs superblock data
+ * Concatenates prefix, name and an optional path.
+ *
+ * @param fullname result string
+ * @param fullname_len result string length
+ * @param append optional path to append to result
  */
-struct ramfs_superblock_data
+static int ustar_header_fullname_init(char* fullname, size_t fullname_len,
+									  const struct ustar_header* h,
+									  const vfs_path_t* append)
 {
-	/** start of ar archive */
-	void* start;
+	size_t prefix_len;
+	size_t name_len;
+	size_t append_len = 0;
+	size_t full_len;
 
-	void* long_filenames_data;
-	size_t long_filenames_size;
+	ustar_header_fullname_len(h, &prefix_len, &name_len);
+	if (append)
+		append_len = vfs_path_get_size(append);
+	full_len = prefix_len + name_len + append_len + 2;
 
-	struct ar_header* first_file_header;
-};
+	memset(fullname, 0, fullname_len);
+
+	if (fullname_len >= full_len) {
+		if (h) {
+			strncpy(fullname, (const char*)h->prefix, prefix_len);
+			strncat(fullname, (const char*)h->name, name_len);
+			strncat(fullname, "/", 1);
+		}
+		if (append) {
+			strncat(fullname, vfs_path_get_str(append), append_len);
+		}
+
+		return 0;
+	}
+
+	return -ERANGE;
+}
+
+/**
+ * Concatenates prefix, name and an optional path.
+ *
+ * @param fullname result string
+ * @param append optional path to append to result
+ */
+static int ustar_header_fullname_create(const struct ustar_header* h,
+										const vfs_path_t* append,
+										char** fullname)
+{
+	size_t prefix_len;
+	size_t name_len;
+	size_t append_len = 0;
+	size_t full_len;
+
+	ustar_header_fullname_len(h, &prefix_len, &name_len);
+	if (append)
+		append_len = vfs_path_get_size(append) + 1;
+	full_len = prefix_len + name_len + append_len + 1;
+
+	*fullname = kmalloc(full_len);
+
+	if (*fullname)
+		return ustar_header_fullname_init(*fullname, full_len, h, append);
+
+	return -ENOMEM;;
+}
+
+static int ustar_header_fullname_init_path_init(vfs_path_t* fullname_path,
+												char* fullname,
+												size_t fullname_len,
+												const struct ustar_header* h,
+												const vfs_path_t* append)
+{
+	int err;
+
+	err = ustar_header_fullname_init(fullname, fullname_len, h, append);
+	if (!err)
+		err = vfs_path_init(fullname_path, fullname, strlen(fullname));
+
+	return err;
+}
+
 
 /**
  * @brief File system dependent inode
  */
 struct ramfs_inode_info
 {
-	void* header_start;
+	struct ustar_header* header;
 
-	void* data_start;
+	void* data;
 	size_t data_size;
 
 	struct vfs_inode inode; /**< enclosed vfs_inode */
 };
 
 /** Accessor to enclosing ramfs_inode_info */
-#define get_ramfs_inode(vfs_inode) \
-	container_of(vfs_inode, struct ramfs_inode_info, inode)
+static inline struct ramfs_inode_info*
+get_ramfs_inode(struct vfs_inode* vfs_inode)
+{
+	return container_of(vfs_inode, struct ramfs_inode_info, inode);
+}
 
 
 // objects declaration
@@ -78,9 +246,9 @@ static struct vfs_superblock_operations ramfs_superblock_op;
 static struct vfs_inode_operations ramfs_inode_op;
 static struct vfs_file_operations ramfs_file_op;
 
-static int ramfs_node_info_create(struct ar_header* header,
-								  struct vfs_superblock* sb,
-								  struct ramfs_inode_info** result)
+static int ramfs_inode_info_create(struct ustar_header* header,
+								   struct vfs_superblock* sb,
+								   struct ramfs_inode_info** result)
 {
 	struct ramfs_inode_info* ramfs_inode =
 		kmalloc(sizeof(struct ramfs_inode_info));
@@ -89,11 +257,11 @@ static int ramfs_node_info_create(struct ar_header* header,
 
 	memset(ramfs_inode, 0, sizeof(struct ramfs_inode_info));
 
-	ramfs_inode->header_start = header;
+	ramfs_inode->header = header;
 	if (header) {
-		ramfs_inode->data_start = header + 1;
-		ramfs_inode->data_size = strntol(header->size, sizeof(header->size),
-										 NULL, 10);
+		ramfs_inode->data = header + 1;
+		ramfs_inode->data_size = strntol((const char*)header->size,
+										 sizeof(header->size), NULL, 8);
 	}
 
 	// create inode
@@ -102,6 +270,20 @@ static int ramfs_node_info_create(struct ar_header* header,
 	*result = ramfs_inode;
 
 	return 0;
+}
+
+static int ramfs_vfs_inode_create(struct ustar_header* header,
+								  struct vfs_superblock* sb,
+								  struct vfs_inode** result)
+{
+	struct ramfs_inode_info* ramfs_inode;
+	int err;
+
+	err = ramfs_inode_info_create(header, sb, &ramfs_inode);
+	if (!err)
+		*result = &ramfs_inode->inode;
+
+	return err;
 }
 
 static void ramfs_node_info_destroy(struct ramfs_inode_info* inode)
@@ -116,7 +298,7 @@ static int create_root_node(struct vfs_superblock* sb,
 	struct ramfs_inode_info* ramfs_inode = NULL;
 
 	// create inode
-	err = ramfs_node_info_create(NULL, sb, &ramfs_inode);
+	err = ramfs_inode_info_create(NULL, sb, &ramfs_inode);
 	if (!err) {
 		// grabs the inode
 		err = vfs_cache_node_create(&ramfs_inode->inode, NULL, result);
@@ -124,81 +306,6 @@ static int create_root_node(struct vfs_superblock* sb,
 	}
 
 	return err;
-}
-
-static size_t ar_filename_len(const char* filename)
-{
-	const char* str = filename;
-	while (*str != '/')
-		++str;
-
-	return (str - filename);
-}
-
-static inline struct ar_header*
-ar_get_next_header(struct ar_header* header, void* archive_start)
-{
-	const size_t file_size = strntol(header->size, sizeof(header->size),
-									 NULL, 10);
-	void* next_header = (void*)(header + 1) + file_size;
-	const ptrdiff_t offset = next_header - archive_start;
-
-	// "Each archive file member begins on an even byte boundary;
-	// a newline is inserted between files if necessary"
-	if (offset % 2 == 1)
-		++next_header;
-
-	return next_header;
-}
-
-static const char*
-ar_get_long_filename(const struct ar_header* header,
-					 const struct ramfs_superblock_data* sb_data)
-{
-	if (!sb_data->long_filenames_data)
-		return NULL;
-
-	const size_t offset = strntol(header->name + 1, sizeof(header->name) - 1,
-								  NULL, 10);
-	return (offset > sb_data->long_filenames_size)
-		? NULL : (sb_data->long_filenames_data + offset);
-}
-
-static inline bool ar_header_valid(const struct ar_header* header)
-{
-	return (header->end[0] == '`' && header->end[1] == '\n');
-}
-
-static inline bool ar_check_magic(const void* start)
-{
-	return (strncmp(start, AR_MAGIC, AR_MAGIC_SIZE) == 0);
-}
-
-static inline bool ar_long_filename_header(const struct ar_header* header)
-{
-	return (header->name[0] == '/' && header->name[1] == '/');
-}
-
-static void superblock_data_init(struct ramfs_superblock_data* sb_data,
-								 void* start)
-{
-	struct ar_header* first_header = start + AR_MAGIC_SIZE;
-
-	memset(sb_data, 0, sizeof(struct ramfs_superblock_data));
-
-	sb_data->start = start;
-
-	if (ar_long_filename_header(first_header)) {
-		sb_data->long_filenames_data = first_header + 1;
-		sb_data->long_filenames_size = strntol(first_header->size,
-											   sizeof(first_header->size),
-											   NULL, 10);
-		sb_data->first_file_header =
-			sb_data->long_filenames_data + sb_data->long_filenames_size;
-	}
-	else {
-		sb_data->first_file_header = first_header;
-	}
 }
 
 /*
@@ -211,38 +318,29 @@ static int superblock_create(struct vfs_filesystem* this,
 {
 	int err = -ENOMEM;
 	struct vfs_superblock* sb = NULL;
-	struct ramfs_superblock_data* sb_data = NULL;
+	struct vfs_cache_node* root = NULL;
 
 	// data = ptr to fs in memory
-	if (!ar_check_magic(data))
+	if (!data)
 		return -EINVAL;
 
 	sb = kmalloc(sizeof(struct vfs_superblock));
 	if (!sb)
 		goto fail;
 
-	sb_data = kmalloc(sizeof(struct ramfs_superblock_data));
-	if (!sb_data)
-		goto fail;
+	err = create_root_node(sb, &root);
+	if (!err) {
+		vfs_superblock_init(sb, device,  &ramfs, root, data,
+							&ramfs_superblock_op);
+		*result = sb;
 
-	memset(sb, 0, sizeof(struct vfs_superblock));
-	superblock_data_init(sb_data, data);
-
-	err = create_root_node(sb, &sb->root);
-	if (err)
-		goto fail;
-	sb->device = device;
-	sb->fs = &ramfs;
-	sb->data = sb_data;
-	sb->op = &ramfs_superblock_op;
-
-	*result = sb;
-
-	return 0;
+		return 0;
+	}
 
 fail:
 	kfree(sb);
-	kfree(sb_data);
+
+	*result = NULL;
 
 	return err;
 }
@@ -275,57 +373,98 @@ static int free_inode(struct vfs_superblock* this, struct vfs_inode* inode)
 
 static int read_inode(struct vfs_superblock* this, struct vfs_inode* inode)
 {
-	vfs_inode_init(inode, REGULAR, this, &ramfs_inode_op);
+	struct ramfs_inode_info* ramfs_inode = get_ramfs_inode(inode);
+	int enum_type = ustar2vfs_type(ramfs_inode->header->typeflag);
+
+	// unsuported type
+	if (enum_type < 0)
+		return -EINVAL;
+
+	vfs_inode_init(inode, enum_type, this, &ramfs_inode_op);
+
 	return 0;
 }
 
 /*
  * inode operations
  */
-static int lookup(struct vfs_inode* this, const vfs_path_t* name,
-								struct vfs_inode** result)
+static int lookup_fullname(const struct vfs_inode* this,
+						   struct ustar_header* fh,
+						   const vfs_path_t* fullname,
+						   struct vfs_inode** result)
 {
-	if (this->type != DIRECTORY)
-		return -ENOTDIR;
-
-	const struct ramfs_superblock_data* sb_data = this->sb->data;
-	struct ar_header* fh = sb_data->first_file_header;
+	size_t cur_fullname_str_len = USTAR_FULLNAME_MAX_LEN + 1;
+	char* cur_fullname_str = kmalloc(cur_fullname_str_len);
 	bool found = false;
+	int err = 0;
 
-	while (!found && ar_header_valid(fh)) {
-		const char* filename = fh->name;
-		if (filename[0] == '/')
-			filename = ar_get_long_filename(fh, sb_data);
+	if (!cur_fullname_str)
+		return -ENOMEM;
 
-		if (filename && vfs_path_name_str_equals(name, filename,
-												 ar_filename_len(filename))) {
-			found = true;
-		}
-		else {
-			struct ar_header* next = ar_get_next_header(fh, sb_data->start);
-			if (next == fh)
-				break; // avoid infinite loop
-			fh = next;
+	while (!err && !found && ustar_header_valid(fh)) {
+		vfs_path_t fullname_cur;
+
+		err = ustar_header_fullname_init_path_init(&fullname_cur,
+												   cur_fullname_str,
+												   cur_fullname_str_len,
+												   fh, NULL);
+		if (!err) {
+			found = vfs_path_same(fullname, &fullname_cur);
+			if (!found)
+				fh = ustar_header_get_next_header(fh);
+
+			vfs_path_reset(&fullname_cur);
 		}
 	}
 
-	if (found) {
-		struct ramfs_inode_info* rfs_node;
-		int err = ramfs_node_info_create(fh, this->sb, &rfs_node);
-		if (err)
-			return err;
+	kfree(cur_fullname_str);
 
-		*result = &rfs_node->inode;
+	if (err)
+		return err;
 
-		return 0;
+	return (found) ? ramfs_vfs_inode_create(fh, this->sb, result) : -ENOENT;
+}
+
+static int lookup(struct vfs_inode* this, const vfs_path_t* name,
+				  struct vfs_inode** result)
+{
+	vfs_path_t this_fullname;
+	int err;
+	struct ramfs_inode_info* this_ramfs_inode = get_ramfs_inode(this);
+	struct ustar_header* h = this_ramfs_inode->header;
+	char* this_fullname_str;
+
+	err = ustar_header_fullname_create(h, name, &this_fullname_str);
+	if (err)
+		return err;
+
+	err = vfs_path_init(&this_fullname, this_fullname_str,
+						strlen(this_fullname_str));
+	kfree(this_fullname_str);
+
+	if (!err) {
+		struct ustar_header* next;
+		if (!h) // root->header == NULL
+			next = this->sb->data;
+		else
+			next = ustar_header_get_next_header(h);
+		err = lookup_fullname(this, next, &this_fullname, result);
+
+		vfs_path_reset(&this_fullname);
 	}
 
-	return -ENOENT;
+	return err;
 }
 
 static int readlink(struct vfs_inode* this, vfs_path_t** result)
 {
-	return -EINVAL; // symlinks are not supported
+	const struct ustar_header* header = get_ramfs_inode(this)->header;
+	int err;
+
+	err = vfs_path_create((const char*)header->linkname,
+						  ustar_header_linkname_len(header), result);
+
+	return err;
 }
 
 static int open(struct vfs_inode* this, struct vfs_cache_node* node,
@@ -390,7 +529,7 @@ ssize_t read(struct vfs_file* this, void* buf, size_t count)
 	if (count > SSIZE_MAX)
 		count = SSIZE_MAX;
 
-	memcpy(buf, ramfs_inode->data_start + this->cur, count);
+	memcpy(buf, (int8_t*)ramfs_inode->data + this->cur, count);
 
 	return count;
 }

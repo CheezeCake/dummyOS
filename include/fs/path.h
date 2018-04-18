@@ -46,6 +46,16 @@ typedef struct vfs_path_component
 } vfs_path_component_t;
 
 /**
+ * Helper function to get the vfs_path_t representation of a component.
+ */
+static const inline vfs_path_t*
+vfs_path_component_as_path(const vfs_path_component_t* component)
+{
+	return &component->as_path;
+}
+
+
+/**
  * @brief Creates a vfs_path_t object taking ownership of the pointer path
  *
  * @param path the path
@@ -59,8 +69,6 @@ int vfs_path_create(const char* path, vfs_path_size_t size,
 
 /**
  * @brief Initializes a vfs_path_t object
- *
- * Takes ownership of the path_str pointer
  *
  * @param path the vfs_path_t object to initialize
  * @param path_str the string to initialize path with
@@ -140,10 +148,28 @@ bool vfs_path_absolute(const vfs_path_t* path);
 bool vfs_path_empty(const vfs_path_t* path);
 
 /**
+ * @brief Returns the size of a path
+ */
+vfs_path_size_t vfs_path_get_size(const vfs_path_t* path);
+
+/**
+ * @brief Returns the const char* representation of the string
+ *
+ * @note may not be null terminated
+ */
+const char* vfs_path_get_str(const vfs_path_t* path);
+
+/**
  * @brief Initializes a vfs_path_component_t object
  */
 int vfs_path_component_init(vfs_path_component_t* component,
 							const vfs_path_t* path);
+
+/**
+ * @brief Compares two vfs_component_path
+ */
+bool vfs_path_component_equals(const vfs_path_component_t* c1,
+							   const vfs_path_component_t* c2);
 
 /**
  * @brief Resets a vfs_path_component_t object destroying all its content
@@ -155,33 +181,53 @@ void vfs_path_component_reset(vfs_path_component_t* component);
  * @brief Starts splitting the path in components
  *
  * @param component will point to the first component of path
+ *
+ * @note the component must be reset() by the caller
  */
-int vfs_path_get_component(const vfs_path_t* path,
+int vfs_path_first_component(const vfs_path_t* path,
 						   vfs_path_component_t* component);
 
-/*
+/**
  * @brief Point to the next component
  *
- * @return @see vfs_path_get_next_compenent()
+ * @return 0 on success
  */
-int vfs_path_next_component(vfs_path_component_t* path);
+int vfs_path_component_next(vfs_path_component_t* path);
 
 /**
- * @brief Compare two names
+ * @brief Compare two components
  *
- * @return true if p1 == p2
+ * @return true if c1 == c2
  */
-bool vfs_path_name_equals(const vfs_path_t* p1, const vfs_path_t* p2);
+bool vfs_path_component_equals(const vfs_path_component_t* c1,
+							   const vfs_path_component_t* c2);
+
+/*
+ * @brief Gets the basename of a path
+ *
+ * @param basename will represent the basename of path
+ */
+int vfs_path_basename(const vfs_path_t* path,
+					  vfs_path_component_t* basename);
 
 /**
- * @brief Compare two names
+ * @brief Compares two paths
  *
- * @param size size of p2
- *
- * @return true if p1 == p2
+ * @return true if p1 and p2 represent the same path
  */
-bool vfs_path_name_str_equals(const vfs_path_t* p1, const char* p2,
-							  vfs_path_size_t size);
+bool vfs_path_same(const vfs_path_t* p1, const vfs_path_t* p2);
+
+/**
+ * @brief Compares a vfs_path_t and a const char*
+ *
+ * @param p the vfs_path_t object
+ * @param s the const char*
+ * @param size size of s
+ *
+ * @return true if p and s represent the same path
+ */
+bool vfs_path_str_same(const vfs_path_t* p, const char* s,
+					   vfs_path_size_t size);
 
 void print_path(const vfs_path_t* path);
 #endif

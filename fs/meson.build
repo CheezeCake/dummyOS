@@ -5,6 +5,7 @@ fs_src = files(
   'filesystem.c',
   'inode.c',
   'path.c',
+  'superblock.c',
   'vfs.c'
   )
 
