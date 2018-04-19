@@ -1,5 +1,5 @@
+#include <kernel/interrupt.h>
 #include <kernel/kassert.h>
-#include <kernel/locking/spinlock.h>
 #include <kernel/sched/sched.h>
 #include <kernel/time/time.h>
 #include <kernel/time/timer.h>
@@ -10,7 +10,6 @@ static struct time tick_value;
 static struct time current = { .sec = 0, .milli_sec = 0, .nano_sec = 0 };
 
 static list_t timer_list;
-static spinlock_t lock = SPINLOCK_NULL;
 
 static void time_update_timer_list(void);
 
@@ -71,48 +70,29 @@ static void release_timer(list_node_t* n)
 
 static void time_update_timer_list(void)
 {
-	list_node_t* erase = NULL;
 	list_node_t* it;
+	list_node_t* next;
 
-	spinlock_lock(&lock); // lock
+	irq_disable();
 
-	if (list_empty(&timer_list)) {
-		spinlock_unlock(&lock); // unlock
-		return;
-	}
-
-	list_foreach(&timer_list, it) {
-		if (erase) {
-			list_erase(&timer_list, erase);
-			release_timer(erase);
-			erase = NULL;
-		}
-
+	list_foreach_safe(&timer_list, it, next) {
 		const struct timer* timer_it = list_entry(it, struct timer, t_list);
-		if (time_cmp(&current, &timer_it->time) >= 0)
-			erase = it;
+		if (time_cmp(&current, &timer_it->time) >= 0) {
+			list_erase(&timer_list, it);
+			release_timer(it);
+		}
 	}
 
-
-	if (erase) {
-		list_erase(&timer_list, erase);
-		spinlock_unlock(&lock); // unlock
-
-		release_timer(erase);
-	}
-	else {
-		spinlock_unlock(&lock); // unlock
-	}
+	irq_enable();
 }
 
-// TODO: keep list sorted
 void time_add_timer(struct timer* timer)
 {
 	if (timer) {
 		log_printf("sleep add %s\n", ((struct thread*)timer->data)->name);
 
-		spinlock_lock(&lock);
+		irq_disable();
 		list_push_back(&timer_list, &timer->t_list);
-		spinlock_unlock(&lock);
+		irq_enable();
 	}
 }

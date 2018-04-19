@@ -1,7 +1,6 @@
 #ifndef _KERNEL_SCHED_WAIT_H_
 #define _KERNEL_SCHED_WAIT_H_
 
-#include <kernel/locking/spinlock.h>
 #include <kernel/thread_list.h>
 #include <kernel/types.h>
 
@@ -9,7 +8,6 @@ typedef list_node_t wait_queue_entry_t;
 typedef struct wait_queue
 {
 	thread_list_t threads;
-	spinlock_t lock;
 } wait_queue_t;
 
 struct thread;

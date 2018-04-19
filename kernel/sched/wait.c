@@ -1,12 +1,12 @@
 #include <limits.h>
 
-#include <kernel/sched/wait.h>
+#include <kernel/interrupt.h>
 #include <kernel/sched/sched.h>
+#include <kernel/sched/wait.h>
 
 int wait_create(wait_queue_t* wq)
 {
 	list_init(&wq->threads);
-	wq->lock = SPINLOCK_NULL;
 
 	return 0;
 }
@@ -26,7 +26,7 @@ int wait_wake(wait_queue_t* wq, unsigned int nb_threads)
 {
 	unsigned int n = 0;
 
-	spinlock_lock(&wq->lock);
+	irq_disable();
 
 	while (!list_empty(&wq->threads) && n < nb_threads) {
 		struct thread* thread = list_entry(list_front(&wq->threads),
@@ -39,7 +39,7 @@ int wait_wake(wait_queue_t* wq, unsigned int nb_threads)
 		thread_unref(thread);
 	}
 
-	spinlock_unlock(&wq->lock);
+	irq_enable();
 
 	return n;
 }

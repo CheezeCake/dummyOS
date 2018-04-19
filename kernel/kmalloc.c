@@ -1,9 +1,9 @@
 #include <dummyos/compiler.h>
+#include <kernel/interrupt.h>
 #include <kernel/kassert.h>
 #include <kernel/kernel_image.h>
 #include <kernel/kheap.h>
 #include <kernel/kmalloc.h>
-#include <kernel/locking/spinlock.h>
 #include <kernel/log.h>
 #include <kernel/panic.h>
 #include <libk/libk.h>
@@ -34,7 +34,6 @@ static_assert(sizeof(memory_block_header_t) % ALIGNMENT == 0,
 			  "sizeof(memory_block_header_t) is not a multiple of ALIGNMENT");
 
 static bool kmalloc_init_done = false;
-static spinlock_t lock = SPINLOCK_NULL;
 
 #ifdef DEBUG
 static void dump(void)
@@ -84,7 +83,7 @@ void* kmalloc(size_t size)
 
 	size = align_up(size + sizeof(memory_block_header_t), ALIGNMENT);
 
-	spinlock_lock(&lock);
+	irq_disable();
 
 	// find a free block
 	block = (memory_block_header_t*)kheap_get_start();
@@ -95,8 +94,8 @@ void* kmalloc(size_t size)
 	if (block->size < size || block->used) {
 		size_t increment = kheap_sbrk(size);
 		if (increment == 0) {
-			spinlock_unlock(&lock);
-			return NULL;
+			block = NULL;
+			goto end;
 		}
 
 		memory_block_header_t* new = next_block(block);
@@ -120,13 +119,16 @@ void* kmalloc(size_t size)
 
 	block->used = true;
 
+	block = block + 1; // point to data
+
 #ifdef DEBUG
 	dump();
 #endif
 
-	spinlock_unlock(&lock);
+end:
+	irq_enable();
 
-	return (block + 1);
+	return block;
 }
 
 void* kcalloc(size_t count, size_t size)
@@ -157,7 +159,7 @@ void kfree(void* ptr)
 		return;
 	}
 
-	spinlock_lock(&lock);
+	irq_disable();
 
 	memory_block_header_t* block = (memory_block_header_t*)ptr - 1;
 
@@ -185,7 +187,7 @@ void kfree(void* ptr)
 #endif
 
 end:
-	spinlock_unlock(&lock);
+	irq_enable();
 }
 
 v_addr_t kmalloc_early(size_t size)

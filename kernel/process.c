@@ -1,8 +1,8 @@
 #include <kernel/errno.h>
 #include <kernel/exec.h>
+#include <kernel/interrupt.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
-#include <kernel/locking/spinlock.h>
 #include <kernel/process.h>
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
@@ -12,11 +12,6 @@
 
 #define PROCESS_TABLE_SIZE 64
 static struct process* process_table[PROCESS_TABLE_SIZE + 1] = { NULL, };
-
-/**
- * @brief process_list spinlock
- */
-static spinlock_t process_table_lock = SPINLOCK_NULL;
 
 
 static void destroy_threads_except(struct process* proc,
@@ -66,11 +61,11 @@ pid_t process_register(struct process* proc)
 {
 	pid_t pid;
 
-	spinlock_lock(&process_table_lock);
+	irq_disable();
 
 	pid = process_register_pid(proc, find_free_pid());
 
-	spinlock_unlock(&process_table_lock);
+	irq_enable();
 
 	return pid;
 }
