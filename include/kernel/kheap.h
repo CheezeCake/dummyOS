@@ -10,14 +10,13 @@
  * @brief Initializes the kernel heap
  *
  * @param start the address where the heap will start
- * @param initial_size the initial size of the heap
  * @return the size of the initialized kernel heap
  * If the return value < initial_size => error
  *
  * @note start should be aligned to the required kmalloc alignment.
  * See kmalloc.c, ALIGNMENT is 16.
  */
-size_t kheap_init(v_addr_t start, size_t initial_size);
+size_t kheap_init(v_addr_t start);
 
 /**
  * @brief Increases the heap size by a certain increment in bytes

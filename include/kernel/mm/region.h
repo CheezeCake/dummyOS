@@ -16,6 +16,8 @@ struct region
 	refcount_t refcnt;
 };
 
+int __region_init(region_t* region, p_addr_t* frames, size_t nr_frames,
+				  int prot);
 
 int region_create(size_t nr_frames, int prot, region_t** result);
 

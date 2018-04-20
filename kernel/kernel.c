@@ -28,8 +28,7 @@ static void mm_init(size_t mem)
 {
 	kassert(arch_mm_init(mem) == 0);
 
-	if (kheap_init(kernel_image_get_top_page(), KHEAP_INITIAL_SIZE)
-		< KHEAP_INITIAL_SIZE)
+	if (kheap_init(kernel_image_get_top_page()) < KHEAP_INITIAL_SIZE)
 		PANIC("Not enough memory for kernel heap!");
 }
 

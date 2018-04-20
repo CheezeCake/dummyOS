@@ -19,20 +19,40 @@ static void dump(void)
 				 KHEAP_INITIAL_SIZE, KHEAP_LIMIT);
 }
 
-size_t kheap_init(v_addr_t start, size_t initial_size)
+static mapping_t initial_kheap_mapping;
+static p_addr_t
+	initial_region_frames[align_up(KHEAP_INITIAL_SIZE, PAGE_SIZE) / PAGE_SIZE];
+static region_t initial_kheap_region;
+
+static int init_kheap_mappping(v_addr_t start)
+{
+	int err;
+	size_t nr_frames = page_align_up(KHEAP_INITIAL_SIZE) / PAGE_SIZE;
+
+	err =  __region_init(&initial_kheap_region, initial_region_frames,
+						 nr_frames, VMM_PROT_WRITE);
+	if (!err)
+		err = __mapping_init(&initial_kheap_mapping, &initial_kheap_region,
+							 start, KHEAP_INITIAL_SIZE, 0);
+
+	return err;
+}
+
+size_t kheap_init(v_addr_t start)
 {
 	int err;
 
-	initial_size = page_align_up(initial_size);
-	kassert(start + initial_size < KHEAP_LIMIT);
-
 	kheap_start = start;
-	kheap_end = start + initial_size;
+	kheap_end = start + KHEAP_INITIAL_SIZE;
 
-	err = vmm_create_kernel_mapping(kheap_start, initial_size, VMM_PROT_WRITE);
+	kassert(kheap_end < KHEAP_LIMIT);
+
+	err = init_kheap_mappping(start);
+	if (!err)
+		err = vmm_setup_initial_kheap_mapping(&initial_kheap_mapping);
+
 	if (err)
 		return 0;
-
 
 	// initialiaze the kmalloc subsystem
 	kmalloc_init(kheap_start, kheap_end - kheap_start);

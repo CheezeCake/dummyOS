@@ -27,11 +27,17 @@ static inline bool mapping_contains_addr(const mapping_t* mapping, v_addr_t addr
 	return (addr >= mapping->start && addr < mapping->start + mapping->size);
 }
 
+
+int __mapping_init(mapping_t* mapping, region_t* region, v_addr_t start,
+				   size_t size, int flags);
+
 int mapping_create(v_addr_t start, size_t size, int prot, int flags,
 				   mapping_t** result);
 
 int mapping_copy_create(const mapping_t* src, mapping_t** result);
 
 void mapping_destroy(mapping_t* mapping);
+
+void mapping_reset(mapping_t* mapping);
 
 #endif

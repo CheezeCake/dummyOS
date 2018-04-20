@@ -3,7 +3,7 @@
 #include <kernel/mm/mapping.h>
 #include <libk/libk.h>
 
-static void mapping_reset(mapping_t* mapping)
+void mapping_reset(mapping_t* mapping)
 {
 	region_unref(mapping->region);
 
@@ -16,8 +16,24 @@ void mapping_destroy(mapping_t* mapping)
 	kfree(mapping);
 }
 
+int __mapping_init(mapping_t* mapping, region_t* region, v_addr_t start,
+				   size_t size, int flags)
+{
+	if (start + size < start)
+		return -EOVERFLOW;
+
+	mapping->flags = flags;
+	mapping->start = start;
+	mapping->size = size;
+	mapping->region = region;
+	region_ref(region);
+	list_node_init(&mapping->m_list);
+
+	return 0;
+}
+
 static int mapping_init(mapping_t* mapping, v_addr_t start, size_t size,
-						int prot)
+						int prot, int flags)
 {
 	region_t* region;
 	v_addr_t end = start + size;
@@ -28,10 +44,8 @@ static int mapping_init(mapping_t* mapping, v_addr_t start, size_t size,
 
 	err = region_create((end - start) / PAGE_SIZE, prot, &region);
 	if (!err) {
-		mapping->start = start;
-		mapping->size = size;
-		mapping->region = region;
-		list_node_init(&mapping->m_list);
+		err = __mapping_init(mapping, region, start, size, flags);
+		region_unref(region);
 	}
 
 	return err;
@@ -47,7 +61,7 @@ int mapping_create(v_addr_t start, size_t size, int prot, int flags,
 	if (!mapping)
 		return -ENOMEM;
 
-	err = mapping_init(mapping, start, size, prot);
+	err = mapping_init(mapping, start, size, prot, flags);
 	if (err) {
 		kfree(mapping);
 		mapping = NULL;

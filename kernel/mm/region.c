@@ -33,14 +33,10 @@ void region_ref(region_t* region)
 	refcount_inc(&region->refcnt);
 }
 
-static int region_init(region_t* region, size_t nr_frames, int prot)
+int __region_init(region_t* region, p_addr_t* frames, size_t nr_frames,
+				  int prot)
 {
-	p_addr_t* frames;
 	bool frames_ok = true;
-
-	frames = kcalloc(nr_frames, sizeof(p_addr_t));
-	if (!frames)
-		return -ENOMEM;
 
 	for (size_t i = 0; frames_ok && i < nr_frames; ++i) {
 		frames[i] = memory_page_frame_alloc();
@@ -61,6 +57,17 @@ static int region_init(region_t* region, size_t nr_frames, int prot)
 	refcount_init(&region->refcnt);
 
 	return 0;
+}
+
+static int region_init(region_t* region, size_t nr_frames, int prot)
+{
+	p_addr_t* frames;
+
+	frames = kcalloc(nr_frames, sizeof(p_addr_t));
+	if (!frames)
+		return -ENOMEM;
+
+	return __region_init(region, frames, nr_frames, prot);
 }
 
 int region_create(size_t nr_frames, int prot, region_t** result)

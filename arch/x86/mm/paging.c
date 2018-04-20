@@ -192,7 +192,7 @@ void paging_init(void)
 	map_to_fit_kernel();
 
 	setup_recursive_entry(&__boot_page_directory,
-						   (p_addr_t)&__boot_page_directory_phys);
+						  (p_addr_t)&__boot_page_directory_phys);
 
 	unmap_identity_map();
 }
@@ -218,6 +218,7 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, int prot)
 		invlpg((v_addr_t)pt);
 
 		memset(pt, 0, PAGE_SIZE);
+		vmm_sync_kernel_space(&pdi);
 	}
 
 	// a page frame is already mapped for the virtual page

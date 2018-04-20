@@ -8,7 +8,8 @@
 #include <libk/libk.h>
 
 
-// TODO: store kernel mappings
+/** kernel mappings list */
+list_t kernel_mappings;
 
 static struct vmm_interface* interface = NULL;
 
@@ -25,6 +26,35 @@ int vmm_interface_register(struct vmm_interface* vmm_interface)
 	return 0;
 }
 
+static mapping_t* find_mapping(list_t* mappings, v_addr_t addr)
+{
+	list_node_t* it;
+
+	list_foreach(mappings, it) {
+		mapping_t* m = list_entry(it, mapping_t, m_list);
+
+		if (mapping_contains_addr(m, addr))
+			return m;
+	}
+
+	return NULL;
+}
+
+static void add_mapping(list_t* mappings, mapping_t* mapping)
+{
+	list_node_t* it;
+
+	list_foreach(mappings, it) {
+		mapping_t* m = list_entry(it, mapping_t, m_list);
+
+		if (m->start > mapping->start) {
+			list_insert_after(it, &mapping->m_list);
+			return;
+		}
+	}
+
+	list_push_back(mappings, &mapping->m_list);
+}
 
 int vmm_create(struct vmm** result)
 {
@@ -45,33 +75,34 @@ int vmm_create(struct vmm** result)
 	return 0;
 }
 
-static int __vmm_destroy_user_mapping(mapping_t* mapping)
+static int vmm_destroy_mapping(mapping_t* mapping)
 {
 	int err;
 
 	err = interface->destroy_mapping(mapping->start, mapping->size);
+	// XXX: allways destroy the mapping?
 	mapping_destroy(mapping);
 
 	return err;
 }
 
-static void vmm_destroy_mappings(struct vmm* vmm)
+static void vmm_destroy_mappings(list_t* mappings)
 {
 	list_node_t* it;
 	list_node_t* next;
 
-	list_foreach_safe(&vmm->mappings, it, next) {
+	list_foreach_safe(mappings, it, next) {
 		mapping_t* mapping = list_entry(it, mapping_t, m_list);
-		list_erase(&vmm->mappings, it);
+		list_erase(mappings, it);
 
-		__vmm_destroy_user_mapping(mapping);
+		vmm_destroy_mapping(mapping);
 	}
 
 }
 
 static void vmm_destroy(struct vmm* vmm)
 {
-	vmm_destroy_mappings(vmm);
+	vmm_destroy_mappings(&vmm->mappings);
 	interface->destroy(vmm);
 
 	list_erase(&vmm_list, &vmm->vmm_list_node);
@@ -121,37 +152,75 @@ int vmm_sync_kernel_space(void* data)
 	return 0;
 }
 
+static int vmm_create_mapping(v_addr_t start, size_t size, int prot, int flags,
+							  mapping_t** result)
+{
+	mapping_t* mapping;
+	int err;
+
+	if (!is_aligned(start, PAGE_SIZE))
+		return -EINVAL;
+
+	err = mapping_create(start, size, prot, flags, &mapping);
+	if (err)
+		return err;
+
+	err = interface->create_mapping(mapping);
+	if (err) {
+		mapping_destroy(mapping);
+		mapping = NULL;
+	}
+
+	*result = mapping;
+
+	return err;
+}
+
+static int vmm_find_and_destroy_mapping(list_t* mappings, v_addr_t addr)
+{
+	mapping_t* mapping;
+	int err;
+
+	mapping = find_mapping(mappings, addr);
+	if (!mapping)
+		return -EINVAL;
+
+	err = vmm_destroy_mapping(mapping);
+	if (!err)
+		list_erase(mappings, &mapping->m_list);
+
+	return err;
+}
+
+int vmm_setup_initial_kheap_mapping(mapping_t* initial_kheap_mapping)
+{
+	return interface->create_mapping(initial_kheap_mapping);
+}
+
 int vmm_create_kernel_mapping(v_addr_t start, size_t size, int prot)
 {
-	int err = 0;
+	mapping_t* mapping;
+	int err;
 
-	if (interface->is_userspace_address(start) || !is_aligned(start, PAGE_SIZE))
+	if (interface->is_userspace_address(start))
 		return -EINVAL;
 
 	if (start + size < start)
 		return -EOVERFLOW;
 
-	for (v_addr_t addr = start; addr < start + size; addr += PAGE_SIZE) {
-		p_addr_t frame = memory_page_frame_alloc();
+	err = vmm_create_mapping(start, size, prot & ~VMM_PROT_USER, 0, &mapping);
+	if (!err)
+		add_mapping(&kernel_mappings, mapping);
 
-		if (!frame)
-			err = -ENOMEM;
-		else
-			err = interface->map_page(frame, addr, prot & ~VMM_PROT_USER);
-
-		if (err) {
-			kassert(vmm_destroy_kernel_mapping(start, addr - start) == 0);
-			return err;
-		}
-	}
-
-	return 0;
+	return err;
 }
 
-int vmm_destroy_kernel_mapping(v_addr_t start, size_t size)
+int vmm_destroy_kernel_mapping(v_addr_t addr)
 {
-	// TODO: free page frames
-	return interface->destroy_mapping(start, size);
+	if (vmm_is_userspace_address(addr))
+		return -EINVAL;
+
+	return vmm_find_and_destroy_mapping(&kernel_mappings, addr);
 }
 
 int vmm_clone_current(struct vmm* clone)
@@ -190,36 +259,6 @@ static inline bool range_in_userspace(v_addr_t start, size_t size)
 			vmm_is_userspace_address(start + size - 1));
 }
 
-static mapping_t* find_mapping(struct vmm* vmm, v_addr_t addr)
-{
-	list_node_t* it;
-
-	list_foreach(&vmm->mappings, it) {
-		mapping_t* m = list_entry(it, mapping_t, m_list);
-
-		if (mapping_contains_addr(m, addr))
-			return m;
-	}
-
-	return NULL;
-}
-
-static void add_mapping(struct vmm* vmm, mapping_t* mapping)
-{
-	list_node_t* it;
-
-	list_foreach(&vmm->mappings, it) {
-		mapping_t* m = list_entry(it, mapping_t, m_list);
-
-		if (m->start > mapping->start) {
-			list_insert_after(it, &mapping->m_list);
-			return;
-		}
-	}
-
-	list_push_back(&vmm->mappings, &mapping->m_list);
-}
-
 int vmm_create_user_mapping(v_addr_t addr, size_t size, int prot, int flags)
 {
 	struct vmm* current = get_current_vmm();
@@ -227,42 +266,29 @@ int vmm_create_user_mapping(v_addr_t addr, size_t size, int prot, int flags)
 	int err;
 
 	size = page_align_up(size);
-	if (!range_in_userspace(addr, size) ||
-		!is_aligned(addr, PAGE_SIZE))
+	if (!range_in_userspace(addr, size))
 		return -EINVAL;
 
-	err = mapping_create(addr, size, prot | VMM_PROT_USER, flags, &mapping);
-	if (err)
-		return err;
-
-	err = interface->create_mapping(mapping);
-	if (err)
-		mapping_destroy(mapping);
-	else
-		add_mapping(current, mapping);
+	err = vmm_create_mapping(addr, size, prot | VMM_PROT_USER, flags, &mapping);
+	if (!err)
+		add_mapping(&current->mappings, mapping);
 
 	return err;
 }
 
 int vmm_destroy_user_mapping(v_addr_t addr)
 {
-	mapping_t* mapping = NULL;
-	int err;
+	struct vmm* current = get_current_vmm();
 
 	if (!vmm_is_userspace_address(addr))
 		return -EINVAL;
 
-	mapping = find_mapping(get_current_vmm(), addr);
-	if (mapping)
-		err = __vmm_destroy_user_mapping(mapping);
-	else
-		err = -EINVAL;
-
-	return err;
+	return vmm_find_and_destroy_mapping(&current->mappings, addr);
 }
 
 int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 {
+	struct vmm* current = get_current_vmm();
 	mapping_t* mapping = NULL;
 	v_addr_t ext_start;
 	int err;
@@ -270,7 +296,7 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 	if (!vmm_is_userspace_address(addr))
 		return -EINVAL;
 
-	mapping = find_mapping(get_current_vmm(), addr);
+	mapping = find_mapping(&current->mappings, addr);
 	if (!mapping)
 		return -EINVAL;
 
