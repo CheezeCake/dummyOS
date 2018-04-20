@@ -194,7 +194,13 @@ static int vmm_find_and_destroy_mapping(list_t* mappings, v_addr_t addr)
 
 int vmm_setup_initial_kheap_mapping(mapping_t* initial_kheap_mapping)
 {
-	return interface->create_mapping(initial_kheap_mapping);
+	int err;
+
+	err =  interface->create_mapping(initial_kheap_mapping);
+	if (!err)
+		add_mapping(&kernel_mappings, initial_kheap_mapping);
+
+	return err;
 }
 
 int vmm_create_kernel_mapping(v_addr_t start, size_t size, int prot)
