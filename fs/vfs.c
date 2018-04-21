@@ -21,18 +21,18 @@ static int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
 					   unsigned int recursion_level);
 
 #include <fs/ramfs/ramfs.h>
-/* extern int8_t _binary_archive_start; */
+extern int8_t _binary_archive_start;
 
 static int mount_root(void)
 {
-	/* int err; */
-	/* struct vfs_superblock* sb; */
+	int err;
+	struct vfs_superblock* sb;
 
-	/* err = get_superblock(NULL, "ramfs", &_binary_archive_start, &sb); */
-	/* if (!err) */
-	/* 	err = vfs_cache_init(sb->root); */
+	err = get_superblock(NULL, "ramfs", &_binary_archive_start, &sb);
+	if (!err)
+		err = vfs_cache_init(sb->root);
 
-	/* return err; */
+	return err;
 
 	return -ENODEV;
 }
