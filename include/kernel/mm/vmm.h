@@ -42,7 +42,6 @@ struct vmm_interface
 
 	bool (*is_userspace_address)(v_addr_t addr);
 
-	int (*map_page)(p_addr_t frame, v_addr_t page, int prot);
 	int (*create_mapping)(const mapping_t* mapping);
 	int (*destroy_mapping)(v_addr_t start, size_t size);
 };

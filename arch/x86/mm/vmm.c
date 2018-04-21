@@ -90,11 +90,6 @@ static bool is_userspace_address(v_addr_t addr)
 	return (addr < KERNEL_SPACE_START);
 }
 
-static int map_page(p_addr_t frame, v_addr_t page, int prot)
-{
-	return paging_map(frame, page, prot);
-}
-
 /*
  * on current vmm
  */
@@ -141,7 +136,6 @@ static struct vmm_interface impl = {
 
 	.is_userspace_address = is_userspace_address,
 
-	.map_page = map_page,
 	.create_mapping = create_mapping,
 	.destroy_mapping = destroy_mapping,
 };
