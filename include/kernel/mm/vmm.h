@@ -69,7 +69,7 @@ int vmm_clone_current(struct vmm* clone);
 
 bool vmm_is_userspace_address(v_addr_t addr);
 
-int vmm_setup_initial_kheap_mapping(mapping_t* initial_kheap_mapping);
+int vmm_setup_kernel_mapping(mapping_t* mapping);
 
 /**
  * addr must be PAGE_SIZE aligned

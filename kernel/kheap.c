@@ -49,7 +49,7 @@ size_t kheap_init(v_addr_t start)
 
 	err = init_kheap_mappping(start);
 	if (!err)
-		err = vmm_setup_initial_kheap_mapping(&initial_kheap_mapping);
+		err = vmm_setup_kernel_mapping(&initial_kheap_mapping);
 
 	if (err)
 		return 0;

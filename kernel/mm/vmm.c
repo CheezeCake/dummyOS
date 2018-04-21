@@ -9,7 +9,7 @@
 
 
 /** kernel mappings list */
-list_t kernel_mappings;
+static LIST_DEFINE(kernel_mappings);
 
 static struct vmm_interface* interface = NULL;
 
@@ -192,13 +192,13 @@ static int vmm_find_and_destroy_mapping(list_t* mappings, v_addr_t addr)
 	return err;
 }
 
-int vmm_setup_initial_kheap_mapping(mapping_t* initial_kheap_mapping)
+int vmm_setup_kernel_mapping(mapping_t* mapping)
 {
 	int err;
 
-	err =  interface->create_mapping(initial_kheap_mapping);
+	err =  interface->create_mapping(mapping);
 	if (!err)
-		add_mapping(&kernel_mappings, initial_kheap_mapping);
+		add_mapping(&kernel_mappings, mapping);
 
 	return err;
 }
