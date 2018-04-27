@@ -56,6 +56,7 @@ int exec(const char* __kernel path, char* const __kernel argv[],
 	err = process_create(new_proc_name, &new_proc);
 	if (err)
 		return err;
+	new_proc->pid = proc->pid;
 
 	vfs_path_t exec_path;
 	err = vfs_path_init(&exec_path, path, strlen(path));
