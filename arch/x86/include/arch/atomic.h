@@ -13,7 +13,7 @@ static inline int atomic_int_load(const volatile atomic_int_t* v)
 
 static inline void atomic_int_store(volatile atomic_int_t* v, int i)
 {
-	__asm__ volatile ("movl %1, (%0)\n" : : "r" (v), "r" (i));
+	__asm__ volatile ("movl %1, (%0)" : : "r" (v), "r" (i));
 }
 
 #define __atomic_single_operand(instr, value) \
@@ -33,7 +33,7 @@ static inline int xadd(volatile atomic_int_t* v, int x)
 {
 	int ret = x;
 
-	__asm__ volatile ("lock xaddl %0, (%1)\n"
+	__asm__ volatile ("lock xaddl %0, (%1)"
 					  : "+r" (ret)
 					  : "r" (v)
 					  : "memory", "cc");
