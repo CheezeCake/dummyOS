@@ -93,6 +93,7 @@ void time_add_timer(struct timer* timer)
 
 		irq_disable();
 		list_push_back(&timer_list, &timer->t_list);
+		timer_ref(timer);
 		irq_enable();
 	}
 }
