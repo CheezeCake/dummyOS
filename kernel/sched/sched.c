@@ -129,7 +129,6 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 	irq_enable();
 
 	return thread_switch_setup(next, cur);
-	/* return next->cpu_context; */
 }
 
 struct cpu_context* sched_schedule(struct cpu_context* cpu_ctx)
@@ -173,6 +172,23 @@ int sched_add_thread(struct thread* thread)
 	return 0;
 }
 
+int sched_add_process(struct process* proc)
+{
+	list_node_t* it;
+	int n = 0;
+
+	list_foreach(&proc->threads, it) {
+		struct thread* thr = list_entry(it, struct thread, p_thr_list);
+		int err = sched_add_thread(thr);
+		if (err)
+			return err;
+
+		++n;
+	}
+
+	return n;
+}
+
 /*
  * remove
  */
@@ -182,10 +198,8 @@ int sched_remove_thread(struct thread* thread)
 
 	irq_disable();
 
-	sched_queue_t* ready_queue = &get_thread_queue(thread);
-
 	if (list_node_chained(&thread->s_ready_queue)) {
-		list_erase(ready_queue, &thread->s_ready_queue);
+		list_erase(&thread->s_ready_queue);
 		thread_unref(thread);
 	}
 	else {
@@ -195,6 +209,21 @@ int sched_remove_thread(struct thread* thread)
 	irq_enable();
 
 	return err;
+}
+
+int sched_remove_process(struct process* proc)
+{
+	list_node_t* it;
+	int n = 0;
+
+	list_foreach(&proc->threads, it) {
+		struct thread* thr = list_entry(it, struct thread, p_thr_list);
+		int err = sched_remove_thread(thr);
+		if (!err)
+			++n;
+	}
+
+	return n;
 }
 
 

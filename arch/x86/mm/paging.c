@@ -69,7 +69,7 @@ extern pte_t __boot_page_table;
 
 static inline void invlpg(v_addr_t addr)
 {
-	__asm__ volatile ("invlpg %0" : : "m" (addr) : "memory");
+	__asm__ volatile ("invlpg (%0)" : : "r" (addr) : "memory");
 }
 
 static inline pde_t* get_page_directory(void)
@@ -329,12 +329,6 @@ int paging_init_pd(p_addr_t cr3)
 
 int paging_clone_current_cow(p_addr_t cr3)
 {
-	int err;
-
-	err = paging_init_pd(cr3);
-	if (err)
-		return err;
-
 	setup_temp_recursive_entry(cr3);
 
 	pde_t* pd = get_temp_page_directory();
@@ -342,33 +336,68 @@ int paging_clone_current_cow(p_addr_t cr3)
 
 	for (size_t i = 0; i < USER_SPACE_PD_ENTRIES; ++i) {
 		if (cur_pd[i].present) {
-			pte_t* pte = get_temp_page_table(i);
-			pte_t* cur_pte = get_page_table(i);
+			pte_t* pt = get_temp_page_table(i);
+			pte_t* cur_pt = get_page_table(i);
 
 			p_addr_t page_table = memory_page_frame_alloc();
 			if (!page_table)
 				return -ENOMEM;
 
 			pd[i].present = 1;
-			pd[i].read_write = 0;
+			pd[i].read_write = 1;
 			pd[i].user = 1;
 			pd[i].address = p_addr2pd_addr(page_table);
 
-			invlpg((v_addr_t)pte);
-			memset(pte, 0, PAGE_SIZE);
+			invlpg((v_addr_t)pt);
+			memset(pt, 0, PAGE_SIZE);
 
-			for (size_t j = 0; j < 1024; ++j) {
-				if (cur_pte[j].present) {
-					memcpy(&pte[j], &cur_pte[j], sizeof(pte_t));
-
-					pte[j].read_write = 0;
-					cur_pte[j].read_write = 0;
+			for (size_t j = 0; j < PAGE_TABLE_ENTRY_COUNT; ++j) {
+				if (cur_pt[j].present) {
+					memcpy(&pt[j], &cur_pt[j], sizeof(pte_t));
+					// TODO: cow permissions
+					pt[j].read_write = 0;
+					cur_pt[j].read_write = 0;
 
 					invlpg(pd_pt_index2v_addr(i, j));
 				}
-			}
-		}
+			} }
 	}
+
+	reset_temp_recursive_entry();
+
+	return 0;
+}
+
+int paging_copy_page(v_addr_t src_page, p_addr_t dst_frame)
+{
+	int err;
+	v_addr_t dst_page = KERNEL_SPACE_RESERVED;
+
+	err = paging_map(dst_frame, dst_page, VMM_PROT_WRITE);
+	if (err)
+		return err;
+
+	memcpy((void*)dst_page, (void*)src_page, PAGE_SIZE);
+
+	paging_unmap(dst_page);
+
+	return 0;
+}
+
+int paging_update_prot(v_addr_t page, int prot)
+{
+	pde_t* pd = get_page_directory();
+	size_t pdi = index_in_pd(page);
+	pte_t* pt = get_page_table(pdi);
+	size_t pti = index_in_pt(page);
+
+	if (!pd[pdi].present || !pt[pti].present)
+		return -EINVAL;
+
+	pt[pti].read_write = (prot & VMM_PROT_WRITE) ? 1 : 0;
+	pt[pti].user = (prot & VMM_PROT_USER) ? 1 : 0;
+
+	invlpg(page);
 
 	return 0;
 }
@@ -378,12 +407,16 @@ void paging_dump(void)
 {
 	pde_t* pd = get_page_directory();
 
-	for (size_t i = 0; i < 1024; ++i) {
+	for (size_t i = 0; i < PAGE_DIRECTORY_ENTRY_COUNT; ++i) {
 		if (pd[i].present) {
+			log_printf("PD[%d]:[u=%d,w=%d]\n", (int)i, pd[i].user, pd[i].read_write);
 			pte_t* pt = get_page_table(i);
-			for (size_t j = 0; j < 1024; ++j) {
+			for (size_t j = 0; j < PAGE_TABLE_ENTRY_COUNT; ++j) {
 				if (pt[j].present) {
-					log_printf("virt:%p -> phys:%p\n", (void*)(v_addr_t)pd_pt_index2v_addr(i, j),
+					log_printf("[u=%d,w=%d]virt:%p -> phys:%p\n",
+							   pt[j].user,
+							   pt[j].read_write,
+							   (void*)(v_addr_t)pd_pt_index2v_addr(i, j),
 							   (void*)(v_addr_t)pt_addr2p_addr(pt[j].address));
 				}
 			}

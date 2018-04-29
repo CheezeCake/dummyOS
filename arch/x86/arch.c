@@ -19,6 +19,8 @@
 
 #define TICK_INTERVAL_IN_MS 10
 
+extern void handle_page_fault(int exception, struct cpu_context* ctx);
+
 static void default_exception_handler(int exception, struct cpu_context* ctx)
 {
 	log_e_printf("\nexception : %d", exception);
@@ -41,6 +43,7 @@ int arch_init(void)
 		exception_set_handler(e, default_exception_handler);
 
 	irq_set_handler(IRQ_TIMER, clock_tick);
+	exception_set_handler(EXCEPTION_PAGE_FAULT, handle_page_fault);
 
 	time_init((struct time) { .sec = 0, .milli_sec = TICK_INTERVAL_IN_MS,
 			.nano_sec = 0 });

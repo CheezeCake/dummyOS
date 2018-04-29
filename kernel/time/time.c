@@ -78,7 +78,7 @@ static void time_update_timer_list(void)
 	list_foreach_safe(&timer_list, it, next) {
 		const struct timer* timer_it = list_entry(it, struct timer, t_list);
 		if (time_cmp(&current, &timer_it->time) >= 0) {
-			list_erase(&timer_list, it);
+			list_erase(it);
 			release_timer(it);
 		}
 	}

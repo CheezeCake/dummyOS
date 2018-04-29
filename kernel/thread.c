@@ -35,7 +35,7 @@ static void thread_destroy(struct thread* thread)
 }
 
 static int init(struct thread* thread, char* name, size_t kstack_size,
-				enum thread_type type)
+				enum thread_type type, thread_priority_t priority)
 {
 	int err;
 
@@ -51,7 +51,7 @@ static int init(struct thread* thread, char* name, size_t kstack_size,
 
 		thread->state = THREAD_READY;
 		thread->type = type;
-		thread->priority = SCHED_PRIORITY_LEVEL_DEFAULT;
+		thread->priority = priority;
 
 		refcount_init(&thread->refcnt);
 	}
@@ -60,7 +60,7 @@ static int init(struct thread* thread, char* name, size_t kstack_size,
 }
 
 static int __thread_create(char* name, size_t kstack_size,
-					enum thread_type type, struct thread** result)
+						   enum thread_type type, struct thread** result)
 {
 	int err;
 
@@ -68,7 +68,7 @@ static int __thread_create(char* name, size_t kstack_size,
 	if (!thread)
 		return -ENOMEM;
 
-	err = init(thread, name, kstack_size, type);
+	err = init(thread, name, kstack_size, type, SCHED_PRIORITY_LEVEL_DEFAULT);
 	if (err) {
 		kfree(thread);
 		thread = NULL;
@@ -97,6 +97,37 @@ int thread_create(v_addr_t start, v_addr_t stack, struct thread** result)
 	err = __thread_create(NULL, DEFAULT_KSTACK_SIZE, UTHREAD, result);
 	if (!err)
 		cpu_context_user_init((*result)->cpu_context, start, stack);
+
+	return err;
+}
+
+static int clone(const struct thread* thread, char* name, struct thread* new)
+{
+	int err;
+
+	err = init(new, name, thread->kstack.size, thread->type, thread->priority);
+	if (!err)
+		memcpy(new->cpu_context, thread->cpu_context, cpu_context_sizeof());
+
+	return err;
+}
+
+int thread_clone(const struct thread* thread, char* name,
+				 struct thread** result)
+{
+	int err;
+
+	struct thread* new = kmalloc(sizeof(struct thread));
+	if (!new)
+		return -ENOMEM;
+
+	err = clone(thread, name, new);
+	if (err) {
+		kfree(new);
+		new = NULL;
+	}
+
+	*result = new;
 
 	return err;
 }

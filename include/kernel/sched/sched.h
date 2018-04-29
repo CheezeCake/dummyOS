@@ -20,7 +20,10 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx);
 struct cpu_context* sched_schedule(struct cpu_context* cpu_ctx);
 
 int sched_add_thread(struct thread* thread);
+int sched_add_process(struct process* proc);
+
 int sched_remove_thread(struct thread* thread);
+int sched_remove_process(struct process* proc);
 
 struct thread* sched_get_current_thread(void);
 struct process* sched_get_current_process(void);

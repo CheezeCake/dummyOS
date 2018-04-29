@@ -136,7 +136,7 @@ static inline void list_pop_back(list_t* list)
 	del->next = NULL;
 }
 
-static inline void list_erase(list_t* list, list_node_t* del)
+static inline void list_erase(list_node_t* del)
 {
 	del->prev->next = del->next;
 	del->next->prev = del->prev;

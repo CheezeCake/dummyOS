@@ -36,6 +36,8 @@ struct process
 	struct vmm* vmm;
 
 	thread_list_t threads;
+
+	list_node_t p_child; /**< Chained in process::children */
 };
 
 /**
@@ -53,6 +55,9 @@ pid_t process_register_pid(struct process* proc, pid_t pid);
 
 int process_add_thread(struct process* proc, struct thread* thr);
 
+int process_fork(struct process* proc, const struct thread* fork_thread,
+				 struct process** child, struct thread** child_thread);
+
 /**
  * @brief Resets and free() a process object
  */
@@ -61,5 +66,7 @@ void process_destroy(struct process* proc);
 int process_lock(struct process* proc, const struct thread* cur);
 
 int process_unlock(struct process* proc);
+
+void process_set_vmm(struct process* proc, struct vmm* vmm);
 
 #endif

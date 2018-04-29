@@ -68,6 +68,8 @@ struct thread
 
 int __kthread_create(char* name, v_addr_t start, struct thread** result);
 int thread_create(v_addr_t start, v_addr_t stack, struct thread** result);
+int thread_clone(const struct thread* thread, char* name,
+				 struct thread** result);
 
 void thread_ref(struct thread* thread);
 void thread_unref(struct thread* thread);
@@ -76,6 +78,7 @@ int thread_get_ref(const struct thread* thread);
 void thread_set_state(struct thread* thread, enum thread_state state);
 enum thread_state thread_get_state(const struct thread* thread);
 
-struct cpu_context* thread_switch_setup(struct thread* thread, struct thread* prev);
+struct cpu_context* thread_switch_setup(struct thread* thread,
+										struct thread* prev);
 
 #endif

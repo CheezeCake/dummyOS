@@ -48,6 +48,7 @@ int exec(const char* __kernel path, char* const __kernel argv[],
 	struct thread* thread = sched_get_current_thread();
 	struct process* proc = thread->process;
 	pid_t proc_pid = proc->pid;
+	struct vmm* proc_vmm = proc->vmm;
 	v_addr_t entry_point, stack_top;
 	int err;
 
@@ -64,7 +65,9 @@ int exec(const char* __kernel path, char* const __kernel argv[],
 		return err;
 
 	log_puts("exec vmm_switch_to new\n");
+	process_lock(proc, thread);
 	vmm_switch_to(new_proc->vmm);
+	proc->vmm = new_proc->vmm;
 
 	struct vfs_cache_node* exec;
 	err = vfs_lookup(&exec_path, proc->root, proc->cwd, &exec);
@@ -95,21 +98,22 @@ int exec(const char* __kernel path, char* const __kernel argv[],
 	err = sched_add_thread(new_proc_main_thr);
 	thread_unref(new_proc_main_thr);
 
-	// XXX: ...
-	err = process_register_pid(new_proc, proc_pid);
-	if (err) {
-	}
 
 	log_puts("exec vmm_switch_to old\n");
+	proc->vmm = proc_vmm;
 	vmm_switch_to(proc->vmm);
 
 	kill_process_threads(proc);
 	process_destroy(proc);
 
+	// XXX: ...
+	err = process_register_pid(new_proc, proc_pid);
+	if (err) {
+	}
+
 	sched_exit();
 
 fail_stack:
-
 fail_load_bin:
 	exec->inode->op->close(exec->inode, &file);
 fail_file:
@@ -117,7 +121,9 @@ fail_file:
 fail_lookup:
 	vfs_path_reset(&exec_path);
 
-	vmm_switch_to(proc->vmm);
+	proc->vmm = proc_vmm;
+	vmm_switch_to(proc_vmm);
+	process_unlock(proc);
 
 	return err;
 }

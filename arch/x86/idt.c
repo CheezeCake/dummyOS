@@ -46,7 +46,7 @@ static struct idt_gate_descriptor idt[IDT_SIZE];
 static int set_handler_present(uint8_t index, enum gate_type type,
 							   enum privilege_level dpl, v_addr_t handler)
 {
-	if (!handler || idt[index].present)
+	if (!handler)
 		return -EINVAL;
 
 	idt[index].offset_15_0 = handler & 0xffff;

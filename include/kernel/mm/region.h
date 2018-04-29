@@ -12,7 +12,6 @@ struct region
 	p_addr_t* frames;
 	size_t nr_frames;
 
-	region_t* parent;
 	refcount_t refcnt;
 };
 
@@ -24,5 +23,7 @@ int region_create(size_t nr_frames, int prot, region_t** result);
 void region_unref(region_t* region);
 
 void region_ref(region_t* region);
+
+int region_get_ref(const region_t* region);
 
 #endif

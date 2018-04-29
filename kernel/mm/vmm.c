@@ -11,17 +11,17 @@
 /** kernel mappings list */
 static LIST_DEFINE(kernel_mappings);
 
-static struct vmm_interface* interface = NULL;
+static struct vmm_interface* vmm_impl = NULL;
 
 static LIST_DEFINE(vmm_list);
 
 
-int vmm_interface_register(struct vmm_interface* vmm_interface)
+int vmm_interface_register(struct vmm_interface* impl)
 {
-	if (interface)
+	if (vmm_impl)
 		return -EEXIST;
 
-	interface = vmm_interface;
+	vmm_impl = impl;
 
 	return 0;
 }
@@ -61,7 +61,7 @@ int vmm_create(struct vmm** result)
 	int err;
 	struct vmm* vmm;
 
-	err = interface->create(result);
+	err = vmm_impl->create(result);
 	if (err)
 		return err;
 
@@ -79,9 +79,9 @@ static int vmm_destroy_mapping(mapping_t* mapping)
 {
 	int err;
 
-	err = interface->destroy_mapping(mapping->start, mapping->size);
-	// XXX: allways destroy the mapping?
-	mapping_destroy(mapping);
+	err = vmm_impl->destroy_mapping(mapping);
+	if (!err)
+		mapping_destroy(mapping);
 
 	return err;
 }
@@ -93,7 +93,7 @@ static void vmm_destroy_mappings(list_t* mappings)
 
 	list_foreach_safe(mappings, it, next) {
 		mapping_t* mapping = list_entry(it, mapping_t, m_list);
-		list_erase(mappings, it);
+		list_erase(it);
 
 		vmm_destroy_mapping(mapping);
 	}
@@ -103,9 +103,9 @@ static void vmm_destroy_mappings(list_t* mappings)
 static void vmm_destroy(struct vmm* vmm)
 {
 	vmm_destroy_mappings(&vmm->mappings);
-	interface->destroy(vmm);
+	vmm_impl->destroy(vmm);
 
-	list_erase(&vmm_list, &vmm->vmm_list_node);
+	list_erase(&vmm->vmm_list_node);
 }
 
 void vmm_ref(struct vmm* vmm)
@@ -140,7 +140,7 @@ int vmm_sync_kernel_space(void* data)
 	list_foreach(&vmm_list, it) {
 		struct vmm* vmm = list_entry(it, struct vmm, vmm_list_node);
 		if (current != vmm) {
-			int err = interface->sync_kernel_space(vmm, data);
+			int err = vmm_impl->sync_kernel_space(vmm, data);
 			if (err) {
 				log_e_printf("%s: failed to sync kernel mapping (data=%p),"
 							 "vmm %p\n", __func__, (void*)data, (void*)vmm);
@@ -165,7 +165,7 @@ static int vmm_create_mapping(v_addr_t start, size_t size, int prot, int flags,
 	if (err)
 		return err;
 
-	err = interface->create_mapping(mapping);
+	err = vmm_impl->create_mapping(mapping);
 	if (err) {
 		mapping_destroy(mapping);
 		mapping = NULL;
@@ -187,7 +187,7 @@ static int vmm_find_and_destroy_mapping(list_t* mappings, v_addr_t addr)
 
 	err = vmm_destroy_mapping(mapping);
 	if (!err)
-		list_erase(mappings, &mapping->m_list);
+		list_erase(&mapping->m_list);
 
 	return err;
 }
@@ -196,7 +196,7 @@ int vmm_setup_kernel_mapping(mapping_t* mapping)
 {
 	int err;
 
-	err =  interface->create_mapping(mapping);
+	err =  vmm_impl->create_mapping(mapping);
 	if (!err)
 		add_mapping(&kernel_mappings, mapping);
 
@@ -208,7 +208,7 @@ int vmm_create_kernel_mapping(v_addr_t start, size_t size, int prot)
 	mapping_t* mapping;
 	int err;
 
-	if (interface->is_userspace_address(start))
+	if (vmm_impl->is_userspace_address(start))
 		return -EINVAL;
 
 	if (start + size < start)
@@ -247,7 +247,7 @@ int vmm_clone_current(struct vmm* clone)
 		list_push_back(&clone->mappings, &cpy->m_list);
 	}
 
-	err = interface->clone_current(clone);
+	err = vmm_impl->clone_current(clone);
 	if (err) {
 	}
 
@@ -256,7 +256,7 @@ int vmm_clone_current(struct vmm* clone)
 
 bool vmm_is_userspace_address(v_addr_t addr)
 {
-	return interface->is_userspace_address(addr);
+	return vmm_impl->is_userspace_address(addr);
 }
 
 static inline bool range_in_userspace(v_addr_t start, size_t size)
@@ -315,7 +315,7 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 		ext_start = mapping->start + mapping->size;
 	}
 
-	if (!vmm_range_free(ext_start, ext_start + increment))
+	if (!vmm_range_is_free(ext_start, ext_start + increment))
 		return -EINVAL;
 
 	err = vmm_create_user_mapping(ext_start, increment, mapping->region->prot,
@@ -324,13 +324,87 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 	return err;
 }
 
-bool vmm_range_free(v_addr_t addr, size_t size)
+bool vmm_range_is_free(v_addr_t addr, size_t size)
 {
+	// TODO: implement
 	return false;
 }
 
 void vmm_switch_to(struct vmm* vmm)
 {
 	log_printf("%s(): switching to %p\n", __func__, (void*)vmm);
-	interface->switch_to(vmm);
+	vmm_impl->switch_to(vmm);
+}
+
+static int handle_cow_fault(mapping_t* mapping, int flags)
+{
+	region_t* copy;
+	int err;
+
+	if (region_get_ref(mapping->region) == 1) {
+		return vmm_impl->update_mapping_prot(mapping);
+	}
+
+	err = region_create(mapping_size_in_pages(mapping),
+						mapping->region->prot, &copy);
+	if (err)
+		return err;
+
+	err = vmm_impl->copy_mapping_pages(mapping, copy);
+	if (err) {
+		region_unref(copy);
+		return err;
+	}
+
+	err = vmm_impl->destroy_mapping(mapping);
+	if (err) {
+		region_unref(copy);
+		return err;
+	}
+
+	region_unref(mapping->region);
+	mapping->region = copy;
+
+	err = vmm_impl->create_mapping(mapping);
+	if (err) {
+		list_erase(&mapping->m_list);
+		mapping_destroy(mapping);
+	}
+
+	return err;
+}
+
+void vmm_handle_page_fault(v_addr_t fault_addr, int flags)
+{
+	log_e_printf("#PF: %p (flags=%p)\n", (void*)fault_addr,
+				 (void*)(v_addr_t)flags);
+
+	struct vmm* current = get_current_vmm();
+	mapping_t* mapping = find_mapping(&current->mappings, fault_addr);
+
+	if (!mapping) {
+		// sigsegv
+		PANIC("page fault");
+	}
+
+	if (flags & VMM_FAULT_NOT_PRESENT) {
+		if (mapping)
+			PANIC("fault not present for present mapping");
+
+		//sigsegv
+		PANIC("page fault1");
+	}
+
+	if (flags & VMM_FAULT_WRITE) {
+		if (mapping->region->prot & VMM_PROT_WRITE) {
+			handle_cow_fault(mapping, flags);
+		}
+		else {
+			// sigsegv
+			PANIC("page fault2");
+		}
+	}
+
+	/* PANIC("default"); */
+
 }

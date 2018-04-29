@@ -129,7 +129,7 @@ int memory_page_frame_free(p_addr_t addr)
 	if (!pf)
 		return -EINVAL;
 
-	list_erase(&used_page_frames.list, &pf->pf_list);
+	list_erase(&pf->pf_list);
 	--used_page_frames.n;
 	list_push_front(&free_page_frames.list, &pf->pf_list);
 	++free_page_frames.n;

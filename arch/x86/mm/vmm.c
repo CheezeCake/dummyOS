@@ -107,24 +107,51 @@ static int create_mapping(const mapping_t* mapping)
 {
 	v_addr_t addr = mapping->start;
 	size_t nr_pages = mapping_size_in_pages(mapping);
-	int err = 0;
 
-	for (size_t i = 0;
-		 !err && i < nr_pages;
-		 ++i, addr += PAGE_SIZE)
-	{
-		err = paging_map(mapping->region->frames[i], addr,
+	for (size_t i = 0; i < nr_pages; ++i, addr += PAGE_SIZE) {
+		int err = paging_map(mapping->region->frames[i], addr,
 						 mapping->region->prot);
 		if (err)
-			__destroy_mapping(mapping->start, i);
+			return __destroy_mapping(mapping->start, i);
 	}
 
-	return err;
+	return 0;
 }
 
-static int destroy_mapping(v_addr_t start, size_t size)
+static int destroy_mapping(const mapping_t* mapping)
 {
-	return __destroy_mapping(start, size);
+	return __destroy_mapping(mapping->start, mapping_size_in_pages(mapping));
+}
+
+static int copy_mapping_pages(const mapping_t* mapping, region_t* copy)
+{
+	v_addr_t addr = mapping->start;
+	size_t nr_pages = mapping_size_in_pages(mapping);
+
+	if (nr_pages < copy->nr_frames)
+		return -EINVAL;
+
+	for (size_t i = 0; i < copy->nr_frames; ++i, addr += PAGE_SIZE) {
+		int err = paging_copy_page(addr, copy->frames[i]);
+		if (err)
+			return __destroy_mapping(mapping->start, i);
+	}
+
+	return 0;
+}
+
+static int update_mapping_prot(const mapping_t* mapping)
+{
+	v_addr_t addr = mapping->start;
+	size_t nr_pages = mapping_size_in_pages(mapping);
+
+	for (size_t i = 0; i < nr_pages; ++i, addr += PAGE_SIZE) {
+		int err = paging_update_prot(addr, mapping->region->prot);
+		if (err)
+			return err;
+	}
+
+	return 0;
 }
 
 static struct vmm_interface impl = {
@@ -138,6 +165,8 @@ static struct vmm_interface impl = {
 
 	.create_mapping = create_mapping,
 	.destroy_mapping = destroy_mapping,
+	.copy_mapping_pages = copy_mapping_pages,
+	.update_mapping_prot = update_mapping_prot,
 };
 
 int vmm_register(void)

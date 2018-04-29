@@ -20,6 +20,13 @@
  */
 #define VMM_MAP_GROWSDOW	(1 << 1)
 
+/*
+ * fault flags
+ */
+#define VMM_FAULT_USER			(1 << 0)
+#define VMM_FAULT_WRITE			(1 << 1)
+#define VMM_FAULT_NOT_PRESENT	(1 << 2)
+
 /**
  * @brief Virtual Memory Manager
  */
@@ -43,7 +50,9 @@ struct vmm_interface
 	bool (*is_userspace_address)(v_addr_t addr);
 
 	int (*create_mapping)(const mapping_t* mapping);
-	int (*destroy_mapping)(v_addr_t start, size_t size);
+	int (*destroy_mapping)(const mapping_t* mapping);
+	int (*copy_mapping_pages)(const mapping_t* mapping, region_t* copy);
+	int (*update_mapping_prot)(const mapping_t* mapping);
 };
 
 int vmm_interface_register(struct vmm_interface* vmm_interface);
@@ -88,8 +97,10 @@ int vmm_destroy_user_mapping(v_addr_t addr);
 
 int vmm_extend_user_mapping(v_addr_t addr, size_t increment);
 
-bool vmm_range_free(v_addr_t start, size_t size);
+bool vmm_range_is_free(v_addr_t start, size_t size);
 
 void vmm_switch_to(struct vmm* vmm);
+
+void vmm_handle_page_fault(v_addr_t fault_addr, int flags);
 
 #endif

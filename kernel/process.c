@@ -24,7 +24,7 @@ static void destroy_threads_except(struct process* proc,
 		struct thread* thread = list_entry(it, struct thread, p_thr_list);
 		if (thread != save) {
 			thread_unref(thread);
-			list_erase(&proc->threads, &thread->p_thr_list);
+			list_erase(&thread->p_thr_list);
 		}
 	}
 
@@ -118,6 +118,36 @@ int process_create(const char* name, struct process** result)
 	return err;
 }
 
+int process_fork(struct process* proc, const struct thread* fork_thread,
+				 struct process** child, struct thread** child_thread)
+{
+	struct process* new;
+	int err;
+
+	err = process_create(proc->name, &new);
+	if (err)
+		return err;
+
+	err = thread_clone(fork_thread, new->name, child_thread);
+	if (err)
+		goto fail_thr_clone;
+	process_add_thread(new, *child_thread);
+
+	// TODO: copy root, cwd, file descriptors, ...
+
+	new->parent = proc;
+	list_push_back(&proc->children, &new->p_child);
+
+	*child = new;
+
+	return 0;
+
+fail_thr_clone:
+	process_destroy(new);
+
+	return err;
+}
+
 static int lock_threads(struct process* proc, const struct thread* cur)
 {
 	int err;
@@ -140,9 +170,13 @@ int process_lock(struct process* proc, const struct thread* cur)
 {
 	int err;
 
+	irq_disable();
+
 	err = lock_threads(proc, cur);
 	if (!err)
 		proc->state = PROC_LOCKED;
+
+	irq_enable();
 
 	return err;
 }
@@ -182,6 +216,15 @@ int process_add_thread(struct process* proc, struct thread* thr)
 	thr->process = proc;
 
 	return 0;
+}
+
+void process_set_vmm(struct process* proc, struct vmm* vmm)
+{
+	irq_disable();
+
+	proc->vmm = vmm;
+
+	irq_enable();
 }
 
 void process_destroy(struct process* proc)

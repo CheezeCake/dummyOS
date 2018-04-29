@@ -33,6 +33,11 @@ void region_ref(region_t* region)
 	refcount_inc(&region->refcnt);
 }
 
+int region_get_ref(const region_t* region)
+{
+	return refcount_get(&region->refcnt);
+}
+
 int __region_init(region_t* region, p_addr_t* frames, size_t nr_frames,
 				  int prot)
 {
@@ -53,7 +58,6 @@ int __region_init(region_t* region, p_addr_t* frames, size_t nr_frames,
 	}
 
 	region->prot = prot;
-	region->parent = NULL;
 	refcount_init(&region->refcnt);
 
 	return 0;

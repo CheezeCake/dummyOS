@@ -1,12 +1,14 @@
 kernel_src = files(
   'exec.c',
   'exit.c',
+  'fork.c',
   'init.c',
   'kernel.c',
   'kernel_image.c',
   'kheap.c',
   'kmalloc.c',
   'process.c',
+  'sys.c',
   'syscall.c',
   'thread.c',
   )

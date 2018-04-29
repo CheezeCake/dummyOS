@@ -1,41 +1,10 @@
-#include <dummyos/compiler.h>
 #include <kernel/cpu_context.h>
 #include <kernel/kassert.h>
 #include <libk/libk.h>
+#include "cpu_context.h"
 #include "gdt.h"
 #include "segment.h"
 #include "tss.h"
-
-struct cpu_context
-{
-	uint32_t eax;
-	uint32_t ebx;
-	uint32_t ecx;
-	uint32_t edx;
-
-	uint32_t esi;
-	uint32_t edi;
-	uint32_t ebp;
-
-	uint16_t ds;
-	uint16_t es;
-	uint16_t fs;
-	uint16_t gs;
-	uint16_t ss;
-	uint16_t alignment;
-
-	// pushed by the CPU
-	uint32_t error_code;
-	uint32_t eip;
-	uint32_t cs;
-	uint32_t eflags;
-	struct
-	{
-		uint32_t esp;
-		uint32_t ss;
-	} user;
-} __attribute__((packed));
-static_assert(sizeof(struct cpu_context) == 64, "sizeof cpu_context != 64");
 
 static void init(struct cpu_context* cpu_context, v_addr_t pc,
 				 uint16_t code_segment, uint16_t data_segment)
@@ -95,4 +64,11 @@ void cpu_context_update_tss(const struct cpu_context* cpu_context)
 		 */
 		tss_update((v_addr_t)cpu_context + sizeof(struct cpu_context));
 	}
+}
+
+
+void cpu_context_set_syscall_return_value(struct cpu_context* cpu_context,
+										  int ret)
+{
+	cpu_context->eax = ret;
 }

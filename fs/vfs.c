@@ -82,7 +82,7 @@ int vfs_umount(struct vfs_cache_node* mountpoint)
 		return -EINVAL;
 
 	struct vfs_superblock* sb = root->inode->sb;
-	list_erase(&mounted_list, &sb->mounted_list);
+	list_erase(&sb->mounted_list);
 	root->mountpoint = NULL;
 	mountpoint->mounted = NULL;
 

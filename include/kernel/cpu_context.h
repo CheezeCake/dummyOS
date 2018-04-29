@@ -18,4 +18,7 @@ void cpu_context_switch(const struct cpu_context* to);
 
 void cpu_context_preempt(void);
 
+void cpu_context_set_syscall_return_value(struct cpu_context* cpu_context,
+										  int ret);
+
 #endif
