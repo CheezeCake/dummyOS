@@ -354,13 +354,15 @@ int paging_clone_current_cow(p_addr_t cr3)
 			for (size_t j = 0; j < PAGE_TABLE_ENTRY_COUNT; ++j) {
 				if (cur_pt[j].present) {
 					memcpy(&pt[j], &cur_pt[j], sizeof(pte_t));
-					// TODO: cow permissions
+
+					// CoW permissions
 					pt[j].read_write = 0;
 					cur_pt[j].read_write = 0;
 
 					invlpg(pd_pt_index2v_addr(i, j));
 				}
-			} }
+			}
+		}
 	}
 
 	reset_temp_recursive_entry();
