@@ -11,10 +11,14 @@
 /** kernel mappings list */
 static LIST_DEFINE(kernel_mappings);
 
+/** arch specific implementation of the vmm interface */
 static struct vmm_interface* vmm_impl = NULL;
 
+/** created vmm list */
 static LIST_DEFINE(vmm_list);
 
+/** the vmm context we are currently running on */
+static struct vmm* current_vmm;
 
 int vmm_interface_register(struct vmm_interface* impl)
 {
@@ -25,6 +29,26 @@ int vmm_interface_register(struct vmm_interface* impl)
 
 	return 0;
 }
+
+struct vmm* vmm_get_current_vmm(void)
+{
+	return current_vmm;
+}
+
+void vmm_switch_to(struct vmm* vmm)
+{
+	log_printf("%s(): switching from %p to %p\n", __func__, (void*)current_vmm,
+			   (void*)vmm);
+
+	if (current_vmm)
+		vmm_unref(current_vmm);
+
+	current_vmm = vmm;
+	vmm_ref(vmm);
+
+	vmm_impl->switch_to(vmm);
+}
+
 
 static mapping_t* find_mapping(list_t* mappings, v_addr_t addr)
 {
@@ -328,12 +352,6 @@ bool vmm_range_is_free(v_addr_t addr, size_t size)
 {
 	// TODO: implement
 	return false;
-}
-
-void vmm_switch_to(struct vmm* vmm)
-{
-	log_printf("%s(): switching to %p\n", __func__, (void*)vmm);
-	vmm_impl->switch_to(vmm);
 }
 
 static int handle_cow_fault(mapping_t* mapping, int flags)

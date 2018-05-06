@@ -99,6 +99,8 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment);
 
 bool vmm_range_is_free(v_addr_t start, size_t size);
 
+struct vmm* vmm_get_current_vmm(void);
+
 void vmm_switch_to(struct vmm* vmm);
 
 void vmm_handle_page_fault(v_addr_t fault_addr, int flags);

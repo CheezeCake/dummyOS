@@ -46,8 +46,6 @@ struct thread
 	};
 
 	struct cpu_context* cpu_context;
-	/**< */
-	struct vmm* running_vmm;
 
 	// kernel stack
 	struct stack kstack;
