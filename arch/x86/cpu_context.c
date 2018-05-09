@@ -1,6 +1,7 @@
 #include <kernel/cpu_context.h>
 #include <kernel/kassert.h>
 #include <libk/libk.h>
+#include <libk/utils.h>
 #include "cpu_context.h"
 #include "gdt.h"
 #include "segment.h"
@@ -71,4 +72,40 @@ void cpu_context_set_syscall_return_value(struct cpu_context* cpu_context,
 										  int ret)
 {
 	cpu_context->eax = ret;
+}
+
+static void cpu_context_set_pc(struct cpu_context* cpu_context, v_addr_t pc)
+{
+	cpu_context->eip = pc;
+}
+
+void cpu_context_set_user_sp(struct cpu_context* cpu_context, v_addr_t sp)
+{
+	cpu_context->user.esp = sp;
+}
+
+v_addr_t cpu_context_get_user_sp(struct cpu_context* cpu_context)
+{
+	return cpu_context->user.esp;
+}
+
+static void cpu_context_pass_user_args(struct cpu_context* cpu_context,
+								const v_addr_t* args, size_t n)
+{
+	v_addr_t* sp = (v_addr_t*)align_down(cpu_context->user.esp,
+										 sizeof(v_addr_t));
+	// TODO: uaccess copy_to_user
+	for (int i = n - 1; i >= 0; --i)
+		*(--sp) = args[i];
+
+	cpu_context_set_user_sp(cpu_context, (v_addr_t)sp);
+}
+
+void cpu_context_setup_signal_handler(struct cpu_context* cpu_context,
+									  v_addr_t handler, v_addr_t sig_trampoline,
+									  const v_addr_t* args, size_t n)
+{
+	cpu_context_pass_user_args(cpu_context, args, n);
+	cpu_context_pass_user_args(cpu_context, &sig_trampoline, 1); // ret
+	cpu_context_set_pc(cpu_context, handler);
 }

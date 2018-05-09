@@ -8,23 +8,6 @@
 #include <kernel/mm/vmm.h>
 #include <libk/libk.h>
 
-static int kill_process_threads(struct process* proc)
-{
-	int err;
-	list_node_t* it;
-
-	list_foreach(&proc->threads, it) {
-		struct thread* thread = list_entry(it, struct thread, p_thr_list);
-
-		thread_set_state(thread, THREAD_DEAD);
-		err = sched_remove_thread(thread);
-		if (err)
-			return err;
-	}
-
-	return 0;
-}
-
 static int create_user_stack(v_addr_t* stack_top)
 {
 	v_addr_t stack_bottom;
@@ -66,8 +49,8 @@ int exec(const char* __kernel path, char* const __kernel argv[],
 
 	log_puts("exec vmm_switch_to new\n");
 	process_lock(proc, thread);
-	vmm_switch_to(new_proc->vmm);
 	proc->vmm = new_proc->vmm;
+	vmm_switch_to(new_proc->vmm);
 
 	struct vfs_cache_node* exec;
 	err = vfs_lookup(&exec_path, proc->root, proc->cwd, &exec);
@@ -99,11 +82,9 @@ int exec(const char* __kernel path, char* const __kernel argv[],
 	thread_unref(new_proc_main_thr);
 
 
-	log_puts("exec vmm_switch_to old\n");
 	proc->vmm = proc_vmm;
-	vmm_switch_to(proc->vmm);
 
-	kill_process_threads(proc);
+	process_exit_quiet(proc);
 	process_destroy(proc);
 
 	// XXX: ...

@@ -1,5 +1,8 @@
+#include <dummyos/compiler.h>
+#include <kernel/errno.h>
 #include <kernel/kassert.h>
 #include <kernel/process.h>
+#include <kernel/signal.h>
 #include <kernel/sched/sched.h>
 
 #include <kernel/log.h>
@@ -7,25 +10,74 @@
 
 void sys_exit(int status)
 {
-	log_e_printf("\nSYSCALL: _exit(0x%x)\n", status);
-
 	struct thread* cur_thr = sched_get_current_thread();
 	struct process* p = cur_thr->process;
 	kassert(p != NULL);
 
+	log_e_printf("\nSYSCALL: _exit(0x%x), pid=%d\n", status, p->pid);
+
+	process_exit(p, status);
+	sched_exit();
+}
+
+static pid_t _wait(int* __user status, const struct process* p, pid_t pid)
+{
 	list_node_t* it;
-	list_foreach(&p->threads, it) {
-		struct thread* thread = list_entry(it, struct thread, p_thr_list);
-		if (thread != cur_thr) {
-			log_printf("before: refcnt=%d (%s)\n", refcount_get(&thread->refcnt), thread->name);
-			thread_set_state(thread, THREAD_DEAD);
-			kassert(sched_remove_thread(thread) == 0);
-			log_printf("after: refcnt=%d (%s)\n", refcount_get(&thread->refcnt), thread->name);
+	list_foreach(&p->children, it) {
+		struct process* child = list_entry(it, struct process, p_child);
+		pid_t child_pid = child->pid;
+
+		if (child->state == PROC_ZOMBIE &&
+			(!pid || pid == child_pid))
+		{
+			// TODO: copy_to_user
+			if (status)
+				*status = child->exit_status;
+
+			process_destroy(child);
+			return child_pid;
 		}
 	}
 
-	p->state = PROC_ZOMBIE;
-	// TODO: send SIGCHLD to parent and destroy proc on sig reception
+	return -ECHILD;
+}
 
-	sched_exit();
+pid_t sys_wait(int* __user status)
+{
+	struct process* p = sched_get_current_process();
+
+	do {
+		pid_t child_pid = _wait(status, p, 0);
+		if (child_pid > 0)
+			return child_pid;
+
+		wait_wait(&p->wait_wq); // wait
+	} while (!list_empty(&p->children));
+
+	return -ECHILD;
+}
+
+#define WNOHANG 1
+pid_t sys_waitpid(pid_t pid, int* __user status, int options)
+{
+	if (pid == -1)
+		return sys_wait(status);
+
+	if (pid <= 0)
+		return -EINVAL;
+
+	struct process* p = sched_get_current_process();
+
+	do {
+		pid_t child_pid = _wait(status, p, pid);
+		if (child_pid > 0)
+			return child_pid;
+
+		if (options & WNOHANG)
+			return -ECHILD;
+
+		wait_wait(&p->wait_wq); // wait
+	} while (!list_empty(&p->children));
+
+	return -ECHILD;
 }

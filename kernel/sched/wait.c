@@ -4,11 +4,20 @@
 #include <kernel/sched/sched.h>
 #include <kernel/sched/wait.h>
 
-int wait_create(wait_queue_t* wq)
+int wait_init(wait_queue_t* wq)
 {
 	list_init(&wq->threads);
 
 	return 0;
+}
+
+void wait_reset(wait_queue_t* wq)
+{
+	list_node_t* it;
+	list_node_t* next;
+
+	list_foreach_safe(&wq->threads, it, next)
+		thread_unref(list_entry(it, struct thread, wqe));
 }
 
 int wait_wait(wait_queue_t* wq)

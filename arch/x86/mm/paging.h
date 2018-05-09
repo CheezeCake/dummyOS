@@ -21,6 +21,7 @@ int paging_copy_page(v_addr_t src_page, p_addr_t dst_frame);
 
 int paging_update_prot(v_addr_t page, int prot);
 
+void paging_clear_userspace(p_addr_t cr3);
 
 int paging_map(p_addr_t paddr, v_addr_t vaddr, int prot);
 

@@ -12,10 +12,16 @@ typedef struct wait_queue
 
 struct thread;
 
-int wait_create(wait_queue_t* wq);
+int wait_init(wait_queue_t* wq);
+
+void wait_reset(wait_queue_t* wq);
+
 int wait_wait(wait_queue_t* wq);
+
 int wait_wake(wait_queue_t* wq, unsigned int nb_threads);
+
 int wait_wake_all(wait_queue_t* wq);
+
 bool wait_empty(const wait_queue_t* wq);
 
 #endif

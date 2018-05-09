@@ -8,6 +8,7 @@ kernel_src = files(
   'kheap.c',
   'kmalloc.c',
   'process.c',
+  'signal.c',
   'sys.c',
   'syscall.c',
   'thread.c',

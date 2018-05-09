@@ -23,7 +23,7 @@ void handle_page_fault(int exception, struct cpu_context* ctx)
 	__asm__ volatile ("movl %%cr2, %0" : "=r" (fault_addr));
 	memcpy(&error, &ctx->error_code, sizeof(struct pf_error_code));
 
-	log_e_printf("code=%p\n", (void*)(*(uint32_t*)&error));
+	log_e_printf("eip=%p, code=%p\n", (void*)ctx->eip, (void*)(*(uint32_t*)&error));
 	if (!error.present)
 		flags |= VMM_FAULT_NOT_PRESENT;
 	if (error.write)

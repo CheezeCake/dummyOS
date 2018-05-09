@@ -16,7 +16,28 @@ cpu_context_preempt:
 
 	pushl %esp /* saved cpu_context */
 	call sched_schedule_yield
-	movl %eax, %esp /* switch to next thread context */
+
+	pushl %eax
+	call cpu_context_switch
+	/* movl %eax, %esp /1* switch to next thread context *1/ */
+
+	/* /1* update tss *1/ */
+	/* pushl %esp */
+	/* call cpu_context_update_tss */
+	/* addl $4, %esp */
+
+	/* cpu_context_restore */
+	/* iret */
+
+return:
+	/* return to caller */
+	ret
+
+/* void cpu_context_switc(const struct cpu_context* to) */
+.global cpu_context_switch
+.type cpu_context_switch, @function
+cpu_context_switch:
+	movl 4(%esp), %esp /* switch to next thread context */
 
 	/* update tss */
 	pushl %esp
@@ -25,7 +46,3 @@ cpu_context_preempt:
 
 	cpu_context_restore
 	iret
-
-return:
-	/* return to caller */
-	ret

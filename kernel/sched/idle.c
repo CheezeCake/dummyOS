@@ -4,8 +4,14 @@
 #include <kernel/sched/idle.h>
 #include <kernel/sched/sched.h>
 
+#include <kernel/signal.h>
+int sys_kill(pid_t pid, uint32_t sig);
+
 static void test(void* data)
 {
+	sched_sleep_millis(3*1000);
+	log_e_print("kill pid 2\n");
+	sys_kill(2, SIGINT);
 	while (1) {
 		terminal_putchar('t');
 		sched_sleep_millis(500);

@@ -81,4 +81,6 @@ enum thread_state thread_get_state(const struct thread* thread);
 struct cpu_context* thread_switch_setup(struct thread* thread,
 										struct thread* prev);
 
+v_addr_t thread_get_kstack_top(const struct thread* thread);
+
 #endif

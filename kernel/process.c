@@ -14,28 +14,6 @@
 static struct process* process_table[PROCESS_TABLE_SIZE + 1] = { NULL, };
 
 
-static void destroy_threads_except(struct process* proc,
-								   const struct thread* save)
-{
-	list_node_t* it;
-	list_node_t* next;
-
-	list_foreach_safe(&proc->threads, it, next) {
-		struct thread* thread = list_entry(it, struct thread, p_thr_list);
-		if (thread != save) {
-			thread_unref(thread);
-			list_erase(&thread->p_thr_list);
-		}
-	}
-
-	/* list_clear(&proc->threads); */
-}
-
-static void destroy_threads(struct process* proc)
-{
-	destroy_threads_except(proc, NULL);
-}
-
 static pid_t find_free_pid(void)
 {
 	for (pid_t pid = 1; pid < PROCESS_TABLE_SIZE; ++pid) {
@@ -86,6 +64,11 @@ static int process_init(struct process* proc, const char* name)
 		return err;
 	log_printf("%s() proc=%s vmm=%p\n", __func__, name, (void*)proc->vmm);
 
+	err = signal_create(&proc->signals);
+	if (err)
+		return err;
+	wait_init(&proc->wait_wq);
+
 	strlcpy(proc->name, name, PROCESS_NAME_MAX_LENGTH);
 	proc->state = PROC_RUNNABLE;
 	proc->root = vfs_cache_node_get_root();
@@ -134,6 +117,8 @@ int process_fork(struct process* proc, const struct thread* fork_thread,
 	process_add_thread(new, *child_thread);
 
 	// TODO: copy root, cwd, file descriptors, ...
+
+	signal_copy(new->signals, proc->signals);
 
 	new->parent = proc;
 	list_push_back(&proc->children, &new->p_child);
@@ -227,11 +212,93 @@ void process_set_vmm(struct process* proc, struct vmm* vmm)
 	irq_enable();
 }
 
+bool process_signal_pending(const struct process* proc)
+{
+	return (proc) ? signal_pending(proc->signals) : false;
+}
+
+int process_kill(pid_t pid, uint32_t sig)
+{
+	struct process* proc = process_table[pid];
+	if (proc) {
+		if (list_empty(&proc->threads))
+			return -EINVAL;
+
+		signal_send(proc->signals, sig, NULL, sched_get_current_process());
+		return 0;
+	}
+
+	return -EINVAL;
+}
+
+static inline void threads_foreach(struct process* proc,
+								   void (*f)(struct thread*))
+{
+	list_node_t* it;
+	list_node_t* next;
+
+	list_foreach_safe(&proc->threads, it, next)
+		f(list_entry(it, struct thread, p_thr_list));
+}
+
+static void exit_thread(struct thread* thread)
+{
+	thread_set_state(thread, THREAD_DEAD);
+	sched_remove_thread(thread);
+}
+
+static void exit_threads(struct process* proc)
+{
+	threads_foreach(proc, exit_thread);
+}
+
+int process_exit_quiet(struct process* proc)
+{
+	exit_threads(proc);
+	return 0;
+}
+
+int process_exit(struct process* proc, int status)
+{
+	process_exit_quiet(proc);
+
+	proc->state = PROC_ZOMBIE;
+	proc->exit_status = status;
+
+	if (proc->parent) {
+		process_kill(proc->parent->pid, SIGCHLD);
+		wait_wake_all(&proc->parent->wait_wq);
+	}
+
+
+	return 0;
+}
+
+static void destroy_thread(struct thread* thread)
+{
+	list_erase(&thread->p_thr_list);
+	thread_unref(thread);
+}
+
+static inline void destroy_threads(struct process* proc)
+{
+	threads_foreach(proc, destroy_thread);
+}
+
+static inline void remove_from_parent_list(struct process* proc)
+{
+	if (proc->parent)
+		list_erase(&proc->p_child);
+}
+
 void process_destroy(struct process* proc)
 {
 	vmm_unref(proc->vmm);
+	signal_destroy(proc->signals);
+	wait_reset(&proc->wait_wq);
 	destroy_threads(proc);
 	unregister_process(proc);
 
+	remove_from_parent_list(proc);
 	kfree(proc);
 }

@@ -43,3 +43,12 @@ syscall_handler:
 	/* esp = cpu_ctx */
 
 	interrupt_leave
+
+
+.global __sig_tramp_start
+.global __sig_tramp_end
+
+__sig_tramp_start:
+	movl $NR_sigreturn, %eax
+	int $0x80
+__sig_tramp_end:

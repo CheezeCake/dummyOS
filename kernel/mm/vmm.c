@@ -102,6 +102,7 @@ static void vmm_destroy_mappings(list_t* mappings)
 
 static void vmm_destroy(struct vmm* vmm)
 {
+	log_e_printf("VMM_DESTROY: %p\n", (void*)vmm);
 	vmm_destroy_mappings(&vmm->mappings);
 	vmm_impl->destroy(vmm);
 

@@ -5,6 +5,8 @@
 #include <kernel/mm/vmm.h>
 #include "paging.h"
 
+#include <kernel/log.h>
+
 struct x86_vmm
 {
 	p_addr_t cr3;
@@ -58,7 +60,9 @@ static void destroy(struct vmm* vmm)
 {
 	struct x86_vmm* x86vmm = get_x86_vmm(vmm);
 
+	paging_clear_userspace(x86vmm->cr3);
 	memory_page_frame_free(x86vmm->cr3);
+
 	kfree(x86vmm);
 }
 

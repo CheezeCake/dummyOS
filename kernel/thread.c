@@ -95,8 +95,9 @@ int thread_create(v_addr_t start, v_addr_t stack, struct thread** result)
 	int err;
 
 	err = __thread_create(NULL, DEFAULT_KSTACK_SIZE, UTHREAD, result);
-	if (!err)
+	if (!err) {
 		cpu_context_user_init((*result)->cpu_context, start, stack);
+	}
 
 	return err;
 }
@@ -160,6 +161,11 @@ void thread_set_state(struct thread* thread, enum thread_state state)
 enum thread_state thread_get_state(const struct thread* thread)
 {
 	return thread->state;
+}
+
+v_addr_t thread_get_kstack_top(const struct thread* thread)
+{
+	return thread->kstack.sp + thread->kstack.size;
 }
 
 static void thread_set_running_vmm(struct thread* thread, struct vmm* vmm)

@@ -1,3 +1,4 @@
+#include <kernel/interrupt.h>
 #include <libk/libk.h>
 #include "gdt.h"
 #include "segment.h"
@@ -7,7 +8,11 @@ static struct tss tss;
 
 void tss_update(uint32_t esp)
 {
+	irq_disable();
+
 	tss.esp0 = esp;
+
+	irq_enable();
 }
 
 void tss_init(void)

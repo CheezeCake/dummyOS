@@ -89,11 +89,18 @@ static struct thread* next_thread(struct thread* prev_thr,
 
 	if (prev_thr)
 		prev_thr->cpu_context = prev_ctx; // update cpu_context
+
 	log_printf("switching from %s ", (prev_thr) ? prev_thr->name : NULL);
+	if (prev_thr && prev_thr->process)
+		log_printf("(pid=%d) ", prev_thr->process->pid);
 
 	struct thread* next = get_thread_list_entry(list_front(ready_queue));
-	log_printf("to %s\n", next->name);
 	list_pop_front(ready_queue);
+
+	log_printf("to %s ", next->name);
+	if (next->process)
+		log_printf("(pid=%d)", next->process->pid);
+	log_putchar('\n');
 
 	return next;
 }
@@ -120,8 +127,13 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 	irq_disable();
 
 	cur = current_thread;
-	next = next_thread(current_thread, cpu_ctx);
 
+	do {
+		next = next_thread(current_thread, cpu_ctx);
+	} while (process_signal_pending(next->process) && // deliver pending signal
+			 signal_handle(next) != 0);
+
+	// set current thread
 	if (current_thread && current_thread->state == THREAD_RUNNING)
 		sched_add_thread(current_thread);
 	set_current_thread(next);
@@ -274,7 +286,7 @@ static int sched_timer_callback(void* data)
 
 static void __sched_sleep()
 {
-	current_thread->state = THREAD_SLEEPING;
+	thread_set_state(current_thread, THREAD_SLEEPING);
 
 	kassert(thread_get_ref(current_thread) > 1 &&
 			"putting thread to sleep without taking ownership");

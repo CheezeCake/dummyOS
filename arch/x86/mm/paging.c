@@ -133,6 +133,7 @@ static void setup_temp_recursive_entry(p_addr_t pd)
 static void reset_temp_recursive_entry()
 {
 	clear_recursive_entry(get_page_directory(), TEMP_RECURSIVE_ENTRY_START);
+	invlpg(TEMP_RECURSIVE_ENTRY_START);
 }
 
 /**
@@ -218,7 +219,9 @@ int paging_map(p_addr_t paddr, v_addr_t vaddr, int prot)
 		invlpg((v_addr_t)pt);
 
 		memset(pt, 0, PAGE_SIZE);
-		vmm_sync_kernel_space(&pdi);
+
+		if (!vmm_is_userspace_address(vaddr))
+			vmm_sync_kernel_space(&pdi);
 	}
 
 	// a page frame is already mapped for the virtual page
@@ -257,11 +260,7 @@ int paging_unmap(v_addr_t vaddr)
 void paging_switch_cr3(p_addr_t cr3)
 {
 	log_printf("Switching cr3 (%p)!\n", (void*)cr3);
-	__asm__ volatile ("movl %0, %%eax\n"
-					  "movl %%eax, %%cr3"
-					  :
-					  : "m" (cr3)
-					  : "eax", "memory");
+	__asm__ volatile ("movl %%eax, %%cr3" : : "a" (cr3) : "memory");
 }
 
 int paging_sync_kernel_space(p_addr_t cr3, void* data)
@@ -305,6 +304,7 @@ static int init_pd_recursive_entry(p_addr_t pd)
 
 	err = paging_map(pd, pd_map, VMM_PROT_WRITE);
 	if (!err) {
+		memset((void*)pd_map, 0, PAGE_SIZE);
 		setup_recursive_entry((pde_t*)pd_map, pd);
 		err = paging_unmap(pd_map);
 	}
@@ -404,14 +404,31 @@ int paging_update_prot(v_addr_t page, int prot)
 	return 0;
 }
 
-/* #if 0 */
+// free page tables
+void paging_clear_userspace(p_addr_t cr3)
+{
+	setup_temp_recursive_entry(cr3);
+
+	pde_t* pd = get_temp_page_directory();
+
+	for (size_t i = 0; i < USER_SPACE_PD_ENTRIES; ++i) {
+		if (pd[i].present) {
+			memory_page_frame_free(pd_addr2p_addr(pd[i].address));
+			memset(&pd[i], 0, sizeof(pde_t));
+		}
+	}
+
+	reset_temp_recursive_entry();
+}
+
+#if 0
 void paging_dump(void)
 {
 	pde_t* pd = get_page_directory();
 
 	for (size_t i = 0; i < PAGE_DIRECTORY_ENTRY_COUNT; ++i) {
 		if (pd[i].present) {
-			log_printf("PD[%d]:[u=%d,w=%d]\n", (int)i, pd[i].user, pd[i].read_write);
+			log_printf("PD[%d]:[u=%d,w=%d](%p)\n", (int)i, pd[i].user, pd[i].read_write, pd_addr2p_addr(pd[i].address));
 			pte_t* pt = get_page_table(i);
 			for (size_t j = 0; j < PAGE_TABLE_ENTRY_COUNT; ++j) {
 				if (pt[j].present) {
@@ -426,4 +443,4 @@ void paging_dump(void)
 	}
 
 }
-/* #endif */
+#endif

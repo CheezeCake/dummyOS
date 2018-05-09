@@ -13,4 +13,6 @@ typedef uintptr_t v_addr_t; // virtual address
 
 typedef long long off_t;
 
+typedef int16_t pid_t;
+
 #endif
