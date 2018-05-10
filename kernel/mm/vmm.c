@@ -37,16 +37,18 @@ struct vmm* vmm_get_current_vmm(void)
 
 void vmm_switch_to(struct vmm* vmm)
 {
-	log_printf("%s(): switching from %p to %p\n", __func__, (void*)current_vmm,
-			   (void*)vmm);
+	if (vmm != current_vmm) {
+		log_printf("%s(): switching from %p to %p\n", __func__,
+				   (void*)current_vmm, (void*)vmm);
 
-	if (current_vmm)
-		vmm_unref(current_vmm);
+		if (current_vmm)
+			vmm_unref(current_vmm);
 
-	current_vmm = vmm;
-	vmm_ref(vmm);
+		current_vmm = vmm;
+		vmm_ref(vmm);
 
-	vmm_impl->switch_to(vmm);
+		vmm_impl->switch_to(vmm);
+	}
 }
 
 

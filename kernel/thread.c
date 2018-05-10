@@ -171,13 +171,8 @@ v_addr_t thread_get_kstack_top(const struct thread* thread)
 struct cpu_context* thread_switch_setup(struct thread* thread,
 										struct thread* prev)
 {
-	const struct vmm* current_vmm = vmm_get_current_vmm();
-
-	if (cpu_context_is_usermode(thread->cpu_context))
-	{
-		if (!prev || current_vmm != thread->process->vmm)
+	if (!prev || cpu_context_is_usermode(thread->cpu_context))
 			vmm_switch_to(thread->process->vmm);
-	}
 
 	return thread->cpu_context;
 }
