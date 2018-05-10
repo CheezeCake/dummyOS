@@ -168,34 +168,16 @@ v_addr_t thread_get_kstack_top(const struct thread* thread)
 	return thread->kstack.sp + thread->kstack.size;
 }
 
-static void thread_set_running_vmm(struct thread* thread, struct vmm* vmm)
-{
-	if (thread->running_vmm)
-		vmm_unref(thread->running_vmm);
-
-	thread->running_vmm = vmm;
-
-	if (vmm)
-		vmm_ref(vmm);
-}
-
 struct cpu_context* thread_switch_setup(struct thread* thread,
 										struct thread* prev)
 {
+	const struct vmm* current_vmm = vmm_get_current_vmm();
+
 	if (cpu_context_is_usermode(thread->cpu_context))
 	{
-		thread_set_running_vmm(thread, thread->process->vmm);
-
-		if (!prev || prev->running_vmm != thread->process->vmm)
+		if (!prev || current_vmm != thread->process->vmm)
 			vmm_switch_to(thread->process->vmm);
 	}
-	else {
-		if (prev)
-			thread_set_running_vmm(thread, prev->running_vmm);
-	}
-
-	if (prev)
-		thread_set_running_vmm(prev, NULL);
 
 	return thread->cpu_context;
 }
