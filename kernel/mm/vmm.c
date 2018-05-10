@@ -138,14 +138,10 @@ static void vmm_destroy(struct vmm* vmm)
 void vmm_ref(struct vmm* vmm)
 {
 	refcount_inc(&vmm->refcnt);
-	log_printf("%s, ref %p : %d\n", __func__, (void*)vmm,
-			   refcount_get(&vmm->refcnt));
 }
 
 void vmm_unref(struct vmm* vmm)
 {
-	log_printf("%s, ref %p : %d\n", __func__, (void*)vmm,
-			   refcount_get(&vmm->refcnt) - 1);
 	if (refcount_dec(&vmm->refcnt) == 0)
 		vmm_destroy(vmm);
 }
