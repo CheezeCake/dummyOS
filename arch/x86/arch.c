@@ -4,6 +4,7 @@
 #include <kernel/kernel_image.h>
 #include <kernel/kheap.h>
 #include <kernel/mm/memory.h>
+#include <kernel/multiboot.h>
 #include <kernel/panic.h>
 #include <kernel/time/time.h>
 #include "exception.h"
@@ -19,12 +20,21 @@
 
 #define TICK_INTERVAL_IN_MS 10
 
-extern void handle_page_fault(int exception, struct cpu_context* ctx);
+void kernel_main(size_t mem_size);
+
+void handle_page_fault(int exception, struct cpu_context* ctx);
 
 static void default_exception_handler(int exception, struct cpu_context* ctx)
 {
 	log_e_printf("\nexception : %d", exception);
 	PANIC("exception");
+}
+
+void __kernel_main(const multiboot_info_t* mbi)
+{
+	size_t mem_size = (mbi->mem_upper << 10) + (1 << 20);
+	log_printf("MEM:%p\n", (void*)(mbi->mem_upper));
+	kernel_main(mem_size);
 }
 
 int arch_init(void)

@@ -8,7 +8,6 @@
 #include <kernel/kernel_image.h>
 #include <kernel/kheap.h>
 #include <kernel/log.h>
-#include <kernel/multiboot.h>
 #include <kernel/process.h>
 #include <kernel/sched/idle.h>
 #include <kernel/sched/sched.h>
@@ -37,19 +36,19 @@ static void register_filesystems(void)
 	kassert(ramfs_init_and_register() == 0);
 }
 
-void kernel_main(multiboot_info_t* mbi)
+void kernel_main(size_t mem_size)
 {
 	terminal_init();
 
 	struct cpu_info* cpu = cpu_info();
 
 	terminal_puts("Welcome to dummyOS!\n");
-	terminal_printf("CPU: %s\tRAM: %dMB (0x%x)\n", cpu->cpu_vendor,
-			(mbi->mem_upper >> 10) + 1, mbi->mem_upper);
+	terminal_printf("CPU: %s\tRAM: %dMB (%p)\n", cpu->cpu_vendor,
+			(unsigned int)(mem_size >> 20), (void*)mem_size);
 
 
 	kassert(arch_init() == 0);
-	mm_init((mbi->mem_upper << 10) + (1 << 20));
+	mm_init(mem_size);
 
 	register_filesystems();
 	kassert(vfs_init() == 0);

@@ -125,7 +125,7 @@ higher_half:
 	pushl %ebx
 
 	# call the C main function
-	call kernel_main
+	call __kernel_main
 
 	cli # disable interrupts
 	hlt
