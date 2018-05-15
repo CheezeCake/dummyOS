@@ -34,6 +34,10 @@
 .endm
 
 .macro cpu_context_restore
+	pushl %esp
+	call thread_switch_setup
+	addl $4, %esp
+
 	popl %eax
 	popl %ebx
 	popl %ecx

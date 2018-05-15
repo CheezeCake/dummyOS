@@ -76,8 +76,12 @@ int thread_get_ref(const struct thread* thread);
 void thread_set_state(struct thread* thread, enum thread_state state);
 enum thread_state thread_get_state(const struct thread* thread);
 
-struct cpu_context* thread_switch_setup(struct thread* thread,
-										struct thread* prev);
+/**
+ * Switches to the current thread's vmm if we are switching to user mode.
+ *
+ * @param cpu_ctx the context we are switching to
+ */
+void thread_switch_setup(struct cpu_context* cpu_ctx);
 
 v_addr_t thread_get_kstack_top(const struct thread* thread);
 
