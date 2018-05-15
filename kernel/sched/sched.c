@@ -135,8 +135,10 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 	log_sched_switch(cur, next);
 
 	// set current thread
-	if (current_thread && current_thread->state == THREAD_RUNNING)
+	if (current_thread && current_thread->state == THREAD_RUNNING) {
 		sched_add_thread(current_thread);
+		thread_unref(current_thread);
+	}
 	set_current_thread(next);
 
 	irq_enable();
