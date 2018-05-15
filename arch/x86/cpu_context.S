@@ -19,15 +19,6 @@ cpu_context_preempt:
 
 	pushl %eax
 	call cpu_context_switch
-	/* movl %eax, %esp /1* switch to next thread context *1/ */
-
-	/* /1* update tss *1/ */
-	/* pushl %esp */
-	/* call cpu_context_update_tss */
-	/* addl $4, %esp */
-
-	/* cpu_context_restore */
-	/* iret */
 
 return:
 	/* return to caller */
