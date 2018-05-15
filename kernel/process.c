@@ -115,6 +115,7 @@ int process_fork(struct process* proc, const struct thread* fork_thread,
 	if (err)
 		goto fail_thr_clone;
 	process_add_thread(new, *child_thread);
+	thread_unref(*child_thread);
 
 	// TODO: copy root, cwd, file descriptors, ...
 
