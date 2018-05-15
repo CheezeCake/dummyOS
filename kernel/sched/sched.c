@@ -90,17 +90,8 @@ static struct thread* next_thread(struct thread* prev_thr,
 	if (prev_thr)
 		prev_thr->cpu_context = prev_ctx; // update cpu_context
 
-	log_printf("switching from %s ", (prev_thr) ? prev_thr->name : NULL);
-	if (prev_thr && prev_thr->process)
-		log_printf("(pid=%d) ", prev_thr->process->pid);
-
 	struct thread* next = get_thread_list_entry(list_front(ready_queue));
 	list_pop_front(ready_queue);
-
-	log_printf("to %s ", next->name);
-	if (next->process)
-		log_printf("(pid=%d)", next->process->pid);
-	log_putchar('\n');
 
 	return next;
 }
@@ -119,6 +110,14 @@ static inline void set_current_thread(struct thread* thr)
 	thread_set_state(thr, THREAD_RUNNING);
 }
 
+static void log_sched_switch(const struct thread* from, const struct thread* to)
+{
+	log_printf("switching from %s (%p, pid=%d) ", (from) ? from ->name : NULL,
+			   (void*)from, (from && from->process) ? from->process->pid : 0);
+	log_printf("to %s (%p, pid=%d)\n", (to) ? to ->name : NULL,
+			   (void*)to, (to && to->process) ? to->process->pid : 0);
+}
+
 struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 {
 	struct thread* cur;
@@ -132,6 +131,8 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 		next = next_thread(current_thread, cpu_ctx);
 	} while (process_signal_pending(next->process) && // deliver pending signal
 			 signal_handle(next) != 0);
+
+	log_sched_switch(cur, next);
 
 	// set current thread
 	if (current_thread && current_thread->state == THREAD_RUNNING)
