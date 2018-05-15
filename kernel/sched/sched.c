@@ -140,7 +140,7 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 
 	irq_enable();
 
-	return thread_switch_setup(next, cur);
+	return next->cpu_context;
 }
 
 struct cpu_context* sched_schedule(struct cpu_context* cpu_ctx)
