@@ -268,7 +268,7 @@ static inline bool signal_is(uint32_t sig, const struct signal_manager* sigm,
 							 sighandler_t hdlr)
 {
 	const struct sigaction* act = &sigm->actions[sig - 1];
-	return (sig_is_settable(sig) && sigaction_is(act, hdlr));
+	return sigaction_is(act, hdlr);
 }
 
 static inline bool signal_is_dlf(uint32_t sig, const struct signal_manager* sigm)
@@ -281,8 +281,14 @@ static inline bool signal_is_ign(uint32_t sig, const struct signal_manager* sigm
 	return signal_is(sig, sigm, SIG_IGN);
 }
 
-static int handle_dfl(const struct thread* thr)
+static int handle_dfl(uint32_t sig, const struct thread* thr)
 {
+	if (sig == SIGCHLD) {
+		// SIGCHLD default action is to ignore the signal
+		return 0;
+	}
+	// TODO: stop/cont
+
 	process_exit(thr->process, -1);
 	return -EAGAIN;
 }
@@ -299,7 +305,7 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 	if (signal_is_ign(sig, sigm))
 		return 0;
 	if (signal_is_dlf(sig, sigm))
-		return handle_dfl(thr);
+		return handle_dfl(sig, thr);
 
 	__irq_disable();
 
