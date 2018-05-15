@@ -118,6 +118,26 @@ static void queued_siginfo_init(queued_siginfo_t* qsinfo, uint32_t sig,
 	list_node_init(&qsinfo->s_queue);
 }
 
+static int queued_siginfo_create(uint32_t sig, void* addr,
+								  const struct process* sender,
+								  queued_siginfo_t** result)
+{
+	queued_siginfo_t* qsinfo = kmalloc(sizeof(queued_siginfo_t));
+	if (!qsinfo)
+		return -ENOMEM;
+
+	queued_siginfo_init(qsinfo, sig, addr, sender);
+
+	*result = qsinfo;
+
+	return 0;
+}
+
+static void queued_siginfo_destroy(queued_siginfo_t* qsinfo)
+{
+	kfree(qsinfo);
+}
+
 int signal_init(struct signal_manager* sigm)
 {
 	memset(sigm, 0, sizeof(struct signal_manager));
@@ -154,8 +174,24 @@ void signal_copy(struct signal_manager* dst, const struct signal_manager* src)
 	list_init(&dst->handled_stack);
 }
 
+void signal_reset(struct signal_manager* sigm)
+{
+	list_node_t* it;
+	list_node_t* next;
+
+	list_foreach_safe(&sigm->sig_queue, it, next) {
+		queued_siginfo_t* qsinfo = list_entry(it, queued_siginfo_t, s_queue);
+		kfree(qsinfo);
+	}
+	list_foreach_safe(&sigm->handled_stack, it, next) {
+		queued_siginfo_t* qsinfo = list_entry(it, queued_siginfo_t, s_queue);
+		kfree(qsinfo);
+	}
+}
+
 void signal_destroy(struct signal_manager* sigm)
 {
+	signal_reset(sigm);
 	kfree(sigm);
 }
 
@@ -167,14 +203,14 @@ bool signal_pending(const struct signal_manager* sigm)
 int signal_send(struct signal_manager* sigm, uint32_t sig, void* addr,
 				const struct process* sender)
 {
-	queued_siginfo_t* qsinfo = kmalloc(sizeof(queued_siginfo_t));
-	if (!qsinfo)
-		return -ENOMEM;
+	queued_siginfo_t* qsinfo;
+	int err;
 
-	queued_siginfo_init(qsinfo, sig, addr, sender);
-	list_push_back(&sigm->sig_queue, &qsinfo->s_queue);
+	err = queued_siginfo_create(sig, addr, sender, &qsinfo);
+	if (!err)
+		list_push_back(&sigm->sig_queue, &qsinfo->s_queue);
 
-	return 0;
+	return err;
 }
 
 static void signal_reset_handler(struct signal_manager* sigm, uint32_t sig)
@@ -201,11 +237,6 @@ siginfo_t* signal_pop(struct signal_manager* sigm)
 static inline queued_siginfo_t* siginfo_get_queued_siginfo(siginfo_t* sinfo)
 {
 	return container_of(sinfo, queued_siginfo_t, sinfo);
-}
-
-static void queued_siginfo_destroy(queued_siginfo_t* qsinfo)
-{
-	kfree(qsinfo);
 }
 
 extern const uint8_t __sig_tramp_start;
