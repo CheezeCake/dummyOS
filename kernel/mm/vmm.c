@@ -18,7 +18,7 @@ static struct vmm_interface* vmm_impl = NULL;
 static LIST_DEFINE(vmm_list);
 
 /** the vmm context we are currently running on */
-static struct vmm* current_vmm;
+static struct vmm* current_vmm = NULL;
 
 int vmm_interface_register(struct vmm_interface* impl)
 {
