@@ -126,11 +126,14 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 	irq_disable();
 
 	cur = current_thread;
+	next = next_thread(current_thread, cpu_ctx);
 
-	do {
+	while (process_signal_pending(next->process) && // deliver pending signal
+		   signal_handle(next) != 0)
+	{
+		sched_add_thread(next); // put "next" thread back in the queue
 		next = next_thread(current_thread, cpu_ctx);
-	} while (process_signal_pending(next->process) && // deliver pending signal
-			 signal_handle(next) != 0);
+	}
 
 	log_sched_switch(cur, next);
 
