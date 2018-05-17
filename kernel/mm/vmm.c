@@ -20,6 +20,8 @@ static LIST_DEFINE(vmm_list);
 /** the vmm context we are currently running on */
 static struct vmm* current_vmm = NULL;
 
+v_addr_t __fixup_addr = 0;
+
 int vmm_interface_register(struct vmm_interface* impl)
 {
 	if (vmm_impl)
@@ -146,23 +148,20 @@ void vmm_unref(struct vmm* vmm)
 		vmm_destroy(vmm);
 }
 
-static inline struct vmm* get_current_vmm(void)
+void vmm_uaccess_setup(void)
 {
-	const struct thread* thr = sched_get_current_thread();
-	return (thr) ? thr->process->vmm : NULL;
+	const struct thread* thread = sched_get_current_thread();
+	if (thread->type == UTHREAD)
+		vmm_switch_to(thread->process->vmm);
 }
 
 int vmm_sync_kernel_space(void* data)
 {
-	struct vmm* current = get_current_vmm();
 	list_node_t* it;
-
-	if (!current)
-		return 0;
 
 	list_foreach(&vmm_list, it) {
 		struct vmm* vmm = list_entry(it, struct vmm, vmm_list_node);
-		if (current != vmm) {
+		if (current_vmm != vmm) {
 			int err = vmm_impl->sync_kernel_space(vmm, data);
 			if (err) {
 				log_e_printf("%s: failed to sync kernel mapping (data=%p),"
@@ -252,15 +251,16 @@ int vmm_destroy_kernel_mapping(v_addr_t addr)
 	return vmm_find_and_destroy_mapping(&kernel_mappings, addr);
 }
 
-int vmm_clone_current(struct vmm* clone)
+int vmm_clone(struct vmm* vmm, struct vmm* clone)
 {
-	struct vmm* current = get_current_vmm();
 	list_node_t* it;
 	int err;
 
 	kassert(list_empty(&clone->mappings));
 
-	list_foreach(&current->mappings, it) {
+	vmm_switch_to(vmm);
+
+	list_foreach(&vmm->mappings, it) {
 		const mapping_t* src = list_entry(it, mapping_t, m_list);
 		mapping_t* cpy;
 		err = mapping_copy_create(src, &cpy);
@@ -290,9 +290,10 @@ static inline bool range_in_userspace(v_addr_t start, size_t size)
 
 int vmm_create_user_mapping(v_addr_t addr, size_t size, int prot, int flags)
 {
-	struct vmm* current = get_current_vmm();
 	mapping_t* mapping;
 	int err;
+
+	vmm_uaccess_setup();
 
 	size = page_align_up(size);
 	if (!range_in_userspace(addr, size))
@@ -300,24 +301,23 @@ int vmm_create_user_mapping(v_addr_t addr, size_t size, int prot, int flags)
 
 	err = vmm_create_mapping(addr, size, prot | VMM_PROT_USER, flags, &mapping);
 	if (!err)
-		add_mapping(&current->mappings, mapping);
+		add_mapping(&current_vmm->mappings, mapping);
 
 	return err;
 }
 
 int vmm_destroy_user_mapping(v_addr_t addr)
 {
-	struct vmm* current = get_current_vmm();
-
 	if (!vmm_is_userspace_address(addr))
 		return -EINVAL;
 
-	return vmm_find_and_destroy_mapping(&current->mappings, addr);
+	vmm_uaccess_setup();
+
+	return vmm_find_and_destroy_mapping(&current_vmm->mappings, addr);
 }
 
 int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 {
-	struct vmm* current = get_current_vmm();
 	mapping_t* mapping = NULL;
 	v_addr_t ext_start;
 	int err;
@@ -325,7 +325,9 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 	if (!vmm_is_userspace_address(addr))
 		return -EINVAL;
 
-	mapping = find_mapping(&current->mappings, addr);
+	vmm_uaccess_setup();
+
+	mapping = find_mapping(&current_vmm->mappings, addr);
 	if (!mapping)
 		return -EINVAL;
 
@@ -391,15 +393,19 @@ static int handle_cow_fault(mapping_t* mapping, int flags)
 	return err;
 }
 
-void vmm_handle_page_fault(v_addr_t fault_addr, int flags)
+v_addr_t vmm_handle_page_fault(v_addr_t fault_addr, int flags)
 {
 	log_e_printf("#PF: %p (flags=%p)\n", (void*)fault_addr,
 				 (void*)(v_addr_t)flags);
 
-	struct vmm* current = get_current_vmm();
-	mapping_t* mapping = find_mapping(&current->mappings, fault_addr);
+	mapping_t* mapping = find_mapping(&current_vmm->mappings, fault_addr);
 
 	if (!mapping) {
+		if (!(flags & VMM_FAULT_USER) && __fixup_addr) {
+			v_addr_t ret = __fixup_addr;
+			__fixup_addr = 0;
+			return ret;
+		}
 		// sigsegv
 		PANIC("page fault");
 	}
@@ -423,5 +429,5 @@ void vmm_handle_page_fault(v_addr_t fault_addr, int flags)
 	}
 
 	/* PANIC("default"); */
-
+	return 0;
 }

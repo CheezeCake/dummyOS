@@ -5,6 +5,7 @@
 #include <kernel/errno.h>
 #include <kernel/exec.h>
 #include <kernel/sched/sched.h>
+#include <kernel/mm/uaccess.h>
 #include <kernel/mm/vmm.h>
 #include <libk/libk.h>
 
@@ -109,9 +110,26 @@ fail_lookup:
 	return err;
 }
 
+int copy_str_array_from_user(char*** copy, char* const __user array[])
+{
+	// TODO: copy_from_user
+}
+
 int sys_execve(const char* __user path, char* const __user argv[],
 			   char* const __user envp[])
 {
-	// copy_from_user args
-	return exec(NULL, NULL, NULL);
+	char* kpath;
+	char** kargv;
+	char** kenvp;
+	int err;
+
+	kpath = strndup_from_user(path, VFS_PATH_MAX_LEN);
+	if (!kpath)
+		return -EFAULT;
+
+	err = copy_str_array_from_user(&kargv, argv);
+	if (!err)
+		err = copy_str_array_from_user(&kenvp, envp);
+
+	return (err) ? err : exec(kpath, kargv, kenvp);
 }
