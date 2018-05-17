@@ -11,8 +11,10 @@ struct cpu_info* cpu_info(void)
 	uint32_t* ecx = (uint32_t*)(x86_cpu_vendor_str + 8);
 
 	__asm__ ("xorl %%eax, %%eax\n"
-			"cpuid\n"
-			: "=b" (*ebx), "=d" (*edx), "=c" (*ecx));
+			 "cpuid\n"
+			 : "=b" (*ebx), "=d" (*edx), "=c" (*ecx)
+			 :
+			 : "eax");
 
 	return &x86_cpu_info;
 }
