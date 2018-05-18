@@ -126,7 +126,7 @@ static int copy_to_user_args(const struct user_args* args,
 }
 
 /**
- * Copies the environment variables array (envp), the arguments array (argv) 
+ * Copies the environment variables array (envp), the arguments array (argv)
  * and the argument count (argc) to the user stack
  */
 static int setup_user_args(char* __user stack_top, size_t stack_size,
