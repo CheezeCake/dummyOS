@@ -1,5 +1,4 @@
 #include <kernel/errno.h>
-#include <kernel/exec.h>
 #include <kernel/interrupt.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
