@@ -12,7 +12,7 @@
 static LIST_DEFINE(kernel_mappings);
 
 /** arch specific implementation of the vmm interface */
-static struct vmm_interface* vmm_impl = NULL;
+static const struct vmm_interface* vmm_impl = NULL;
 
 /** created vmm list */
 static LIST_DEFINE(vmm_list);
@@ -20,7 +20,7 @@ static LIST_DEFINE(vmm_list);
 /** the vmm context we are currently running on */
 static struct vmm* current_vmm = NULL;
 
-int vmm_interface_register(struct vmm_interface* impl)
+int vmm_interface_register(const struct vmm_interface* impl)
 {
 	if (vmm_impl)
 		return -EEXIST;

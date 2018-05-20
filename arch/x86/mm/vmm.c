@@ -158,7 +158,7 @@ static int update_mapping_prot(const mapping_t* mapping)
 	return 0;
 }
 
-static struct vmm_interface impl = {
+static const struct vmm_interface impl = {
 	.create = create,
 	.destroy = destroy,
 	.switch_to = switch_to,

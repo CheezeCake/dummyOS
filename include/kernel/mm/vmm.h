@@ -55,7 +55,7 @@ struct vmm_interface
 	int (*update_mapping_prot)(const mapping_t* mapping);
 };
 
-int vmm_interface_register(struct vmm_interface* vmm_interface);
+int vmm_interface_register(const struct vmm_interface* vmm_interface);
 
 
 /**
