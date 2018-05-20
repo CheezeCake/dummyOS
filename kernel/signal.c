@@ -1,5 +1,4 @@
 #include <kernel/errno.h>
-#include <kernel/interrupt.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
 #include <kernel/signal.h>
@@ -324,11 +323,7 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 	if (signal_is_dlf(sig, sigm))
 		return handle_dfl(sig, thr);
 
-	__irq_disable();
-
 	kassert(cpu_context_is_usermode(thr->cpu_context));
-	// TODO: remove
-	vmm_switch_to(thr->process->vmm);
 
 	memcpy(sh_ctx, thr->cpu_context, cpu_context_sizeof());
 

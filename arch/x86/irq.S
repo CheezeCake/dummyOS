@@ -21,6 +21,11 @@
 
 	pushl %esp /* saved cpu_context */
 	call sched_schedule
+	addl $4, %esp
+
+	cmpl %eax, %esp
+	je 1f /* same thread */
+
 	movl %eax, %esp /* switch to next thread context */
 
 	/* update tss */

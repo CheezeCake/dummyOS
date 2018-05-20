@@ -103,17 +103,6 @@ int vmm_create(struct vmm** result)
 	return 0;
 }
 
-static int vmm_destroy_mapping(mapping_t* mapping)
-{
-	int err;
-
-	err = vmm_impl->destroy_mapping(mapping);
-	if (!err)
-		mapping_destroy(mapping);
-
-	return err;
-}
-
 static void vmm_destroy_mappings(list_t* mappings)
 {
 	list_node_t* it;
@@ -123,7 +112,7 @@ static void vmm_destroy_mappings(list_t* mappings)
 		mapping_t* mapping = list_entry(it, mapping_t, m_list);
 		list_erase(it);
 
-		vmm_destroy_mapping(mapping);
+		mapping_destroy(mapping);
 	}
 
 }
@@ -194,6 +183,17 @@ static int vmm_create_mapping(v_addr_t start, size_t size, int prot, int flags,
 	}
 
 	*result = mapping;
+
+	return err;
+}
+
+static int vmm_destroy_mapping(mapping_t* mapping)
+{
+	int err;
+
+	err = vmm_impl->destroy_mapping(mapping);
+	if (!err)
+		mapping_destroy(mapping);
 
 	return err;
 }

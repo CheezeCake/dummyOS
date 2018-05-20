@@ -45,7 +45,7 @@ static ssize_t arg_array_size(char* const __user array[])
 	return size;
 }
 
-static ssize_t copy_from_user_args(struct user_args* result,
+static int copy_from_user_args(struct user_args* result,
 								   char* const __user array[])
 {
 	struct arg_str* arg_str_array = NULL;
@@ -77,21 +77,24 @@ static ssize_t copy_from_user_args(struct user_args* result,
 	result->array = arg_str_array;
 	result->size = size;
 
-	return size;
+	return 0;
 }
 
 static inline size_t user_args_data_size(const struct user_args* args)
 {
 	size_t s = 0;
-	for (size_t i = 0; i < args->size; ++i)
-		s += args->array[i].len;
+
+	if (args) {
+		for (size_t i = 0; i < args->size; ++i)
+			s += args->array[i].len;
+	}
 
 	return s;
 }
 
 static inline size_t user_args_array_size(const struct user_args* args)
 {
-	return (args->size * sizeof(char**));
+	return (args) ? (args->size * sizeof(char**)) : 0;
 }
 
 static int copy_to_user_args(const struct user_args* args,
@@ -108,6 +111,9 @@ static int copy_to_user_args(const struct user_args* args,
 		return -ENOMEM;
 
 	*args_base = array;
+
+	if (!args)
+		return 0;
 
 	for (size_t i = 0; i < args->size; ++i) {
 		str -= args->array[i].len;
@@ -129,25 +135,33 @@ static int copy_to_user_args(const struct user_args* args,
  * Copies the environment variables array (envp), the arguments array (argv)
  * and the argument count (argc) to the user stack
  */
-static int setup_user_args(char* __user stack_top, size_t stack_size,
+static int setup_user_args(char** __user stack_top, size_t stack_size,
 						   const struct user_args* argv,
 						   const struct user_args* envp)
 {
-	int argc = argv->size;
-	char* __user top = stack_top;
-	char* __user stack_bottom = stack_top - stack_size;
+	int argc = (argv) ? argv->size : 0;
+	char* argv_ptr = NULL;
+	char* envp_ptr = NULL;
+	char* __user top = *stack_top;
+	char* __user stack_bottom = *stack_top - stack_size;
 	int err;
 
 	err = copy_to_user_args(envp, top, stack_bottom, &top);
 	if (err)
 		return err;
+	argv_ptr = top;
 
 	err = copy_to_user_args(argv, top, stack_bottom, &top);
 	if (err)
 		return err;
+	envp_ptr = top;
 
-	top = (char*)align_down((v_addr_t)top, sizeof(int));
+	top = (char*)align_down((v_addr_t)top, sizeof(char**));
+	err = copy_to_user(top - sizeof(char**), &envp_ptr, sizeof(char**));
+	err = copy_to_user(top - sizeof(char**), &argv_ptr, sizeof(char**));
 	err = copy_to_user(top - sizeof(int), &argc, sizeof(int));
+
+	*stack_top = top;
 
 	return err;
 }
@@ -191,7 +205,6 @@ int exec(const char* path, const struct user_args* argv,
 	if (err)
 		return err;
 
-	log_puts("exec vmm_switch_to new\n");
 	process_lock(proc, thread);
 	proc->vmm = new_proc->vmm;
 	vmm_switch_to(new_proc->vmm);
@@ -216,9 +229,11 @@ int exec(const char* path, const struct user_args* argv,
 	if (err)
 		goto fail_stack;
 
+	v_addr_t stack_top = stack_bottom + stack_size - 1;
+	err = setup_user_args((char**)&stack_top, stack_size, argv, envp);
+
 	struct thread* new_proc_main_thr;
-	err = thread_create(entry_point, stack_bottom + stack_size - 1,
-						&new_proc_main_thr);
+	err = thread_create(entry_point, stack_top, &new_proc_main_thr);
 	if (err) {
 		// XXX:
 	}
@@ -254,7 +269,6 @@ fail_lookup:
 	return err;
 }
 
-// TODO: add sys_execve to the syscall table
 int sys_execve(const char* __user path, char* const __user argv[],
 			   char* const __user envp[])
 {

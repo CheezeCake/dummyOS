@@ -15,6 +15,8 @@ void sys_sigreturn(void);
 int sys_kill(pid_t pid, uint32_t sig);
 pid_t sys_wait(int* __user status);
 pid_t sys_waitpid(pid_t pid, int* __user status, int options);
+int sys_execve(const char* __user path, char* const __user argv[],
+			   char* const __user envp[]);
 
 
 #define __syscall(s) ((v_addr_t)s)
@@ -31,6 +33,7 @@ v_addr_t syscall_table[SYSCALL_NR_COUNT] = {
 	[NR_kill]		= __syscall(sys_kill),
 	[NR_wait]		= __syscall(sys_wait),
 	[NR_waitpid]	= __syscall(sys_waitpid),
+	[NR_execve]		= __syscall(sys_execve),
 };
 
 #include <kernel/log.h>

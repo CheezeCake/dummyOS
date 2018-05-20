@@ -58,14 +58,12 @@ size_t cpu_context_sizeof(void)
 
 void cpu_context_update_tss(const struct cpu_context* cpu_context)
 {
-	if (cpu_context_is_usermode(cpu_context)) {
-		/*
-		 * The cpu_context is saved on the thread's kernel stack.
-		 * Make the TSS esp0 point just above the currently saved context
-		 * that will be "consumed" by cpu_context_switch.
-		 */
-		tss_update((v_addr_t)cpu_context + sizeof(struct cpu_context));
-	}
+	/*
+	 * The cpu_context is saved on the thread's kernel stack.
+	 * Make the TSS esp0 point just above the currently saved context
+	 * that will be "consumed" by cpu_context_switch.
+	 */
+	tss_update((v_addr_t)cpu_context + sizeof(struct cpu_context));
 }
 
 
