@@ -92,24 +92,26 @@ fixup:
 	return -EFAULT;
 }
 
-char* strndup_from_user(const char* __user str, ssize_t n)
+int strndup_from_user(const char* __user str, ssize_t n, char** dup)
 {
 	char* copy;
 	ssize_t size;
 
 	size = strnlen_user(str, n);
 	if (size <= 0)
-		return NULL;
+		return size;
 
 	copy = kmalloc(size);
 	if (!copy)
-		return NULL;
+		return -ENOMEM;
 
 	size = strncpy_from_user(copy, str, size);
 	if (size < 0) {
 		kfree(copy);
-		return NULL;
+		return size;
 	}
 
-	return copy;
+	*dup = copy;
+
+	return 0;
 }

@@ -3,17 +3,19 @@
 
 #include <kernel/types.h>
 
-struct arg_str
+typedef struct user_arg
 {
 	char* str;
 	size_t len;
-};
+} user_arg_t;
 
-struct user_args
+typedef struct user_args
 {
-	struct arg_str* array;
+	user_arg_t* args;
 	size_t size;
-};
+} user_args_t;
+
+#define USER_ARGS_EMPTY { .args = NULL, .size = 0 }
 
 int exec(const char* path, const struct user_args* argv,
 		 const struct user_args* envp);

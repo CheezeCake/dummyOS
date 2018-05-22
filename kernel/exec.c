@@ -14,156 +14,226 @@
 
 #include <kernel/log.h>
 
-static void free_arg_str_array(struct arg_str* array, size_t size)
+int user_args_init(user_args_t* user_args, size_t size)
 {
-	for (size_t i = 0; i < size; ++i)
-		kfree(array[i].str);
+	user_arg_t* args = NULL;
 
-	kfree(array);
+	if (size > 0) {
+		args = kcalloc(size, sizeof(user_arg_t));
+		if (!args)
+			return -ENOMEM;
+	}
+
+	user_args->args = args;
+	user_args->size = size;
+
+	return 0;
 }
 
-static inline void free_user_args(struct user_args* uargs)
+void user_args_reset(user_args_t* user_args)
 {
-	free_arg_str_array(uargs->array, uargs->size);
+	if (user_args->args)
+		kfree(user_args->args);
+
+	memset(user_args, 0, sizeof(user_args_t));
 }
 
-/**
- * Returns the argument array size (including the last, "NULL" element)
- */
-static ssize_t arg_array_size(char* const __user array[])
+int user_args_set_arg(user_args_t* user_args, size_t i, char* str)
 {
-	char* str = NULL;
+	if (i >= user_args->size)
+		return -EINVAL;
+
+	user_args->args[i].str = str;
+	user_args->args[i].len = strlen(str);
+
+	return 0;
+}
+
+static inline const char* user_args_get_arg(const user_args_t* user_args,
+											size_t i)
+{
+	return (i < user_args->size) ? user_args->args[i].str : NULL;
+}
+
+static ssize_t user_args_size_from_user(char* const __user args[])
+{
 	ssize_t size = 0;
 
-	do {
-		if (copy_from_user(&str, &array[size], sizeof(char*)) != 0)
-			return -EFAULT;
-
-		++size;
-	} while (str);
+	if (args) {
+		for (; args[size]; ++size) { }
+	}
 
 	return size;
 }
 
-static int copy_from_user_args(struct user_args* result,
-								   char* const __user array[])
+static size_t user_args_data_size(const user_args_t* user_args)
 {
-	struct arg_str* arg_str_array = NULL;
-	ssize_t size = 0;
+	size_t size = 0;
 
-	if (array) {
-		size = arg_array_size(array);
+	for (size_t i = 0; i < user_args->size; ++i)
+		size += user_args->args[i].len + 1;
+
+	return size;
+}
+
+static inline size_t user_args_array_size(const user_args_t* user_args)
+{
+	return ((user_args->size + 1) * sizeof(char*));
+}
+
+static int user_args_copy_from_user(char* const __user args[],
+									user_args_t* user_args)
+{
+	ssize_t size = 0;
+	char* str_copy;
+	int err;
+
+	if (args) {
+		size = user_args_size_from_user(args);
 		if (size < 0)
 			return -EFAULT;
-
-		arg_str_array = kcalloc(size, sizeof(struct arg_str));
-		if (!arg_str_array)
-			return -ENOMEM;
-
-		for (size_t i = 0; i < size - 1; ++i) {
-			char* str_copy = strndup_from_user(array[i], 1024);
-			if (!str_copy) {
-				free_arg_str_array(arg_str_array, i);
-				return -EFAULT;
-			}
-
-			arg_str_array[i].str = str_copy;
-			arg_str_array[i].len = strlen(str_copy);;
-		}
-
-		memset(&arg_str_array[size - 1], 0, sizeof(struct arg_str));
 	}
 
-	result->array = arg_str_array;
-	result->size = size;
+	err = user_args_init(user_args, size);
+	if (err)
+		return err;
+
+	for (size_t i = 0; i < size; ++i) {
+		err = strndup_from_user(args[i], 1024, &str_copy);
+		if (err) {
+			user_args_reset(user_args);
+			return err;
+		}
+
+		user_args_set_arg(user_args, i, str_copy);
+	}
 
 	return 0;
 }
 
-static inline size_t user_args_data_size(const struct user_args* args)
+static int user_args_copy_to_user(const user_args_t* user_args,
+								  v_addr_t __user stack_top, size_t stack_size,
+								  v_addr_t* args)
 {
-	size_t s = 0;
-
-	if (args) {
-		for (size_t i = 0; i < args->size; ++i)
-			s += args->array[i].len;
-	}
-
-	return s;
-}
-
-static inline size_t user_args_array_size(const struct user_args* args)
-{
-	return (args) ? (args->size * sizeof(char**)) : 0;
-}
-
-static int copy_to_user_args(const struct user_args* args,
-							 char* __user stack_top, char* __user stack_bottom,
-							 char** args_base)
-{
-	char* __user str = stack_top;
-	char* __user array = stack_top - user_args_data_size(args) -
-		user_args_array_size(args);
+	v_addr_t data = stack_top - user_args_data_size(user_args);
+	v_addr_t array = data - user_args_array_size(user_args);
 	int err;
 
-	array = (char*)align_down((v_addr_t)array, sizeof(char*));
-	if (array < stack_bottom)
+	array = align_down(array, _Alignof(char**));
+
+	if (array + stack_size < stack_top)
 		return -ENOMEM;
 
-	*args_base = array;
+	for (size_t i = 0; i < user_args->size; ++i) {
+		size_t len = user_args->args[i].len + 1; // strlen + '\0'
 
-	if (!args)
-		return 0;
-
-	for (size_t i = 0; i < args->size; ++i) {
-		str -= args->array[i].len;
-		if (str < stack_bottom)
-			return -ENOMEM;
-
-		err = copy_to_user(str, args->array[i].str, args->array[i].len);
+		err = copy_to_user((void*)data, user_args->args[i].str, len);
+		if (err)
+			return err;
+		err = copy_to_user(&((char**)array)[i], &data, sizeof(char*));
 		if (err)
 			return err;
 
-		const char* str_kptr = str;
-		copy_to_user(&array[i], &str_kptr, sizeof(char*));
+		data += len;
 	}
+
+	// last element (NULL)
+	err = copy_to_user(&((char**)array)[user_args->size], &(char*){NULL},
+					   sizeof(char*));
+
+	*args = array;
 
 	return 0;
 }
 
-/**
- * Copies the environment variables array (envp), the arguments array (argv)
- * and the argument count (argc) to the user stack
- */
-static int setup_user_args(char** __user stack_top, size_t stack_size,
-						   const struct user_args* argv,
-						   const struct user_args* envp)
+static int user_args_argc_copy_to_user(const user_args_t* argv,
+									   v_addr_t __user args,
+									   v_addr_t __user stack_top, size_t stack_size,
+									   v_addr_t* argc)
 {
-	int argc = (argv) ? argv->size : 0;
-	char* argv_ptr = NULL;
-	char* envp_ptr = NULL;
-	char* __user top = *stack_top;
-	char* __user stack_bottom = *stack_top - stack_size;
+	int argc_val = 0;
+	v_addr_t argc_addr = align_down(args - sizeof(int), _Alignof(int));
 	int err;
 
-	err = copy_to_user_args(envp, top, stack_bottom, &top);
-	if (err)
-		return err;
-	argv_ptr = top;
+	if (argc_addr + stack_size < stack_top)
+		return -ENOMEM;
 
-	err = copy_to_user_args(argv, top, stack_bottom, &top);
-	if (err)
-		return err;
-	envp_ptr = top;
+	if (argv)
+		argc_val = argv->size;
 
-	top = (char*)align_down((v_addr_t)top, sizeof(char**));
-	err = copy_to_user(top - sizeof(char**), &envp_ptr, sizeof(char**));
-	err = copy_to_user(top - sizeof(char**), &argv_ptr, sizeof(char**));
-	err = copy_to_user(top - sizeof(int), &argc, sizeof(int));
-
-	*stack_top = top;
+	err = copy_to_user((void*)argc_addr, &argc_val, sizeof(int));
+	if (!err)
+		*argc = argc_addr;
 
 	return err;
+}
+
+int user_args_ptr_copy_to_user(v_addr_t val, v_addr_t __user args,
+							   v_addr_t __user stack_top, size_t stack_size,
+							   v_addr_t* ptr)
+{
+	v_addr_t addr = align_down(args - sizeof(v_addr_t), _Alignof(v_addr_t));
+	int err;
+
+	if (addr + stack_size < stack_top)
+		return -ENOMEM;
+
+	err = copy_to_user((void*)addr, &val, sizeof(v_addr_t));
+	if (!err)
+		*ptr = addr;
+
+	return err;
+}
+
+static int main_args_copy_to_user(const user_args_t* _argv,
+								  v_addr_t __user argv, v_addr_t __user envp,
+								  v_addr_t stack_top, size_t stack_size,
+								  v_addr_t* main_args)
+{
+	v_addr_t ptr;
+	int err;
+
+	// copy bellow argv
+
+	// envp
+	err = user_args_ptr_copy_to_user(envp, argv, stack_top, stack_size, &ptr);
+	if (err)
+		return err;
+
+	// argv
+	err = user_args_ptr_copy_to_user(argv, ptr, stack_top, stack_size, &ptr);
+	if (err)
+		return err;
+
+	// argc
+	err = user_args_argc_copy_to_user(_argv, ptr, stack_top, stack_size, main_args);
+
+	return err;
+}
+
+static int setup_user_args(v_addr_t stack_bottom, size_t stack_size,
+						   const user_args_t* argv, const user_args_t* envp,
+						   v_addr_t* args)
+{
+	const v_addr_t stack_top = stack_bottom + stack_size - 1;
+	v_addr_t argv_val;
+	v_addr_t envp_val;
+	int err;
+
+	err = user_args_copy_to_user(envp, stack_top, stack_size, &envp_val);
+	if (err)
+		return err;
+
+	err = user_args_copy_to_user(argv, envp_val, stack_size, &argv_val);
+	if (err)
+		return err;
+
+	err = main_args_copy_to_user(argv, argv_val, envp_val, stack_top,
+								 stack_size, args);
+	if (err)
+		return err;
+
+	return 0;
 }
 
 static int create_user_stack(v_addr_t* stack_bottom, size_t stack_size)
@@ -181,6 +251,38 @@ static int create_user_stack(v_addr_t* stack_bottom, size_t stack_size)
 	return err;
 }
 
+static int load_binary(const char* path, const struct process* proc,
+					   v_addr_t *entry_point)
+{
+	vfs_path_t exec_path;
+	struct vfs_cache_node* exec;
+	struct vfs_file file;
+	int err;
+
+	err = vfs_path_init(&exec_path, path, strlen(path));
+	if (err)
+		return err;
+
+	err = vfs_lookup(&exec_path, proc->root, proc->cwd, &exec);
+	if (err)
+		goto fail_lookup;
+
+	vfs_file_init(&file, exec, O_RDONLY);
+	err = exec->inode->op->open(exec->inode, exec, O_RDONLY, &file);
+	if (err)
+		goto fail_file;
+
+	err = elf_load_binary(&file, entry_point);
+
+	exec->inode->op->close(exec->inode, &file);
+fail_file:
+	vfs_cache_node_unref(exec);
+fail_lookup:
+	vfs_path_reset(&exec_path);
+
+	return err;
+}
+
 int exec(const char* path, const struct user_args* argv,
 		 const struct user_args* envp)
 {
@@ -193,78 +295,58 @@ int exec(const char* path, const struct user_args* argv,
 	int err;
 
 	const char* new_proc_name =
-		(argv && argv->size > 0) ? argv->array[0].str : path;
+		(argv && argv->size > 0) ? user_args_get_arg(argv, 0) : path;
 	struct process* new_proc;
 	err = process_create(new_proc_name, &new_proc);
 	if (err)
 		return err;
 	new_proc->pid = proc->pid;
 
-	vfs_path_t exec_path;
-	err = vfs_path_init(&exec_path, path, strlen(path));
-	if (err)
-		return err;
-
 	process_lock(proc, thread);
-	proc->vmm = new_proc->vmm;
-	vmm_switch_to(new_proc->vmm);
+	process_set_vmm(proc, new_proc->vmm);
+	vmm_switch_to(new_proc->vmm); // TODO: remove
 
-	struct vfs_cache_node* exec;
-	err = vfs_lookup(&exec_path, proc->root, proc->cwd, &exec);
-	if (err)
-		goto fail_lookup;
-
-	struct vfs_file file;
-	vfs_file_init(&file, exec, O_RDONLY);
-	err = exec->inode->op->open(exec->inode, exec, O_RDONLY, &file);
-	if (err)
-		goto fail_file;
-
-	err = elf_load_binary(&file, &entry_point);
+	err = load_binary(path, proc, &entry_point);
 	if (err)
 		goto fail_load_bin;
 
-	// XXX:
 	err = create_user_stack(&stack_bottom, stack_size);
 	if (err)
 		goto fail_stack;
 
-	v_addr_t stack_top = stack_bottom + stack_size - 1;
-	err = setup_user_args((char**)&stack_top, stack_size, argv, envp);
+	v_addr_t stack_top;
+	err = setup_user_args(stack_bottom, stack_size, argv, envp, &stack_top);
+	if (err)
+		goto fail_user_args;
 
 	struct thread* new_proc_main_thr;
 	err = thread_create(entry_point, stack_top, &new_proc_main_thr);
-	if (err) {
-		// XXX:
-	}
+	if (err)
+		goto fail_thread;
 	err = process_add_thread(new_proc, new_proc_main_thr);
 	err = sched_add_thread(new_proc_main_thr);
 	thread_unref(new_proc_main_thr);
 
-
-	proc->vmm = proc_vmm;
-
+	process_set_vmm(proc, proc_vmm);
 	process_exit_quiet(proc);
 	process_destroy(proc);
 
-	// XXX: ...
 	err = process_register_pid(new_proc, proc_pid);
 	if (err) {
+		// XXX: ...
 	}
 
 	sched_exit();
 
+fail_thread:
+fail_user_args:
 fail_stack:
 fail_load_bin:
-	exec->inode->op->close(exec->inode, &file);
-fail_file:
-	vfs_cache_node_unref(exec);
-fail_lookup:
-	vfs_path_reset(&exec_path);
-
-	proc->vmm = proc_vmm;
 	vmm_switch_to(proc_vmm);
+	process_set_vmm(proc, proc_vmm);
 	process_unlock(proc);
+
+	process_destroy(new_proc);
 
 	return err;
 }
@@ -273,28 +355,28 @@ int sys_execve(const char* __user path, char* const __user argv[],
 			   char* const __user envp[])
 {
 	char* kpath;
-	struct user_args kargv;
-	struct user_args kenvp;
+	user_args_t kargv;
+	user_args_t kenvp;
 	ssize_t err;
 
-	kpath = strndup_from_user(path, VFS_PATH_MAX_LEN);
-	if (!kpath)
-		return -EFAULT;
+	err = strndup_from_user(path, VFS_PATH_MAX_LEN, &kpath);
+	if (err)
+		return err;
 
-	err = copy_from_user_args(&kargv, argv);
+	err = user_args_copy_from_user(argv, &kargv);
 	if (err)
 		goto fail_argv;
 
-	err = copy_from_user_args(&kenvp, envp);
+	err = user_args_copy_from_user(envp, &kenvp);
 	if (err)
 		goto fail_envp;
 
-	return exec(kpath, &kargv, &kenvp);
+	err = exec(kpath, &kargv, &kenvp);
 
 fail_envp:
-	free_user_args(&kenvp);
+	user_args_reset(&kenvp);
 fail_argv:
-	free_user_args(&kargv);
+	user_args_reset(&kargv);
 
 	kfree(kpath);
 
