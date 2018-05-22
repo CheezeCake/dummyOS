@@ -279,7 +279,7 @@ int vmm_clone(struct vmm* vmm, struct vmm* clone)
 
 bool vmm_is_userspace_address(v_addr_t addr)
 {
-	return vmm_impl->is_userspace_address(addr);
+	return (vmm_impl) ? vmm_impl->is_userspace_address(addr) : false;
 }
 
 static inline bool range_in_userspace(v_addr_t start, size_t size)
