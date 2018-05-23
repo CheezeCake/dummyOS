@@ -146,45 +146,28 @@ static int user_args_copy_to_user(const user_args_t* user_args,
 	return 0;
 }
 
-static int user_args_ptr_copy_to_user(v_addr_t val, v_addr_t __user args,
-							   v_addr_t __user stack_top, size_t stack_size,
-							   v_addr_t* ptr)
+static int main_args_copy_to_user(v_addr_t argc, v_addr_t __user argv,
+								  v_addr_t __user envp, v_addr_t stack_top,
+								  size_t stack_size, v_addr_t* main_args)
 {
-	v_addr_t addr = align_down(args - sizeof(v_addr_t), _Alignof(v_addr_t));
-	int err;
-
-	if (addr + stack_size < stack_top)
-		return -ENOMEM;
-
-	err = copy_to_user((void*)addr, &val, sizeof(v_addr_t));
-	if (!err)
-		*ptr = addr;
-
-	return err;
-}
-
-static int main_args_copy_to_user(const user_args_t* _argv,
-								  v_addr_t __user argv, v_addr_t __user envp,
-								  v_addr_t stack_top, size_t stack_size,
-								  v_addr_t* main_args)
-{
-	v_addr_t ptr;
+	v_addr_t* __user args = (v_addr_t*)argv - 3;
 	int err;
 
 	// copy bellow argv
+	if ((v_addr_t)args + stack_size < stack_top)
+		return -ENOMEM;
 
-	// envp
-	err = user_args_ptr_copy_to_user(envp, argv, stack_top, stack_size, &ptr);
+	err = copy_to_user(&args[2], &envp, sizeof(v_addr_t));
 	if (err)
 		return err;
 
-	// argv
-	err = user_args_ptr_copy_to_user(argv, ptr, stack_top, stack_size, &ptr);
+	err = copy_to_user(&args[1], &argv, sizeof(v_addr_t));
 	if (err)
 		return err;
 
-	// argc
-	err = user_args_ptr_copy_to_user(_argv->size, ptr, stack_top, stack_size, main_args);
+	err = copy_to_user(&args[0], &argc, sizeof(v_addr_t));
+	if (!err)
+		*main_args = (v_addr_t)args;
 
 	return err;
 }
@@ -194,6 +177,7 @@ static int setup_user_args(v_addr_t stack_bottom, size_t stack_size,
 						   v_addr_t* args)
 {
 	const v_addr_t stack_top = stack_bottom + stack_size - 1;
+	v_addr_t argc_val = argv->size;
 	v_addr_t argv_val;
 	v_addr_t envp_val;
 	int err;
@@ -206,7 +190,7 @@ static int setup_user_args(v_addr_t stack_bottom, size_t stack_size,
 	if (err)
 		return err;
 
-	err = main_args_copy_to_user(argv, argv_val, envp_val, stack_top,
+	err = main_args_copy_to_user(argc_val, argv_val, envp_val, stack_top,
 								 stack_size, args);
 	if (err)
 		return err;
