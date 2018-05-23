@@ -73,7 +73,7 @@ void vmm_ref(struct vmm* vmm);
  */
 void vmm_unref(struct vmm* vmm);
 
-int vmm_clone_current(struct vmm* clone);
+int vmm_clone(struct vmm* vmm, struct vmm* clone);
 
 bool vmm_is_userspace_address(v_addr_t addr);
 
@@ -103,6 +103,8 @@ struct vmm* vmm_get_current_vmm(void);
 
 void vmm_switch_to(struct vmm* vmm);
 
-void vmm_handle_page_fault(v_addr_t fault_addr, int flags);
+void vmm_uaccess_setup(void);
+
+v_addr_t vmm_handle_page_fault(v_addr_t fault_addr, int flags);
 
 #endif

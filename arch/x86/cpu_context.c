@@ -1,5 +1,6 @@
 #include <kernel/cpu_context.h>
 #include <kernel/kassert.h>
+#include <kernel/mm/uaccess.h>
 #include <libk/libk.h>
 #include <libk/utils.h>
 #include "cpu_context.h"
@@ -57,14 +58,12 @@ size_t cpu_context_sizeof(void)
 
 void cpu_context_update_tss(const struct cpu_context* cpu_context)
 {
-	if (cpu_context_is_usermode(cpu_context)) {
-		/*
-		 * The cpu_context is saved on the thread's kernel stack.
-		 * Make the TSS esp0 point just above the currently saved context
-		 * that will be "consumed" by cpu_context_switch.
-		 */
-		tss_update((v_addr_t)cpu_context + sizeof(struct cpu_context));
-	}
+	/*
+	 * The cpu_context is saved on the thread's kernel stack.
+	 * Make the TSS esp0 point just above the currently saved context
+	 * that will be "consumed" by cpu_context_switch.
+	 */
+	tss_update((v_addr_t)cpu_context + sizeof(struct cpu_context));
 }
 
 
@@ -89,23 +88,34 @@ v_addr_t cpu_context_get_user_sp(struct cpu_context* cpu_context)
 	return cpu_context->user.esp;
 }
 
-static void cpu_context_pass_user_args(struct cpu_context* cpu_context,
-								const v_addr_t* args, size_t n)
+static int cpu_context_pass_user_args(struct cpu_context* cpu_context,
+									  const v_addr_t* args, size_t n)
 {
 	v_addr_t* sp = (v_addr_t*)align_down(cpu_context->user.esp,
 										 sizeof(v_addr_t));
-	// TODO: uaccess copy_to_user
-	for (int i = n - 1; i >= 0; --i)
-		*(--sp) = args[i];
+	int err;
 
-	cpu_context_set_user_sp(cpu_context, (v_addr_t)sp);
+	sp -= n;
+
+	err = copy_to_user((void*)sp, args, sizeof(args[0]) * n);
+	if (!err)
+		cpu_context_set_user_sp(cpu_context, (v_addr_t)sp);
+
+	return err;
 }
 
-void cpu_context_setup_signal_handler(struct cpu_context* cpu_context,
-									  v_addr_t handler, v_addr_t sig_trampoline,
-									  const v_addr_t* args, size_t n)
+int cpu_context_setup_signal_handler(struct cpu_context* cpu_context,
+									 v_addr_t handler, v_addr_t sig_trampoline,
+									 const v_addr_t* args, size_t n)
 {
-	cpu_context_pass_user_args(cpu_context, args, n);
-	cpu_context_pass_user_args(cpu_context, &sig_trampoline, 1); // ret
-	cpu_context_set_pc(cpu_context, handler);
+	int err;
+
+	err = cpu_context_pass_user_args(cpu_context, args, n);
+	if (!err) {
+		err = cpu_context_pass_user_args(cpu_context, &sig_trampoline, 1); // ret
+		if (!err)
+			cpu_context_set_pc(cpu_context, handler);
+	}
+
+	return err;
 }

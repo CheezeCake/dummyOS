@@ -25,8 +25,8 @@ void cpu_context_set_user_sp(struct cpu_context* cpu_context, v_addr_t sp);
 
 v_addr_t cpu_context_get_user_sp(struct cpu_context* cpu_context);
 
-void cpu_context_setup_signal_handler(struct cpu_context* cpu_context,
-									  v_addr_t handler, v_addr_t sig_trampoline,
-									  const v_addr_t* args, size_t n);
+int cpu_context_setup_signal_handler(struct cpu_context* cpu_context,
+									 v_addr_t handler, v_addr_t sig_trampoline,
+									 const v_addr_t* args, size_t n);
 
 #endif

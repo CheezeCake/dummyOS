@@ -184,6 +184,7 @@ static int lookup(vfs_path_component_t* path_component, struct vfs_cache_node* s
 	}
 
 	*result = current_node;
+	vfs_cache_node_ref(*result);
 
 	return 0;
 }

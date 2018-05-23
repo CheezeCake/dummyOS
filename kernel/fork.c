@@ -23,7 +23,7 @@ pid_t sys_fork(void)
 		goto fail;
 	}
 
-	err = vmm_clone_current(child->vmm);
+	err = vmm_clone(current_proc->vmm, child->vmm);
 	if (err)
 		goto fail;
 

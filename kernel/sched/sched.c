@@ -80,15 +80,11 @@ static bool quatum_expired(struct thread* thr, const struct time* start)
 	return (time_diff_ms(&current_time, start) > quantum);
 }
 
-static struct thread* next_thread(struct thread* prev_thr,
-								  struct cpu_context* prev_ctx)
+static struct thread* next_thread(void)
 {
 	const thread_priority_t p = first_non_empty_queue_priority();
 	kassert(p < SCHED_PRIORITY_LEVELS); // every queue is empty
 	sched_queue_t* ready_queue = &ready_queues[p];
-
-	if (prev_thr)
-		prev_thr->cpu_context = prev_ctx; // update cpu_context
 
 	struct thread* next = get_thread_list_entry(list_front(ready_queue));
 	list_pop_front(ready_queue);
@@ -104,10 +100,14 @@ static inline void set_current_thread(struct thread* thr)
 
 	time_get_current(&current_time);
 
+	irq_disable();
+
 	current_thread = thr;
 	current_thread_start = current_time;
 
 	thread_set_state(thr, THREAD_RUNNING);
+
+	irq_enable();
 }
 
 static void log_sched_switch(const struct thread* from, const struct thread* to)
@@ -120,31 +120,30 @@ static void log_sched_switch(const struct thread* from, const struct thread* to)
 
 struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 {
-	struct thread* cur;
-	struct thread* next;
+	struct thread* prev = current_thread;
+	struct thread* next = NULL;
+	int err = 0;
 
-	irq_disable();
+	if (prev)
+		prev->cpu_context = cpu_ctx; // update cpu_context
 
-	cur = current_thread;
-	next = next_thread(current_thread, cpu_ctx);
+	// schedule next thread
+	do {
+		next = next_thread();
+		set_current_thread(next);
 
-	while (process_signal_pending(next->process) && // deliver pending signal
-		   signal_handle(next) != 0)
-	{
-		sched_add_thread(next); // put "next" thread back in the queue
-		next = next_thread(current_thread, cpu_ctx);
+		// deliver pending signal
+		if (process_signal_pending(next->process))
+			err = signal_handle(next);
+	} while (err);
+
+	log_sched_switch(prev, next);
+
+	// put prev back in queue
+	if (prev && prev->state == THREAD_RUNNING) {
+		sched_add_thread(prev);
+		thread_unref(prev);
 	}
-
-	log_sched_switch(cur, next);
-
-	// set current thread
-	if (current_thread && current_thread->state == THREAD_RUNNING) {
-		sched_add_thread(current_thread);
-		thread_unref(current_thread);
-	}
-	set_current_thread(next);
-
-	irq_enable();
 
 	return next->cpu_context;
 }

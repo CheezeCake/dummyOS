@@ -12,10 +12,12 @@ static const char* __init_path;
 static int init_exec(void)
 {
 	const char* init_path = __init_path;
+	const user_args_t argv = USER_ARGS_EMPTY;
+	const user_args_t envp = USER_ARGS_EMPTY;
 	int err;
 
 	if (init_path) {
-		err = exec(init_path, NULL, NULL);
+		err = exec(init_path, &argv, &envp);
 
 		log_e_printf("INIT: %s (error %d)\n", init_path, err);
 		PANIC("Failed to execute init command!");
@@ -24,10 +26,10 @@ static int init_exec(void)
 	}
 
 	// fallback
-	exec("/sbin/init", NULL, NULL);
-	exec("/etc/init", NULL, NULL);
-	exec("/bin/init", NULL, NULL);
-	exec("/bin/sh", NULL, NULL);
+	exec("/sbin/init", &argv, &envp);
+	exec("/etc/init", &argv, &envp);
+	exec("/bin/init", &argv, &envp);
+	exec("/bin/sh", &argv, &envp);
 
 	PANIC("Failed to find a working init!");
 

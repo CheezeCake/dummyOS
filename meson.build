@@ -32,7 +32,7 @@ libgcc = cc.find_library('gcc', required: true)
 kernel_bin = 'dummy_os.bin'
 bin = executable(kernel_bin,
   src,
-  objects: files('../archive.o'),
+  objects: files('../dummyOS_user/archive.o'),
   include_directories: inc,
   implicit_include_directories: false,
   c_args: c_flags,

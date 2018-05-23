@@ -1,9 +1,9 @@
 #include <kernel/errno.h>
-#include <kernel/interrupt.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
 #include <kernel/signal.h>
 #include <kernel/types.h>
+#include <kernel/mm/uaccess.h>
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
 
@@ -41,11 +41,22 @@ int sigaction(uint32_t sig, const struct sigaction* restrict __kernel act,
 int sys_sigaction(uint32_t sig, const struct sigaction* restrict __user act,
 				  struct sigaction* restrict __user oact)
 {
+	struct sigaction new;
+	struct sigaction old;
+	int err;
+
 	if (!sig_is_settable(sig))
 		return -EINVAL;
 
-	// TODO: copy_from_user
-	return sigaction(sig, act, oact);
+	err = copy_from_user(&new, act, sizeof(struct sigaction));
+	if (err)
+		return -EFAULT;
+
+	err = sigaction(sig, act, (oact) ? &old : NULL);
+	if (!err && oact)
+		err = copy_to_user(oact, &old, sizeof(struct sigaction));
+
+	return err;
 }
 
 sighandler_t sys_signal(uint32_t sig, sighandler_t handler)
@@ -242,26 +253,30 @@ static inline queued_siginfo_t* siginfo_get_queued_siginfo(siginfo_t* sinfo)
 extern const uint8_t __sig_tramp_start;
 extern const uint8_t __sig_tramp_end;
 
-static void copy_to_user_stack(struct cpu_context* cpu_ctx, const void* data,
+static int copy_to_user_stack(struct cpu_context* cpu_ctx, const void* data,
 							   size_t size, size_t alignment)
 {
 	v_addr_t usr_stack = cpu_context_get_user_sp(cpu_ctx);
-	usr_stack -= size;
-	usr_stack = align_down(usr_stack, alignment);
+	int err;
 
-	// TODO: uacces copy_to_user
-	memcpy((void*)usr_stack, data, size);
+	usr_stack = align_down(usr_stack - size, alignment);
 
-	cpu_context_set_user_sp(cpu_ctx, usr_stack);
+	err = copy_to_user((void*)usr_stack, data, size);
+	if (!err)
+		cpu_context_set_user_sp(cpu_ctx, usr_stack);
+
+	return err;
 }
 
 static v_addr_t setup_signal_trampoline(struct cpu_context* cpu_ctx)
 {
 	const size_t sig_tramp_size = &__sig_tramp_end - &__sig_tramp_start;
-	copy_to_user_stack(cpu_ctx, &__sig_tramp_start, sig_tramp_size,
-					   sizeof(void*));
+	int err;
 
-	return cpu_context_get_user_sp(cpu_ctx);
+	err = copy_to_user_stack(cpu_ctx, &__sig_tramp_start, sig_tramp_size,
+							 sizeof(void*));
+
+	return (err) ? 0 : cpu_context_get_user_sp(cpu_ctx);
 }
 
 static inline bool signal_is(uint32_t sig, const struct signal_manager* sigm,
@@ -301,17 +316,14 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 	struct cpu_context* sh_ctx =
 		(struct cpu_context*)((int8_t*)thr->cpu_context - cpu_context_sizeof());
 	sigset_t saved_mask = sigm->mask;
+	int err;
 
 	if (signal_is_ign(sig, sigm))
 		return 0;
 	if (signal_is_dlf(sig, sigm))
 		return handle_dfl(sig, thr);
 
-	__irq_disable();
-
 	kassert(cpu_context_is_usermode(thr->cpu_context));
-	// TODO: remove
-	vmm_switch_to(thr->process->vmm);
 
 	memcpy(sh_ctx, thr->cpu_context, cpu_context_sizeof());
 
@@ -326,14 +338,18 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 		signal_reset_handler(sigm, sig);
 
 	v_addr_t sig_tramp = setup_signal_trampoline(sh_ctx);
+	if (!sig_tramp)
+		goto fail;
 
 	v_addr_t handler;
 	v_addr_t handler_args[3] = { sig, 0, 0 };
 	size_t handler_args_n = 1;
 
 	if (act->sa_flags & SA_SIGINFO) {
-		copy_to_user_stack(sh_ctx, sinfo, sizeof(siginfo_t),
-						   _Alignof(siginfo_t));
+		err = copy_to_user_stack(sh_ctx, sinfo, sizeof(siginfo_t),
+								 _Alignof(siginfo_t));
+		if (err)
+			goto fail;
 		handler_args[1] = cpu_context_get_user_sp(sh_ctx);
 		handler_args_n = 3;
 
@@ -343,8 +359,11 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 		handler = (v_addr_t)act->sa_handler;
 	}
 
-	cpu_context_setup_signal_handler(sh_ctx, handler, sig_tramp, handler_args,
-									 handler_args_n);
+	err = cpu_context_setup_signal_handler(sh_ctx, handler, sig_tramp,
+										   handler_args, handler_args_n);
+	if (err)
+		goto fail;
+
 	thr->cpu_context = sh_ctx;
 
 	queued_siginfo_t* qsinfo = siginfo_get_queued_siginfo(sinfo);
@@ -352,6 +371,10 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 	list_push_back(&sigm->handled_stack, &qsinfo->s_queue);
 
 	return 0;
+
+fail:
+	signal_send(sigm, SIGKILL, NULL, 0);
+	return -EFAULT;
 }
 
 int signal_handle(struct thread* thr)

@@ -1,9 +1,10 @@
 #include <dummyos/compiler.h>
 #include <kernel/errno.h>
 #include <kernel/kassert.h>
+#include <kernel/mm/uaccess.h>
 #include <kernel/process.h>
-#include <kernel/signal.h>
 #include <kernel/sched/sched.h>
+#include <kernel/signal.h>
 
 #include <kernel/log.h>
 #include <kernel/interrupt.h>
@@ -23,6 +24,8 @@ void sys_exit(int status)
 static pid_t _wait(int* __user status, const struct process* p, pid_t pid)
 {
 	list_node_t* it;
+	int err;
+
 	list_foreach(&p->children, it) {
 		struct process* child = list_entry(it, struct process, p_child);
 		pid_t child_pid = child->pid;
@@ -30,9 +33,11 @@ static pid_t _wait(int* __user status, const struct process* p, pid_t pid)
 		if (child->state == PROC_ZOMBIE &&
 			(!pid || pid == child_pid))
 		{
-			// TODO: copy_to_user
-			if (status)
-				*status = child->exit_status;
+			if (status) {
+				err = copy_to_user(status, &child->exit_status, sizeof(*status));
+				if (err)
+					return -EFAULT;
+			}
 
 			process_destroy(child);
 			return child_pid;
