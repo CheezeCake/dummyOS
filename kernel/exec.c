@@ -319,7 +319,7 @@ int sys_execve(const char* __user path, char* const __user argv[],
 	char* kpath;
 	user_args_t kargv;
 	user_args_t kenvp;
-	ssize_t err;
+	int err;
 
 	err = strndup_from_user(path, VFS_PATH_MAX_LEN, &kpath);
 	if (err)
