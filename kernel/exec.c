@@ -1,18 +1,22 @@
-#include <dummyos/const.h>
 #include <arch/vm.h>
+#include <dummyos/const.h>
 #include <fs/file.h>
 #include <fs/vfs.h>
 #include <kernel/elf.h>
 #include <kernel/errno.h>
 #include <kernel/exec.h>
+#include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
-#include <kernel/sched/sched.h>
 #include <kernel/mm/uaccess.h>
 #include <kernel/mm/vmm.h>
+#include <kernel/sched/sched.h>
 #include <libk/libk.h>
 #include <libk/utils.h>
 
 #include <kernel/log.h>
+
+#define USER_STACK_TOP	USER_SPACE_END;
+#define USER_STACK_SIZE PAGE_SIZE
 
 int user_args_init(user_args_t* user_args, size_t size)
 {
@@ -203,7 +207,7 @@ static int create_user_stack(v_addr_t* stack_bottom, size_t stack_size)
 	v_addr_t stack_top;
 	int err;
 
-	stack_top = USER_SPACE_END;
+	stack_top = USER_STACK_TOP;
 	*stack_bottom = stack_top - stack_size;
 
 	err = vmm_create_user_mapping(*stack_bottom, stack_size,
@@ -245,21 +249,52 @@ fail_lookup:
 	return err;
 }
 
-int exec(const char* path, const struct user_args* argv,
-		 const struct user_args* envp)
+static int create_new_process(const char* path, const user_args_t* argv,
+							  struct process** result)
+{
+	const char* new_proc_name =
+		(argv && argv->size > 0) ? user_args_get_arg(argv, 0) : path;
+	int err;
+
+	err = process_create(new_proc_name, result);
+
+	return err;
+}
+
+static int create_and_add_new_thread(v_addr_t entry_point, v_addr_t stack_top,
+									 struct process* new_proc)
+{
+	struct thread* thr;
+	int err;
+
+	err = thread_create(entry_point, stack_top, &thr);
+	if (err)
+		return err;
+
+	err = process_add_thread(new_proc, thr);
+	if (err) {
+		thread_unref(thr);
+		return err;
+	}
+
+	err = sched_add_thread(thr);
+	if (!err)
+		thread_unref(thr);
+
+	return err;
+}
+
+int exec(const char* path, const user_args_t* argv, const user_args_t* envp)
 {
 	struct thread* thread = sched_get_current_thread();
 	struct process* proc = thread->process;
 	pid_t proc_pid = proc->pid;
 	struct vmm* proc_vmm = proc->vmm;
-	v_addr_t entry_point, stack_bottom;
-	const size_t stack_size = PAGE_SIZE;
+	struct process* new_proc;
+	v_addr_t entry_point, stack_bottom, stack_top;
 	int err;
 
-	const char* new_proc_name =
-		(argv && argv->size > 0) ? user_args_get_arg(argv, 0) : path;
-	struct process* new_proc;
-	err = process_create(new_proc_name, &new_proc);
+	err = create_new_process(path, argv, &new_proc);
 	if (err)
 		return err;
 	new_proc->pid = proc->pid;
@@ -270,40 +305,29 @@ int exec(const char* path, const struct user_args* argv,
 
 	err = load_binary(path, proc, &entry_point);
 	if (err)
-		goto fail_load_bin;
+		goto fail;
 
-	err = create_user_stack(&stack_bottom, stack_size);
+	err = create_user_stack(&stack_bottom, USER_STACK_SIZE);
 	if (err)
-		goto fail_stack;
+		goto fail;
 
-	v_addr_t stack_top;
-	err = setup_user_args(stack_bottom, stack_size, argv, envp, &stack_top);
+	err = setup_user_args(stack_bottom, USER_STACK_SIZE, argv, envp, &stack_top);
 	if (err)
-		goto fail_user_args;
+		goto fail;
 
-	struct thread* new_proc_main_thr;
-	err = thread_create(entry_point, stack_top, &new_proc_main_thr);
+	err = create_and_add_new_thread(entry_point, stack_top, new_proc);
 	if (err)
-		goto fail_thread;
-	err = process_add_thread(new_proc, new_proc_main_thr);
-	err = sched_add_thread(new_proc_main_thr);
-	thread_unref(new_proc_main_thr);
+		goto fail;
 
 	process_set_vmm(proc, proc_vmm);
 	process_exit_quiet(proc);
 	process_destroy(proc);
 
-	err = process_register_pid(new_proc, proc_pid);
-	if (err) {
-		// XXX: ...
-	}
+	kassert(process_register_pid(new_proc, proc_pid) > 0);
 
 	sched_exit();
 
-fail_thread:
-fail_user_args:
-fail_stack:
-fail_load_bin:
+fail:
 	vmm_switch_to(proc_vmm);
 	process_set_vmm(proc, proc_vmm);
 	process_unlock(proc);

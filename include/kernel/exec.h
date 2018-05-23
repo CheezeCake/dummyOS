@@ -17,7 +17,6 @@ typedef struct user_args
 
 #define USER_ARGS_EMPTY { .args = NULL, .size = 0 }
 
-int exec(const char* path, const struct user_args* argv,
-		 const struct user_args* envp);
+int exec(const char* path, const user_args_t* argv, const user_args_t* envp);
 
 #endif
