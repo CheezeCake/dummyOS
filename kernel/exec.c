@@ -146,29 +146,7 @@ static int user_args_copy_to_user(const user_args_t* user_args,
 	return 0;
 }
 
-static int user_args_argc_copy_to_user(const user_args_t* argv,
-									   v_addr_t __user args,
-									   v_addr_t __user stack_top, size_t stack_size,
-									   v_addr_t* argc)
-{
-	int argc_val = 0;
-	v_addr_t argc_addr = align_down(args - sizeof(int), _Alignof(int));
-	int err;
-
-	if (argc_addr + stack_size < stack_top)
-		return -ENOMEM;
-
-	if (argv)
-		argc_val = argv->size;
-
-	err = copy_to_user((void*)argc_addr, &argc_val, sizeof(int));
-	if (!err)
-		*argc = argc_addr;
-
-	return err;
-}
-
-int user_args_ptr_copy_to_user(v_addr_t val, v_addr_t __user args,
+static int user_args_ptr_copy_to_user(v_addr_t val, v_addr_t __user args,
 							   v_addr_t __user stack_top, size_t stack_size,
 							   v_addr_t* ptr)
 {
@@ -206,7 +184,7 @@ static int main_args_copy_to_user(const user_args_t* _argv,
 		return err;
 
 	// argc
-	err = user_args_argc_copy_to_user(_argv, ptr, stack_top, stack_size, main_args);
+	err = user_args_ptr_copy_to_user(_argv->size, ptr, stack_top, stack_size, main_args);
 
 	return err;
 }
