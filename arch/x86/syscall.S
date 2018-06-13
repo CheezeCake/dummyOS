@@ -30,6 +30,14 @@ syscall_handler:
 	pushl $0 /* error code */
 	interrupt_enter
 
+	/* update syscall context */
+	movl %esp, %ebx
+	call sched_get_current_thread
+	pushl %ebx
+	pushl %eax /* current_thread */
+	call thread_set_syscall_context
+	addl $8, %esp
+
 	/* esp = cpu_ctx -> eax, ebx, ecx, edx, esi, edi, ebp */
 	popl %eax
 	/* esp = cpu_ctx + 4 -> ebx, ecx, edx, esi, edi, ebp  (syscall args) */

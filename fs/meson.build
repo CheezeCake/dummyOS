@@ -1,9 +1,11 @@
 fs_src = files(
   'binfmt_elf.c',
   'cache_node.c',
+  'chardev.c',
   'file.c',
   'filesystem.c',
   'inode.c',
+  'io.c',
   'path.c',
   'superblock.c',
   'vfs.c'

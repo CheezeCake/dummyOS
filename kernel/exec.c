@@ -12,6 +12,7 @@
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
 #include <libk/utils.h>
+#include <usr/fcntl.h>
 
 #include <kernel/log.h>
 
@@ -217,11 +218,9 @@ static int create_user_stack(v_addr_t* stack_bottom, size_t stack_size)
 	return err;
 }
 
-static int load_binary(const char* path, const struct process* proc,
-					   v_addr_t *entry_point)
+static int load_binary(const char* path, v_addr_t* entry_point)
 {
 	vfs_path_t exec_path;
-	struct vfs_cache_node* exec;
 	struct vfs_file file;
 	int err;
 
@@ -229,21 +228,14 @@ static int load_binary(const char* path, const struct process* proc,
 	if (err)
 		return err;
 
-	err = vfs_lookup(&exec_path, proc->root, proc->cwd, &exec);
+	err = vfs_open(&exec_path, O_RDONLY, &file);
 	if (err)
-		goto fail_lookup;
-
-	vfs_file_init(&file, exec, O_RDONLY);
-	err = exec->inode->op->open(exec->inode, exec, O_RDONLY, &file);
-	if (err)
-		goto fail_file;
+		goto fail_open;
 
 	err = elf_load_binary(&file, entry_point);
 
-	exec->inode->op->close(exec->inode, &file);
-fail_file:
-	vfs_cache_node_unref(exec);
-fail_lookup:
+	vfs_close(&file);
+fail_open:
 	vfs_path_reset(&exec_path);
 
 	return err;
@@ -303,7 +295,7 @@ int exec(const char* path, const user_args_t* argv, const user_args_t* envp)
 	process_set_vmm(proc, new_proc->vmm);
 	vmm_switch_to(new_proc->vmm); // TODO: remove
 
-	err = load_binary(path, proc, &entry_point);
+	err = load_binary(path, &entry_point);
 	if (err)
 		goto fail;
 

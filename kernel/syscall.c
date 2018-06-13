@@ -17,6 +17,17 @@ pid_t sys_wait(int* __user status);
 pid_t sys_waitpid(pid_t pid, int* __user status, int options);
 int sys_execve(const char* __user path, char* const __user argv[],
 			   char* const __user envp[]);
+int sys_open(const char* __user path, int flags);
+int sys_close(int fd);
+off_t sys_lseek(int fd, off_t offset, int whence);
+ssize_t sys_read(int fd, void* __user buf, size_t count);
+ssize_t sys_write(int fd, const void* __user buf, size_t count);
+pid_t sys_setsid(void);
+int sys_setpgid(pid_t pid, pid_t pgid);
+pid_t sys_getpgid(pid_t pid);
+int sys_setpgrp(void);
+pid_t sys_getpgrp(void);
+int sys_ioctl(int fd, int request, uint32_t arg);
 
 
 #define __syscall(s) ((v_addr_t)s)
@@ -34,6 +45,17 @@ v_addr_t syscall_table[SYSCALL_NR_COUNT] = {
 	[NR_wait]		= __syscall(sys_wait),
 	[NR_waitpid]	= __syscall(sys_waitpid),
 	[NR_execve]		= __syscall(sys_execve),
+	[NR_open]		= __syscall(sys_open),
+	[NR_close]		= __syscall(sys_close),
+	[NR_lseek]		= __syscall(sys_lseek),
+	[NR_read]		= __syscall(sys_read),
+	[NR_write]		= __syscall(sys_write),
+	[NR_setsid]		= __syscall(sys_setsid),
+	[NR_setpgid]	= __syscall(sys_setpgid),
+	[NR_getpgid]	= __syscall(sys_getpgid),
+	[NR_setpgrp]	= __syscall(sys_setpgrp),
+	[NR_getpgrp]	= __syscall(sys_getpgrp),
+	[NR_ioctl]		= __syscall(sys_ioctl),
 };
 
 #include <kernel/log.h>

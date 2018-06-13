@@ -1,3 +1,4 @@
+#include <fs/vfs.h>
 #include <kernel/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/kassert.h>
@@ -15,7 +16,7 @@ static struct process* process_table[PROCESS_TABLE_SIZE + 1] = { NULL, };
 
 static pid_t find_free_pid(void)
 {
-	for (pid_t pid = 1; pid < PROCESS_TABLE_SIZE; ++pid) {
+	for (pid_t pid = 1; pid <= PROCESS_TABLE_SIZE; ++pid) {
 		if (!process_table[pid])
 			return pid;
 	}
@@ -25,7 +26,7 @@ static pid_t find_free_pid(void)
 
 pid_t process_register_pid(struct process* proc, pid_t pid)
 {
-	if (pid > 0 && pid < PROCESS_TABLE_SIZE && !process_table[pid]) {
+	if (pid > 0 && pid <= PROCESS_TABLE_SIZE && !process_table[pid]) {
 		process_table[pid] = proc;
 		proc->pid = pid;
 		return pid;
@@ -117,6 +118,9 @@ int process_fork(struct process* proc, const struct thread* fork_thread,
 	thread_unref(*child_thread);
 
 	// TODO: copy root, cwd, file descriptors, ...
+	new->session = proc->session;
+	new->pgrp = proc->pgrp;
+	new->ctrl_tty = proc->ctrl_tty;
 
 	signal_copy(new->signals, proc->signals);
 
@@ -217,6 +221,32 @@ bool process_signal_pending(const struct process* proc)
 	return (proc) ? signal_pending(proc->signals) : false;
 }
 
+static bool process_has_ready_thread(const struct process* proc)
+{
+	list_node_t* it;
+
+	list_foreach(&proc->threads, it) {
+		struct thread* thr = list_entry(it, struct thread, p_thr_list);
+		if (thread_get_state(thr) == THREAD_READY)
+			return true;
+	}
+
+	return false;
+}
+
+static int process_intr_sleeping_thread(const struct process* proc)
+{
+	list_node_t* it;
+
+	list_foreach(&proc->threads, it) {
+		struct thread* thr = list_entry(it, struct thread, p_thr_list);
+		if (thread_get_state(thr) == THREAD_SLEEPING)
+			return thread_intr_sleep(thr);
+	}
+
+	return -ESRCH;
+}
+
 int process_kill(pid_t pid, uint32_t sig)
 {
 	struct process* proc = process_table[pid];
@@ -224,11 +254,32 @@ int process_kill(pid_t pid, uint32_t sig)
 		if (list_empty(&proc->threads))
 			return -EINVAL;
 
+		irq_disable();
+		// try to interrupt a sleeping thread if no other thread
+		// can handle the signal
+		if (!process_has_ready_thread(proc))
+			process_intr_sleeping_thread(proc);
+		irq_enable();
+
 		signal_send(proc->signals, sig, NULL, sched_get_current_process());
+
 		return 0;
 	}
 
 	return -EINVAL;
+}
+
+int process_pgrp_kill(int pgrp, uint32_t sig)
+{
+	if (pgrp <= 0)
+		return -EINVAL;
+
+	for (size_t i = 1; i <= PROCESS_TABLE_SIZE; ++i) {
+		if (process_table[i] && process_table[i]->pgrp == pgrp)
+			process_kill(i, sig);
+	}
+
+	return 0;
 }
 
 static inline void threads_foreach(struct process* proc,
@@ -270,6 +321,8 @@ int process_exit(struct process* proc, int status)
 		wait_wake_all(&proc->parent->wait_wq);
 	}
 
+	if (proc->session_leader && proc->ctrl_tty)
+		tty_reset_pgrp(proc->ctrl_tty);
 
 	return 0;
 }
@@ -291,6 +344,14 @@ static inline void remove_from_parent_list(struct process* proc)
 		list_erase(&proc->p_child);
 }
 
+static void close_fds(struct process* proc)
+{
+	for (int i = 0; i < PROCESS_MAX_FD; ++i) {
+		if (proc->fds[i])
+			vfs_close(proc->fds[i]);
+	}
+}
+
 void process_destroy(struct process* proc)
 {
 	vmm_unref(proc->vmm);
@@ -298,7 +359,66 @@ void process_destroy(struct process* proc)
 	wait_reset(&proc->wait_wq);
 	destroy_threads(proc);
 	unregister_process(proc);
+	close_fds(proc);
 
 	remove_from_parent_list(proc);
 	kfree(proc);
+}
+
+int process_add_file(struct process* proc, struct vfs_file* file)
+{
+	int ret = -1;
+
+	for (int i = 0; i < PROCESS_MAX_FD; ++i) {
+		irq_disable();
+
+		if (!proc->fds[i]) {
+			proc->fds[i] = file;
+			ret = i;
+		}
+
+		irq_enable();
+
+		if (ret >= 0)
+			return ret;
+	}
+
+	return -EMFILE;
+}
+
+struct vfs_file* process_remove_file(struct process* proc, int fd)
+{
+	struct vfs_file* file = NULL;
+
+	if (fd < PROCESS_MAX_FD) {
+		irq_disable();
+
+		file = proc->fds[fd];
+		proc->fds[fd] = NULL;
+
+		irq_enable();
+	}
+
+	return file;
+}
+
+struct vfs_file* process_get_file(struct process* proc, int fd)
+{
+	return (fd < PROCESS_MAX_FD) ? proc->fds[fd] : NULL;
+}
+
+struct process* process_get(pid_t pid)
+{
+	return (pid > 0 && pid <= PROCESS_TABLE_SIZE) ? process_table[pid] : NULL;
+}
+
+void process_set_tty_for_pgrp(int pgrp, struct tty* tty)
+{
+	if (pgrp == 0)
+		return;
+
+	for (size_t i = 1; i <= PROCESS_TABLE_SIZE; ++i) {
+		if (process_table[i] && process_table[i]->pgrp == pgrp)
+			process_table[i]->ctrl_tty = tty;
+	}
 }

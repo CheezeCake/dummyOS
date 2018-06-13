@@ -3,19 +3,21 @@
 
 #include <dummyos/const.h>
 #include <fs/cache_node.h>
+#include <fs/file.h>
 #include <kernel/mm/vmm.h>
 #include <kernel/signal.h>
 #include <kernel/thread.h>
+#include <kernel/tty.h>
 #include <kernel/types.h>
 #include <kernel/sched/wait.h>
 
 #define PROCESS_NAME_MAX_LENGTH 16
 
+#define PROCESS_MAX_FD 16
 
 enum process_state
 {
 	PROC_RUNNABLE,
-	PROC_STOPPED,
 	PROC_LOCKED,
 	PROC_ZOMBIE
 };
@@ -26,10 +28,17 @@ enum process_state
 struct process
 {
 	pid_t pid;
+	int session;
+	bool session_leader;
+	int pgrp;
+	struct tty* ctrl_tty;
+
 	char name[PROCESS_NAME_MAX_LENGTH];
 	enum process_state state;
+
 	int exit_status;
 
+	struct vfs_file* fds[PROCESS_MAX_FD];
 	struct vfs_cache_node* cwd;
 	struct vfs_cache_node* root;
 
@@ -86,6 +95,11 @@ bool process_signal_pending(const struct process* proc);
 int process_kill(pid_t pid, uint32_t sig);
 
 /**
+ * @brief Sends a signal to a process group
+ */
+int process_pgrp_kill(int pgrp, uint32_t sig);
+
+/**
  * @brief Exits without sending SIGCHLD
  */
 int process_exit_quiet(struct process* proc);
@@ -96,5 +110,35 @@ int process_exit_quiet(struct process* proc);
  * Sends SIGCHLD to parent and wakes up the parents wait(2)'ing threads
  */
 int process_exit(struct process* proc, int status);
+
+/**
+ * Adds file to the file descriptor array
+ *
+ * @return the index in the fd array
+ *  < 0 on failure
+ */
+int process_add_file(struct process* proc, struct vfs_file* file);
+
+/**
+ * Remove file identified by fd from the file descriptor table
+ *
+ * @return the removed file
+ */
+struct vfs_file* process_remove_file(struct process* proc, int fd);
+
+/**
+ * @brief Returns the vfs_file identified by the file descriptor
+ */
+struct vfs_file* process_get_file(struct process* proc, int fd);
+
+/**
+ * @brief Returns the process identified by pid
+ */
+struct process* process_get(pid_t pid);
+
+/*
+ * @brief Sets the controling tty for the process group identified by pgrp
+ */
+void process_set_tty_for_pgrp(int pgrp, struct tty* tty);
 
 #endif

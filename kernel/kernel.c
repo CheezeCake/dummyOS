@@ -13,6 +13,7 @@
 #include <kernel/sched/sched.h>
 #include <kernel/terminal.h>
 #include <kernel/thread.h>
+#include <kernel/tty.h>
 #include <kernel/time/time.h>
 
 #include <fs/ramfs/ramfs.h>
@@ -54,6 +55,9 @@ void kernel_main(size_t mem_size)
 	kassert(vfs_init() == 0);
 
 	sched_init();
+
+	kassert(tty_chardev_init() == 0);
+	arch_console_init();
 
 	kassert(init_process_init("/init") == 0); // create init process first (pid 1)
 	idle_init(); // then create the idle thread (pid 2)

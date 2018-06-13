@@ -3,6 +3,7 @@
 
 #include <kernel/types.h>
 #include <fs/cache_node.h>
+#include <fs/file.h>
 #include <fs/path.h>
 
 /**
@@ -38,5 +39,15 @@ int vfs_lookup(const vfs_path_t* path, struct vfs_cache_node* root,
  */
 int vfs_lookup_in_fs(const vfs_path_t* path, struct vfs_superblock* sb,
 					 struct vfs_cache_node** result);
+
+/**
+ * @brief Opens a file specified by its path
+ */
+int vfs_open(const vfs_path_t* path, int flags, struct vfs_file* file);
+
+/**
+ * @brief Closes a file
+ */
+int vfs_close(struct vfs_file* file);
 
 #endif

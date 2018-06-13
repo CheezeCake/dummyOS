@@ -6,15 +6,17 @@
 
 #define log_e_printf(format, ...) { \
 	log_printf(format, __VA_ARGS__); \
-	terminal_printf(format, __VA_ARGS__); \
 }
+	/* terminal_printf(format, __VA_ARGS__); \ */
+/* } */
 #define log_w_printf(format, ...) log_printf(format, __VA_ARGS__)
 #define log_i_printf(format, ...) log_printf(format, __VA_ARGS__)
 
 #define log_e_puts(str) { \
 	log_puts(str); \
-	terminal_puts(str); \
 }
+	/* terminal_puts(str); \ */
+/* } */
 #define log_e_print(str) log_e_puts(str)
 
 #define log_w_puts(str) log_puts(str)

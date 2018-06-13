@@ -5,7 +5,7 @@
 
 typedef sem_t mutex_t;
 
-static inline int mutex_create(mutex_t* mutex)
+static inline int mutex_init(mutex_t* mutex)
 {
 	return semaphore_init(mutex, 1);
 }

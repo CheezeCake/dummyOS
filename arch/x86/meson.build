@@ -1,5 +1,6 @@
 arch_src = files(
   'arch.c',
+  'console.c',
   'cpu.c',
   'cpu_context.S',
   'cpu_context.c',

@@ -15,8 +15,19 @@
 #define NR_wait			9
 #define NR_waitpid		10
 #define NR_execve		11
+#define NR_open			12
+#define NR_close		13
+#define NR_lseek		14
+#define NR_read			15
+#define NR_write		16
+#define NR_setsid		17
+#define NR_setpgid		18
+#define NR_getpgid		19
+#define NR_setpgrp		20
+#define NR_getpgrp		21
+#define NR_ioctl		22
 
-#define SYSCALL_NR_TOP		11 /**< last syscall number */
+#define SYSCALL_NR_TOP		22 /**< last syscall number */
 #define SYSCALL_NR_COUNT	(SYSCALL_NR_TOP + 1) /**< number of syscalls */
 
 #endif

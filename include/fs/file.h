@@ -1,9 +1,10 @@
 #ifndef _FS_VFS_FILE_H_
 #define _FS_VFS_FILE_H_
 
+#include <fs/inode.h>
 #include <kernel/types.h>
 
-struct vfs_cache_node;
+struct vfs_inode;
 struct vfs_file_operations;
 
 /*
@@ -20,7 +21,7 @@ struct vfs_file_operations;
  */
 struct vfs_file
 {
-	struct vfs_cache_node* node;
+	struct vfs_inode* inode;
 
 	off_t cur;
 	int flags;
@@ -33,27 +34,25 @@ struct vfs_file
  */
 struct vfs_file_operations
 {
+	int (*open)(struct vfs_inode* inode, int flags, struct vfs_file* file);
+	int (*close)(struct vfs_file* this);
+
 	off_t (*lseek)(struct vfs_file* this, off_t offset, int whence);
 	ssize_t (*read)(struct vfs_file* this, void* buf, size_t count);
 	ssize_t (*write)(struct vfs_file* this, void* buf, size_t count);
+	int (*ioctl)(struct vfs_file* this, int request, uint32_t arg);
 };
 
 /**
  * @brief Initializes a vfs_file object
  */
-int vfs_file_init(struct vfs_file* file, struct vfs_cache_node* node,
+int vfs_file_init(struct vfs_file* file, struct vfs_file_operations* fops,
+				  struct vfs_inode* inode,
 				  int flags);
-
-/**
- * @brief Creates a vfs_file object
- *
- * @param result where to store the created vfs_file
- */
-int vfs_file_create(struct vfs_cache_node* node, int flags,
-					struct vfs_file** result);
 
 /**
  * @brief Destroys a vfs_file object
  */
-void vfs_file_destroy(struct vfs_file* file);
+void vfs_file_reset(struct vfs_file* file);
+
 #endif

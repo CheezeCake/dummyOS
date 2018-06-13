@@ -84,12 +84,6 @@ struct vfs_cache_node*
 vfs_cache_node_get_parent(const struct vfs_cache_node* node);
 
 /**
- * @brief Opens the file represented by a vfs_cache_node object
- */
-int vfs_cache_node_open(struct vfs_cache_node* node, int mode,
-						struct vfs_file** result);
-
-/**
  * @brief Returns the root node of the last file system mounted
  *
  * @return the root node of the mounted file system, or mountpoint if no

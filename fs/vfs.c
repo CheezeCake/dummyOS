@@ -2,8 +2,12 @@
 #include <fs/inode.h>
 #include <fs/vfs.h>
 #include <kernel/errno.h>
+#include <kernel/kmalloc.h>
+#include <kernel/sched/sched.h>
 #include <kernel/types.h>
+#include <libk/libk.h>
 #include <libk/list.h>
+#include <usr/fcntl.h>
 
 #include <kernel/log.h>
 
@@ -47,7 +51,7 @@ int vfs_init(void)
 static int get_superblock(struct vfs_cache_node* device, const char* filesystem,
 						  void* data, struct vfs_superblock** sb)
 {
-	if (device && device->inode->type != DEVBLOCK)
+	if (device && device->inode->type != BLOCKDEV)
 		return -ENOTBLK;
 
 	struct vfs_filesystem* fs = vfs_filesystem_get_fs(filesystem);
@@ -218,4 +222,32 @@ int vfs_lookup_in_fs(const vfs_path_t* path, struct vfs_superblock* sb,
 					 struct vfs_cache_node** result)
 {
 	return vfs_lookup(path, sb->root, NULL, result);
+}
+
+int vfs_open(const vfs_path_t* path, int flags, struct vfs_file* file)
+{
+	struct vfs_cache_node* cnode;
+	struct process* current_proc = sched_get_current_process();
+	int err;
+
+	err = vfs_lookup(path, current_proc->root, current_proc->cwd, &cnode);
+	if (err)
+		return err;
+
+	err = vfs_inode_open(cnode->inode, flags, file);
+
+	return err;
+}
+
+int vfs_close(struct vfs_file* file)
+{
+	int err = 0;
+
+	if (file->op && file->op->close) {
+		err = file->op->close(file);
+		if (!err)
+			vfs_file_reset(file);
+	}
+
+	return err;
 }

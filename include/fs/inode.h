@@ -1,12 +1,14 @@
 #ifndef _FS_VFS_INODE_H_
 #define _FS_VFS_INODE_H_
 
-#include <fs/superblock.h>
+#include <fs/chardev.h>
 #include <fs/path.h>
+#include <fs/superblock.h>
 #include <libk/refcount.h>
 
 struct vfs_cache_node;
 struct vfs_inode_operations;
+struct vfs_file;
 
 /**
  * @brief File system node types
@@ -16,19 +18,9 @@ enum vfs_node_type
 	REGULAR,
 	DIRECTORY,
 	SYMLINK,
-	DEVCHAR,
-	DEVBLOCK
+	CHARDEV,
+	BLOCKDEV
 };
-
-/*
- * @brief open() flags
- */
-#define O_RDONLY	0
-#define O_WRONLY	1
-#define O_RDWR		2
-#define O_APPEND	3
-#define O_CREAT		4
-#define O_TRUNC		5
 
 /**
  * @brief File system inode interface
@@ -38,9 +30,14 @@ struct vfs_inode
 	enum vfs_node_type type;
 	struct vfs_superblock* sb;
 
+	struct device dev;
+
 	unsigned int linkcnt; // hard links
 
 	struct vfs_inode_operations* op;
+	struct vfs_file_operations* fops;
+
+	void* private_data;
 
 	refcount_t refcnt;
 };
@@ -56,26 +53,25 @@ struct vfs_inode_operations
 	 * @node Only applies to type == DIRECTORY
 	 */
 	int (*lookup)(struct vfs_inode* this, const vfs_path_t* name,
-								struct vfs_inode** result);
+				  struct vfs_inode** result);
+
+	/**
+	 * @node Only applies to type == DIRECTORY
+	 */
+	int (*link)(struct vfs_inode* this, const vfs_path_t* name,
+				struct vfs_inode*);
+
+	/**
+	 * @node Only applies to type == DIRECTORY
+	 */
+	int (*unlink)(struct vfs_inode* this, const vfs_path_t* name);
+
 	/**
 	 * @brief Extracts the target path of a symlink
 	 *
 	 * @note Only applies to type == SYMLINK
 	 */
 	int (*readlink)(struct vfs_inode* this, vfs_path_t** result);
-
-	/**
-	 * @brief Opens this inode as a file
-	 *
-	 * @note This should fill the vfs_file::op field
-	 */
-	int (*open)(struct vfs_inode* this, struct vfs_cache_node* node,
-				int flags, struct vfs_file* file);
-
-	/**
-	 * @brief Closes and file  associated with and inode
-	 */
-	int (*close)(struct vfs_inode* this, struct vfs_file* file);
 
 	/**
 	 * @brief Destroys a vfs_inode object
@@ -87,7 +83,16 @@ struct vfs_inode_operations
  * @brief Initialiazes a vfs_inode object
  */
 void vfs_inode_init(struct vfs_inode* inode, enum vfs_node_type type,
-					struct vfs_superblock* sb, struct vfs_inode_operations* op);
+					struct vfs_superblock* sb, struct vfs_inode_operations* op,
+					struct vfs_file_operations* fops);
+
+/**
+ * @brief Initialiazes the "device" field in a vfs_inode object
+ */
+void vfs_inode_init_dev(struct vfs_inode* inode, enum device_major major,
+						enum device_minor minor);
+
+int vfs_inode_open(struct vfs_inode* inode, int flags, struct vfs_file* file);
 
 /**
  * @brief Increments the reference counter by one.

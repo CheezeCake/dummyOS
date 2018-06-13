@@ -20,6 +20,7 @@ enum thread_state
 	THREAD_RUNNING,
 	THREAD_READY,
 	THREAD_SLEEPING,
+	THREAD_SLEEP_UNINTR,
 	THREAD_DEAD
 };
 
@@ -46,6 +47,7 @@ struct thread
 	};
 
 	struct cpu_context* cpu_context;
+	struct cpu_context* syscall_ctx; // for interruptible syscalls
 
 	// kernel stack
 	struct stack kstack;
@@ -59,8 +61,6 @@ struct thread
 
 	list_node_t p_thr_list; /**< Chained in process::threads */
 	list_node_t s_ready_queue; /**< Chained in sched::@ref ::ready_queues */
-	list_node_t sem_wq; /**< Chained in sem_t::wait_queue */
-
 	wait_queue_entry_t wqe; /**< Chained in wait_queue_t::threads */
 };
 
@@ -84,5 +84,9 @@ enum thread_state thread_get_state(const struct thread* thread);
 void thread_switch_setup(struct cpu_context* cpu_ctx);
 
 v_addr_t thread_get_kstack_top(const struct thread* thread);
+
+int thread_intr_sleep(struct thread* thr);
+
+void thread_set_syscall_context(struct thread* thr, struct cpu_context* ctx);
 
 #endif

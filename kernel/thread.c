@@ -1,6 +1,7 @@
 #include <kernel/cpu_context.h>
 #include <kernel/errno.h>
 #include <kernel/interrupt.h>
+#include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
 #include <kernel/sched/sched.h>
 #include <kernel/thread.h>
@@ -49,6 +50,7 @@ static int init(struct thread* thread, char* name, size_t kstack_size,
 		thread->cpu_context = (struct cpu_context*)(stack_top -
 													cpu_context_sizeof());
 
+		thread->syscall_ctx = NULL;
 		thread->state = THREAD_READY;
 		thread->type = type;
 		thread->priority = priority;
@@ -172,4 +174,29 @@ void thread_switch_setup(struct cpu_context* cpu_ctx)
 {
 	if (cpu_context_is_usermode(cpu_ctx))
 		vmm_switch_to(sched_get_current_thread()->process->vmm);
+}
+
+int thread_intr_sleep(struct thread* thr)
+{
+	if (thread_get_state(thr) != THREAD_SLEEPING)
+		return -EINVAL;
+
+	kassert(!cpu_context_is_usermode(thr->cpu_context));
+	kassert((v_addr_t)thr->syscall_ctx > thr->kstack.sp &&
+			(v_addr_t)thr->syscall_ctx <= thread_get_kstack_top(thr));
+	kassert(cpu_context_is_usermode(thr->syscall_ctx));
+	kassert(list_node_chained(&thr->wqe));
+
+	thr->cpu_context = thr->syscall_ctx;
+	list_erase(&thr->wqe);
+	sched_add_thread(thr);
+
+	cpu_context_set_syscall_return_value(thr->cpu_context, -EINTR);
+
+	return 0;
+}
+
+void thread_set_syscall_context(struct thread* thr, struct cpu_context* ctx)
+{
+	thr->syscall_ctx = ctx;
 }

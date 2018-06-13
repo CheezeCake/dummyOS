@@ -7,6 +7,7 @@
 #include <kernel/multiboot.h>
 #include <kernel/panic.h>
 #include <kernel/time/time.h>
+#include "console.h"
 #include "exception.h"
 #include "gdt.h"
 #include "i8254.h"
@@ -20,8 +21,6 @@
 
 #define TICK_INTERVAL_IN_MS 10
 
-void kernel_main(size_t mem_size);
-
 void handle_page_fault(int exception, struct cpu_context* ctx);
 
 static void default_exception_handler(int exception, struct cpu_context* ctx)
@@ -34,6 +33,7 @@ void __kernel_main(const multiboot_info_t* mbi)
 {
 	size_t mem_size = (mbi->mem_upper << 10) + (1 << 20);
 	log_printf("MEM:%p\n", (void*)(mbi->mem_upper));
+
 	kernel_main(mem_size);
 }
 
@@ -60,7 +60,6 @@ int arch_init(void)
 
 	kassert(idt_set_syscall_handler(0x80) == 0);
 
-
 	return i8254_set_tick_interval(TICK_INTERVAL_IN_MS);
 }
 
@@ -73,4 +72,9 @@ int arch_mm_init(size_t ram_size_bytes)
 	paging_init();
 
 	return 0;
+}
+
+int arch_console_init(void)
+{
+	return console_init();
 }

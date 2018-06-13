@@ -13,7 +13,7 @@ static void test(void* data)
 	log_e_print("kill pid 2\n");
 	sys_kill(2, SIGINT);
 	while (1) {
-		terminal_putchar('t');
+		/* terminal_putchar('t'); */
 		sched_sleep_millis(500);
 	}
 }
