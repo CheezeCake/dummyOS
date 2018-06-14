@@ -3,6 +3,7 @@
 #include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/mm/memory.h>
+#include <kernel/mm/uaccess.h>
 #include <kernel/mm/vmm.h>
 #include <kernel/types.h>
 #include <libk/endian.h>
@@ -121,7 +122,7 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 
 		// zero fill
 		if (filesz < memsz)
-			memset((int8_t*)vaddr + filesz, 0, memsz - filesz);
+			memset_user((int8_t*)vaddr + filesz, 0, memsz - filesz);
 	}
 
 end:

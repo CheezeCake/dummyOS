@@ -14,4 +14,6 @@ ssize_t strncpy_from_user(char* dest, const char* __user src, ssize_t n);
 
 int strndup_from_user(const char* __user str, ssize_t n, char** dup);
 
+int memset_user(void *s, int c, size_t size);
+
 #endif

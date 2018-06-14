@@ -115,3 +115,19 @@ int strndup_from_user(const char* __user str, ssize_t n, char** dup)
 
 	return 0;
 }
+
+int memset_user(void *s, int c, size_t size)
+{
+	char* s0 = s;
+
+	uaccess_setup(fixup);
+
+	for ( ; size > 0; ++s0, --size)
+		*s0 = c;
+
+	return 0;
+
+fixup:
+	uaccess_reset();
+	return -EFAULT;
+}
