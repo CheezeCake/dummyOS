@@ -218,7 +218,7 @@ static int create_user_stack(v_addr_t* stack_bottom, size_t stack_size)
 	return err;
 }
 
-static int load_binary(const char* path, v_addr_t* entry_point)
+static int load_binary(const char* path, struct process_image* img)
 {
 	vfs_path_t exec_path;
 	struct vfs_file file;
@@ -232,7 +232,7 @@ static int load_binary(const char* path, v_addr_t* entry_point)
 	if (err)
 		goto fail_open;
 
-	err = elf_load_binary(&file, entry_point);
+	err = elf_load_binary(&file, img);
 
 	vfs_close(&file);
 fail_open:
@@ -283,7 +283,7 @@ int exec(const char* path, const user_args_t* argv, const user_args_t* envp)
 	pid_t proc_pid = proc->pid;
 	struct vmm* proc_vmm = proc->vmm;
 	struct process* new_proc;
-	v_addr_t entry_point, stack_bottom, stack_top;
+	v_addr_t stack_bottom, stack_top;
 	int err;
 
 	err = create_new_process(path, argv, &new_proc);
@@ -293,9 +293,8 @@ int exec(const char* path, const user_args_t* argv, const user_args_t* envp)
 
 	process_lock(proc, thread);
 	process_set_vmm(proc, new_proc->vmm);
-	vmm_switch_to(new_proc->vmm); // TODO: remove
 
-	err = load_binary(path, &entry_point);
+	err = load_binary(path, &new_proc->img);
 	if (err)
 		goto fail;
 
@@ -307,7 +306,8 @@ int exec(const char* path, const user_args_t* argv, const user_args_t* envp)
 	if (err)
 		goto fail;
 
-	err = create_and_add_new_thread(entry_point, stack_top, new_proc);
+	err = create_and_add_new_thread(new_proc->img.entry_point, stack_top,
+									new_proc);
 	if (err)
 		goto fail;
 

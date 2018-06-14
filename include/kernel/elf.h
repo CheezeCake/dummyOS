@@ -3,6 +3,7 @@
 
 #include <arch/elf.h>
 #include <fs/file.h>
+#include <kernel/process.h>
 #include <kernel/types.h>
 
 // http://www.sco.com/developers/gabi/2012-12-31/contents.html
@@ -85,6 +86,6 @@ struct elf_section_header
 	uint32_t sh_entsize;
 };
 
-int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point);
+int elf_load_binary(struct vfs_file* binfile, struct process_image* img);
 
 #endif

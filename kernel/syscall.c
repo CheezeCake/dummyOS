@@ -28,6 +28,7 @@ pid_t sys_getpgid(pid_t pid);
 int sys_setpgrp(void);
 pid_t sys_getpgrp(void);
 int sys_ioctl(int fd, int request, uint32_t arg);
+void* sys_sbrk(intptr_t increment);
 
 
 #define __syscall(s) ((v_addr_t)s)
@@ -56,6 +57,7 @@ v_addr_t syscall_table[SYSCALL_NR_COUNT] = {
 	[NR_setpgrp]	= __syscall(sys_setpgrp),
 	[NR_getpgrp]	= __syscall(sys_getpgrp),
 	[NR_ioctl]		= __syscall(sys_ioctl),
+	[NR_sbrk]		= __syscall(sys_sbrk),
 };
 
 #include <kernel/log.h>

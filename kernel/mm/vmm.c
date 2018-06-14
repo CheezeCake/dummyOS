@@ -320,6 +320,7 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 {
 	mapping_t* mapping = NULL;
 	v_addr_t ext_start;
+	ssize_t diff;
 	int err;
 
 	if (!vmm_is_userspace_address(addr))
@@ -331,7 +332,11 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 	if (!mapping)
 		return -EINVAL;
 
-	increment = page_align_up(increment);
+	if (mapping_contains_addr(mapping, addr + increment))
+		return 0;
+
+	diff = addr + increment - mapping_get_end(mapping);
+	increment = page_align_up(diff);
 
 	if (mapping->flags & VMM_MAP_GROWSDOW) {
 		ext_start = mapping->start - increment;
@@ -349,10 +354,30 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 	return err;
 }
 
+void* sys_sbrk(intptr_t increment)
+{
+	const struct process* current = sched_get_current_process();
+	v_addr_t brk = current->img.brk;
+	int err;
+
+	err = vmm_extend_user_mapping(brk, increment);
+
+	return (err) ? (void*)-1 : (void*)brk;
+}
+
 bool vmm_range_is_free(v_addr_t addr, size_t size)
 {
-	// TODO: implement
-	return false;
+	v_addr_t start = addr;
+
+	while (start < addr + size) {
+		mapping_t* mapping = find_mapping(&current_vmm->mappings, start);
+		if (mapping)
+			return false;
+
+		start = mapping_get_end(mapping) + 1;
+	}
+
+	return true;
 }
 
 static int handle_cow_fault(mapping_t* mapping, int flags)

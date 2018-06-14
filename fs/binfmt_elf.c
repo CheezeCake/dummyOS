@@ -36,12 +36,13 @@ static bool check_header(const struct elf_header* e_hdr)
 	return true;
 }
 
-int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
+int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 {
 	struct elf_header e_hdr;
 	struct elf_program_header* e_phdr;
 	off_t phdr_offset;
 	uint16_t phdr_size, phdr_num;
+	v_addr_t _end = 0;
 	int err = 0;
 
 	if (binfile->op->read(binfile, &e_hdr, sizeof(e_hdr)) != sizeof(e_hdr))
@@ -49,7 +50,7 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 	if (!check_header(&e_hdr))
 		return -ENOEXEC;
 
-	*entry_point = le2h32(e_hdr.e_entry);
+	img->entry_point = le2h32(e_hdr.e_entry);
 
 	phdr_offset = le2h32(e_hdr.e_phoff); // program header offset
 
@@ -87,9 +88,13 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 		uint32_t memsz = le2h32(e_phdr[i].p_memsz);
 		uint32_t flags = le2h32(e_phdr[i].p_flags);
 		uint32_t align = le2h32(e_phdr[i].p_align);
+		v_addr_t end = vaddr + memsz;
 
 		if (memsz == 0)
 			continue;
+
+		if (end > _end)
+			_end = end;
 
 		if (!vmm_is_userspace_address(vaddr) ||
 			!vmm_is_userspace_address(vaddr + memsz)) {
@@ -124,6 +129,8 @@ int elf_load_binary(struct vfs_file* binfile, v_addr_t* entry_point)
 		if (filesz < memsz)
 			memset_user((int8_t*)vaddr + filesz, 0, memsz - filesz);
 	}
+
+	img->brk = align_up(_end, PAGE_SIZE);
 
 end:
 	kfree(e_phdr);

@@ -22,6 +22,12 @@ enum process_state
 	PROC_ZOMBIE
 };
 
+struct process_image
+{
+	v_addr_t entry_point;
+	v_addr_t brk;
+};
+
 /**
  * @brief Process
  */
@@ -35,6 +41,7 @@ struct process
 
 	char name[PROCESS_NAME_MAX_LENGTH];
 	enum process_state state;
+	struct process_image img;
 
 	int exit_status;
 
