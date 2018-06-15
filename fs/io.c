@@ -132,7 +132,7 @@ ssize_t sys_write(int fd, const void* __user buf, size_t count)
 	return ret;
 }
 
-int sys_ioctl(int fd, int request, uint32_t arg)
+int sys_ioctl(int fd, int request, intptr_t arg)
 {
 	struct vfs_file* file;
 

@@ -40,7 +40,7 @@ struct vfs_file_operations
 	off_t (*lseek)(struct vfs_file* this, off_t offset, int whence);
 	ssize_t (*read)(struct vfs_file* this, void* buf, size_t count);
 	ssize_t (*write)(struct vfs_file* this, void* buf, size_t count);
-	int (*ioctl)(struct vfs_file* this, int request, uint32_t arg);
+	int (*ioctl)(struct vfs_file* this, int request, intptr_t arg);
 };
 
 /**

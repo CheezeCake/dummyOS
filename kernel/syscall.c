@@ -27,7 +27,7 @@ int sys_setpgid(pid_t pid, pid_t pgid);
 pid_t sys_getpgid(pid_t pid);
 int sys_setpgrp(void);
 pid_t sys_getpgrp(void);
-int sys_ioctl(int fd, int request, uint32_t arg);
+int sys_ioctl(int fd, int request, intptr_t arg);
 void* sys_sbrk(intptr_t increment);
 
 

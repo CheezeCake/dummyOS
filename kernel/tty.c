@@ -266,7 +266,7 @@ static ssize_t tty_write(struct vfs_file* this, void* buf, size_t count)
 	return count;
 }
 
-static int tty_ioctl(struct vfs_file* this, int request, uint32_t arg)
+static int tty_ioctl(struct vfs_file* this, int request, intptr_t arg)
 {
 	struct tty* tty = this->inode->private_data;
 	struct process* current;
