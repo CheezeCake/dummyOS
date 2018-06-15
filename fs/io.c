@@ -140,8 +140,10 @@ int sys_ioctl(int fd, int request, intptr_t arg)
 	if (!file)
 		return -EBADF;
 
-	if (!file->op || !file->op->ioctl)
+	if (!file->op)
 		return -ENODEV;
+	if (!file->op->ioctl)
+		return -ENOTTY;
 
 	return file->op->ioctl(file, request, arg);
 }
