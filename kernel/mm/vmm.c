@@ -332,7 +332,7 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 	if (!mapping)
 		return -EINVAL;
 
-	if (mapping_contains_addr(mapping, addr + increment))
+	if (mapping_contains_addr(mapping, addr + increment - 1))
 		return 0;
 
 	diff = addr + increment - mapping_get_end(mapping);
@@ -345,7 +345,7 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 		ext_start = mapping->start + mapping->size;
 	}
 
-	if (!vmm_range_is_free(ext_start, ext_start + increment))
+	if (!vmm_range_is_free(ext_start, ext_start + increment - 1))
 		return -EINVAL;
 
 	err = vmm_create_user_mapping(ext_start, increment, mapping->region->prot,
@@ -356,25 +356,37 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 
 void* sys_sbrk(intptr_t increment)
 {
-	const struct process* current = sched_get_current_process();
+	struct process* current = sched_get_current_process();
 	v_addr_t brk = current->img.brk;
+	const mapping_t* mapping;
 	int err;
 
-	err = vmm_extend_user_mapping(brk, increment);
+	vmm_uaccess_setup();
+
+	mapping = find_mapping(&current_vmm->mappings, brk);
+	if (!mapping) {
+		err = vmm_create_user_mapping(brk, increment,
+									  VMM_PROT_USER | VMM_PROT_WRITE, 0);
+	}
+	else {
+		err = vmm_extend_user_mapping(brk, increment);
+		if (!err)
+			current->img.brk = brk + increment - 1;
+	}
 
 	return (err) ? (void*)-1 : (void*)brk;
 }
 
-bool vmm_range_is_free(v_addr_t addr, size_t size)
+bool vmm_range_is_free(v_addr_t start, v_addr_t end)
 {
-	v_addr_t start = addr;
+	v_addr_t addr = start;
 
-	while (start < addr + size) {
-		mapping_t* mapping = find_mapping(&current_vmm->mappings, start);
+	while (addr < end) {
+		mapping_t* mapping = find_mapping(&current_vmm->mappings, addr);
 		if (mapping)
 			return false;
 
-		start = mapping_get_end(mapping) + 1;
+		addr += PAGE_SIZE;
 	}
 
 	return true;

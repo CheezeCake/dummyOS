@@ -10,10 +10,9 @@
 /*
  * region protection flags
  */
-#define VMM_PROT_READ		(1 << 0)
-#define VMM_PROT_WRITE		(1 << 1)
-#define VMM_PROT_EXEC		(1 << 2)
-#define VMM_PROT_USER		(1 << 3)
+#define VMM_PROT_WRITE		(1 << 0)
+#define VMM_PROT_EXEC		(1 << 1)
+#define VMM_PROT_USER		(1 << 2)
 
 /*
  * mapping flags
@@ -97,7 +96,7 @@ int vmm_destroy_user_mapping(v_addr_t addr);
 
 int vmm_extend_user_mapping(v_addr_t addr, size_t increment);
 
-bool vmm_range_is_free(v_addr_t start, size_t size);
+bool vmm_range_is_free(v_addr_t start, v_addr_t end);
 
 struct vmm* vmm_get_current_vmm(void);
 

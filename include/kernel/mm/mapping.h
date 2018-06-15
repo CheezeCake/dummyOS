@@ -30,7 +30,7 @@ static inline bool mapping_contains_addr(const mapping_t* mapping, v_addr_t addr
 
 static inline v_addr_t mapping_get_end(const mapping_t* mapping)
 {
-	return mapping->start + mapping->size - 1;
+	return (mapping->start + mapping->size - 1);
 }
 
 int __mapping_init(mapping_t* mapping, region_t* region, v_addr_t start,
