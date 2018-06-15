@@ -88,6 +88,7 @@ int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 		uint32_t memsz = le2h32(e_phdr[i].p_memsz);
 		uint32_t flags = le2h32(e_phdr[i].p_flags);
 		uint32_t align = le2h32(e_phdr[i].p_align);
+		v_addr_t start = vaddr;
 		v_addr_t end = vaddr + memsz;
 
 		if (memsz == 0)
@@ -101,16 +102,19 @@ int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 			err = -ENOEXEC;
 			goto end;
 		}
-		if (offset % align != vaddr % align) {
-			err = -ENOEXEC;
-			goto end;
+		if (align > 1) {
+			if (offset % align != vaddr % align) {
+				err = -ENOEXEC;
+				goto end;
+			}
+			start = align_down(vaddr, align);
 		}
 
 		uint8_t vmm_flags = VMM_PROT_USER;
 		if (flags & PF_X) vmm_flags |= VMM_PROT_EXEC;
 		if (flags & PF_W) vmm_flags |= VMM_PROT_WRITE;
 		if (flags & PF_R) vmm_flags |= VMM_PROT_READ;
-		err = vmm_create_user_mapping(vaddr, memsz, vmm_flags, 0);
+		err = vmm_create_user_mapping(start, memsz, vmm_flags, 0);
 		if (err)
 			goto end;
 
