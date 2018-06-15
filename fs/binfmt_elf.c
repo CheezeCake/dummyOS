@@ -110,10 +110,15 @@ int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 			start = align_down(vaddr, align);
 		}
 
+		void* buffer = kmalloc(filesz);
+		if (!buffer) {
+			err = -ENOMEM;
+			goto end;
+		}
+
 		uint8_t vmm_flags = VMM_PROT_USER;
 		if (flags & PF_X) vmm_flags |= VMM_PROT_EXEC;
 		if (flags & PF_W) vmm_flags |= VMM_PROT_WRITE;
-		if (flags & PF_R) vmm_flags |= VMM_PROT_READ;
 		err = vmm_create_user_mapping(start, memsz, vmm_flags, 0);
 		if (err)
 			goto end;
@@ -124,14 +129,22 @@ int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 			err = -EIO;
 			goto end;
 		}
-		if (binfile->op->read(binfile, (void*)vaddr, filesz) != filesz) {
+		if (binfile->op->read(binfile, buffer, filesz) != filesz) {
 			err = -EIO;
+			goto end;
+		}
+
+		err = copy_to_user((void*)vaddr, buffer, filesz);
+		if (err) {
+			kfree(buffer);
 			goto end;
 		}
 
 		// zero fill
 		if (filesz < memsz)
 			memset_user((int8_t*)vaddr + filesz, 0, memsz - filesz);
+
+		kfree(buffer);
 	}
 
 	img->brk = align_up(_end, PAGE_SIZE);
