@@ -115,7 +115,7 @@ static int copy_fds(const struct process* proc, struct process* child)
 			if (!copy)
 				return -ENOMEM;
 
-			err = vfs_inode_open(file->inode, file->flags, child->fds[i]);
+			err = vfs_inode_open(file->inode, file->flags, copy);
 			if (err) {
 				kfree(copy);
 				return err;
