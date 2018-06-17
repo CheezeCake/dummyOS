@@ -41,6 +41,17 @@ int vfs_inode_open(struct vfs_inode* inode, int flags, struct vfs_file* file)
 	}
 
 	err = vfs_file_init(file, fops, inode, flags);
+	if (err)
+		goto fail;
+
+	err = file->op->open(inode, flags, file);
+	if (err)
+		goto fail;
+
+	return 0;
+
+fail:
+	vfs_file_reset(file);
 
 	return err;
 }

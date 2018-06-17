@@ -101,6 +101,33 @@ int process_create(const char* name, struct process** result)
 	return err;
 }
 
+static int copy_fds(const struct process* proc, struct process* child)
+{
+	struct vfs_file* file;
+	struct vfs_file* copy;
+	int err;
+
+	for (size_t i = 0; i < PROCESS_MAX_FD; ++i) {
+		file = proc->fds[i];
+
+		if (file) {
+			copy = kmalloc(sizeof(struct vfs_file));
+			if (!copy)
+				return -ENOMEM;
+
+			err = vfs_inode_open(file->inode, file->flags, child->fds[i]);
+			if (err) {
+				kfree(copy);
+				return err;
+			}
+
+			child->fds[i] = copy;
+		}
+	}
+
+	return 0;
+}
+
 int process_fork(struct process* proc, const struct thread* fork_thread,
 				 struct process** child, struct thread** child_thread)
 {
@@ -113,11 +140,15 @@ int process_fork(struct process* proc, const struct thread* fork_thread,
 
 	err = thread_clone(fork_thread, new->name, child_thread);
 	if (err)
-		goto fail_thr_clone;
+		goto fail;
 	process_add_thread(new, *child_thread);
 	thread_unref(*child_thread);
 
-	// TODO: copy root, cwd, file descriptors, ...
+	err = copy_fds(proc, new);
+	if (err)
+		goto fail;
+
+	// TODO: copy root, cwd
 	new->session = proc->session;
 	new->pgrp = proc->pgrp;
 	new->ctrl_tty = proc->ctrl_tty;
@@ -131,7 +162,7 @@ int process_fork(struct process* proc, const struct thread* fork_thread,
 
 	return 0;
 
-fail_thr_clone:
+fail:
 	process_destroy(new);
 
 	return err;
