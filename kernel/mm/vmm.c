@@ -370,9 +370,10 @@ void* sys_sbrk(intptr_t increment)
 	}
 	else {
 		err = vmm_extend_user_mapping(brk, increment);
-		if (!err)
-			current->img.brk = brk + increment - 1;
 	}
+
+	if (!err)
+		current->img.brk = brk + increment;
 
 	return (err) ? (void*)-1 : (void*)brk;
 }
