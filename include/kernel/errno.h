@@ -36,10 +36,10 @@
 #define	EDOM			33		/* Numerical argument out of domain */
 #define	ERANGE			34		/* Result too large */
 
-#define ELOOP			40		/* Too many levels of symbolic links */
+#define	ENAMETOOLONG	91		/* File name too long */
+#define ELOOP			92		/* Too many levels of symbolic links */
 
-#define	ENAMETOOLONG	63	/* File name too long */
 
-#define	EOVERFLOW		84		/* Value too large to be stored in data type */
+#define	EOVERFLOW		139		/* Value too large to be stored in data type */
 
 #endif
