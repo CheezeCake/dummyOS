@@ -63,9 +63,18 @@ static inline const char* user_args_get_arg(const user_args_t* user_args,
 static ssize_t user_args_size_from_user(char* const __user args[])
 {
 	ssize_t size = 0;
+	char* arg;
+	bool done = false;
+	int err;
 
 	if (args) {
-		for (; args[size]; ++size) { }
+		do {
+			err = copy_from_user(&arg, &args[size], sizeof(char*));
+			if (!err && arg)
+				++size;
+			else
+				done = true;
+		} while (!done);
 	}
 
 	return size;
@@ -265,6 +274,7 @@ int exec(const char* path, const user_args_t* argv, const user_args_t* envp)
 
 	process_lock(proc, thread);
 	process_set_vmm(proc, new_vmm);
+	vmm_switch_to(new_vmm);
 
 	err = load_binary(path, &new_img);
 	if (err)
@@ -289,10 +299,8 @@ int exec(const char* path, const user_args_t* argv, const user_args_t* envp)
 	process_exec(proc);
 	process_unlock(proc);
 
-	err = process_add_thread(proc, new_thread);
-	kassert(!err);
-	err = sched_add_thread(new_thread);
-	kassert(!err);
+	kassert(process_add_thread(proc, new_thread) == 0);
+	kassert(sched_add_thread(new_thread) == 0);
 	thread_unref(new_thread);
 
 	sched_exit();
