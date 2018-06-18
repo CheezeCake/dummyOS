@@ -77,6 +77,8 @@ pid_t process_register_pid(struct process* proc, pid_t pid);
 
 int process_add_thread(struct process* proc, struct thread* thr);
 
+void process_remove_thread(struct process* proc, struct thread* thr);
+
 int process_fork(struct process* proc, const struct thread* fork_thread,
 				 struct process** child, struct thread** child_thread);
 
@@ -90,6 +92,11 @@ int process_lock(struct process* proc, const struct thread* cur);
 int process_unlock(struct process* proc);
 
 void process_set_vmm(struct process* proc, struct vmm* vmm);
+
+void process_set_name(struct process* proc, const char* name);
+
+void process_set_process_image(struct process* proc,
+							   const struct process_image* img);
 
 /**
  * @brief Checks if the process has any pending signals
@@ -117,6 +124,11 @@ int process_exit_quiet(struct process* proc);
  * Sends SIGCHLD to parent and wakes up the parents wait(2)'ing threads
  */
 int process_exit(struct process* proc, int status);
+
+/**
+ * Prepares the process for execve
+ */
+void process_exec(struct process* proc);
 
 /**
  * Adds file to the file descriptor array

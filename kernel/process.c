@@ -69,7 +69,7 @@ static int process_init(struct process* proc, const char* name)
 		return err;
 	wait_init(&proc->wait_wq);
 
-	strlcpy(proc->name, name, PROCESS_NAME_MAX_LENGTH);
+	process_set_name(proc, name);
 	proc->state = PROC_RUNNABLE;
 	proc->root = vfs_cache_node_get_root();
 	proc->parent = NULL;
@@ -148,7 +148,11 @@ int process_fork(struct process* proc, const struct thread* fork_thread,
 	if (err)
 		goto fail;
 
-	// TODO: copy root, cwd
+	new->root = proc->root;
+	vfs_cache_node_ref(new->root);
+	new->cwd = proc->cwd;
+	vfs_cache_node_ref(new->cwd);
+
 	new->session = proc->session;
 	new->pgrp = proc->pgrp;
 	new->ctrl_tty = proc->ctrl_tty;
@@ -238,6 +242,11 @@ int process_add_thread(struct process* proc, struct thread* thr)
 	return 0;
 }
 
+void process_remove_thread(struct process* proc, struct thread* thr)
+{
+	list_erase(&thr->p_thr_list);
+}
+
 void process_set_vmm(struct process* proc, struct vmm* vmm)
 {
 	irq_disable();
@@ -245,6 +254,17 @@ void process_set_vmm(struct process* proc, struct vmm* vmm)
 	proc->vmm = vmm;
 
 	irq_enable();
+}
+
+void process_set_name(struct process* proc, const char* name)
+{
+	strlcpy(proc->name, name, PROCESS_NAME_MAX_LENGTH);
+}
+
+void process_set_process_image(struct process* proc,
+							   const struct process_image* img)
+{
+	memcpy(&proc->img, img, sizeof(struct process_image));
 }
 
 bool process_signal_pending(const struct process* proc)
@@ -391,9 +411,21 @@ void process_destroy(struct process* proc)
 	destroy_threads(proc);
 	unregister_process(proc);
 	close_fds(proc);
+	if (proc->root)
+		vfs_cache_node_unref(proc->root);
+	if (proc->cwd)
+		vfs_cache_node_unref(proc->cwd);
 
 	remove_from_parent_list(proc);
 	kfree(proc);
+}
+
+void process_exec(struct process* proc)
+{
+	wait_reset(&proc->wait_wq);
+
+	exit_threads(proc);
+	destroy_threads(proc);
 }
 
 int process_add_file(struct process* proc, struct vfs_file* file)

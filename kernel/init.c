@@ -50,6 +50,8 @@ int init_process_init(const char* init_path)
 	process_register_pid(init, INIT_PID);
 	kassert(init->pid == INIT_PID);
 
+	init->root = init->cwd = vfs_cache_node_get_root();
+
 	// create user thread
 	err = thread_create((v_addr_t)init_exec, (v_addr_t)NULL, &thr);
 	// but assign kernel cpu context to execute init_exec()

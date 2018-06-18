@@ -241,60 +241,32 @@ fail_open:
 	return err;
 }
 
-static int create_new_process(const char* path, const user_args_t* argv,
-							  struct process** result)
+static inline const char* get_new_process_name(const char* path,
+											   const user_args_t* argv)
 {
-	const char* new_proc_name =
-		(argv && argv->size > 0) ? user_args_get_arg(argv, 0) : path;
-	int err;
-
-	err = process_create(new_proc_name, result);
-
-	return err;
-}
-
-static int create_and_add_new_thread(v_addr_t entry_point, v_addr_t stack_top,
-									 struct process* new_proc)
-{
-	struct thread* thr;
-	int err;
-
-	err = thread_create(entry_point, stack_top, &thr);
-	if (err)
-		return err;
-
-	err = process_add_thread(new_proc, thr);
-	if (err) {
-		thread_unref(thr);
-		return err;
-	}
-
-	err = sched_add_thread(thr);
-	if (!err)
-		thread_unref(thr);
-
-	return err;
+	return (argv && argv->size > 0) ? user_args_get_arg(argv, 0) : path;
 }
 
 int exec(const char* path, const user_args_t* argv, const user_args_t* envp)
 {
 	struct thread* thread = sched_get_current_thread();
 	struct process* proc = thread->process;
-	pid_t proc_pid = proc->pid;
 	struct vmm* proc_vmm = proc->vmm;
-	struct process* new_proc;
+
+	struct thread* new_thread = NULL;
+	struct vmm* new_vmm = NULL;
+	struct process_image new_img;
 	v_addr_t stack_bottom, stack_top;
 	int err;
 
-	err = create_new_process(path, argv, &new_proc);
+	err = vmm_create(&new_vmm);
 	if (err)
 		return err;
-	new_proc->pid = proc->pid;
 
 	process_lock(proc, thread);
-	process_set_vmm(proc, new_proc->vmm);
+	process_set_vmm(proc, new_vmm);
 
-	err = load_binary(path, &new_proc->img);
+	err = load_binary(path, &new_img);
 	if (err)
 		goto fail;
 
@@ -306,25 +278,30 @@ int exec(const char* path, const user_args_t* argv, const user_args_t* envp)
 	if (err)
 		goto fail;
 
-	err = create_and_add_new_thread(new_proc->img.entry_point, stack_top,
-									new_proc);
+	err = thread_create(new_img.entry_point, stack_top, &new_thread);
 	if (err)
 		goto fail;
 
-	process_set_vmm(proc, proc_vmm);
-	process_exit_quiet(proc);
-	process_destroy(proc);
+	process_set_name(proc, get_new_process_name(path, argv));
+	process_set_process_image(proc, &new_img);
 
-	kassert(process_register_pid(new_proc, proc_pid) > 0);
+	vmm_unref(proc_vmm);
+	process_exec(proc);
+	process_unlock(proc);
+
+	err = process_add_thread(proc, new_thread);
+	kassert(!err);
+	err = sched_add_thread(new_thread);
+	kassert(!err);
+	thread_unref(new_thread);
 
 	sched_exit();
 
 fail:
 	vmm_switch_to(proc_vmm);
 	process_set_vmm(proc, proc_vmm);
+	vmm_unref(new_vmm);
 	process_unlock(proc);
-
-	process_destroy(new_proc);
 
 	return err;
 }
