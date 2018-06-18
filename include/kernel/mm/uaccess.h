@@ -10,7 +10,7 @@ int copy_from_user(void* to, const void* __user from, size_t n);
 
 ssize_t strnlen_user(const char* __user str, ssize_t n);
 
-ssize_t strncpy_from_user(char* dest, const char* __user src, ssize_t n);
+ssize_t strlcpy_from_user(char* dest, const char* __user src, ssize_t n);
 
 int strndup_from_user(const char* __user str, ssize_t n, char** dup);
 

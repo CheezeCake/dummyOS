@@ -70,22 +70,27 @@ fixup:
 	return -EFAULT;
 }
 
-ssize_t strncpy_from_user(char* dest, const char* __user src, ssize_t n)
+ssize_t strlcpy_from_user(char* dest, const char* __user src, ssize_t n)
 {
-	char* dst = dest;
+	const char* src0 = src;
+	size_t s = n;
 
 	uaccess_setup(fixup);
 
-	for ( ; *src && n > 0; ++dest, ++src, --n)
+	for ( ; n > 1 && *src; ++dest, ++src, --n)
 		*dest = *src;
 
-	// null pad
-	for (; n > 0; ++dest, --n)
-		*dest = '\0';
+	if (n == 0 || n == 1) {
+		if (s != 0)
+			*dest = '\0';
+
+		while (*src)
+			++src;
+	}
 
 	uaccess_reset();
 
-	return (dest - dst);
+	return (src - src0);
 
 fixup:
 	uaccess_reset();
@@ -101,11 +106,11 @@ int strndup_from_user(const char* __user str, ssize_t n, char** dup)
 	if (size <= 0)
 		return size;
 
-	copy = kmalloc(size);
+	copy = kmalloc(size + 1);
 	if (!copy)
 		return -ENOMEM;
 
-	size = strncpy_from_user(copy, str, size);
+	size = strlcpy_from_user(copy, str, size + 1);
 	if (size < 0) {
 		kfree(copy);
 		return size;
