@@ -27,8 +27,9 @@
 
 #define log_e_putchar(c) { \
 	log_putchar(c); \
-	terminal_putchar(c); \
 }
+	/* terminal_putchar(c); \ */
+/* } */
 #define log_w_putchar(c) log_putchar(c)
 #define log_i_putchar(c) log_putchar(c)
 
