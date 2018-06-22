@@ -99,8 +99,10 @@ ssize_t sys_read(int fd, void* __user buf, size_t count)
 	if (ret > 0) {
 		err = copy_to_user(buf, kbuf, ret);
 		if (err)
-			return err;
+			ret = err;
 	}
+
+	kfree(kbuf);
 
 	return ret;
 }
@@ -125,9 +127,11 @@ ssize_t sys_write(int fd, const void* __user buf, size_t count)
 
 	err = copy_from_user(kbuf, buf, count);
 	if (err)
-		return err;
+		ret = err;
+	else
+		ret = file->op->write(file, kbuf, count);
 
-	ret = file->op->write(file, kbuf, count);
+	kfree(kbuf);
 
 	return ret;
 }
