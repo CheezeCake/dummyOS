@@ -14,6 +14,7 @@ void vfs_inode_init(struct vfs_inode* inode, enum vfs_node_type type,
 	inode->op = op;
 	inode->fops = fops;
 
+	list_init(&inode->cnodes);
 	refcount_init(&inode->refcnt);
 }
 
@@ -24,10 +25,10 @@ void vfs_inode_init_dev(struct vfs_inode* inode, enum device_major major,
 	inode->dev.minor = minor;
 }
 
-int vfs_inode_open(struct vfs_inode* inode, int flags, struct vfs_file* file)
+int vfs_inode_open_fops(struct vfs_inode* inode,
+						struct vfs_file_operations** result_fops)
 {
 	struct vfs_file_operations* fops = inode->fops;
-	int err;
 
 	if (!fops)
 		return -ENXIO;
@@ -40,20 +41,9 @@ int vfs_inode_open(struct vfs_inode* inode, int flags, struct vfs_file* file)
 		inode->private_data = chardev_get_device(&inode->dev);
 	}
 
-	err = vfs_file_init(file, fops, inode, flags);
-	if (err)
-		goto fail;
-
-	err = file->op->open(inode, flags, file);
-	if (err)
-		goto fail;
+	*result_fops = fops;
 
 	return 0;
-
-fail:
-	vfs_file_reset(file);
-
-	return err;
 }
 
 void vfs_inode_ref(struct vfs_inode* inode)
@@ -71,4 +61,15 @@ void vfs_inode_unref(struct vfs_inode* inode)
 void vfs_inode_release(struct vfs_inode* inode)
 {
 	refcount_dec(&inode->refcnt);
+}
+
+void vfs_inode_add_cnode(struct vfs_inode* inode, struct vfs_cache_node* cnode)
+{
+	list_push_back(&inode->cnodes, &cnode->i_cnodes);
+}
+
+void vfs_inode_remove_cnode(struct vfs_inode* inode,
+							struct vfs_cache_node* cnode)
+{
+	list_erase(&cnode->i_cnodes);
 }

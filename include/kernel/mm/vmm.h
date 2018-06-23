@@ -76,6 +76,8 @@ int vmm_clone(struct vmm* vmm, struct vmm* clone);
 
 bool vmm_is_userspace_address(v_addr_t addr);
 
+bool vmm_is_valid_userspace_address(v_addr_t addr);
+
 int vmm_setup_kernel_mapping(mapping_t* mapping);
 
 /**

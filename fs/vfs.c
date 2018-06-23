@@ -234,7 +234,7 @@ int vfs_open(const vfs_path_t* path, int flags, struct vfs_file* file)
 	if (err)
 		return err;
 
-	err = vfs_inode_open(cnode->inode, flags, file);
+	err = vfs_cache_node_open(cnode, flags, file);
 
 	return err;
 }

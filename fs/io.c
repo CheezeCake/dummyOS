@@ -7,6 +7,7 @@
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
 #include <usr/fcntl.h>
+#include <usr/dirent.h>
 
 int sys_open(const char* __user path, int flags)
 {
@@ -150,4 +151,48 @@ int sys_ioctl(int fd, int request, intptr_t arg)
 		return -ENOTTY;
 
 	return file->op->ioctl(file, request, arg);
+}
+
+int sys_getdents(int fd, struct dirent* __user dirp, size_t nbytes)
+{
+	struct vfs_file* file;
+
+	file = process_get_file(sched_get_current_process(), fd);
+	if (!file)
+		return -EBADF;
+
+	if (file->cnode->inode->type != DIRECTORY)
+		return -ENOTDIR;
+	if (!file->op->getdents)
+		return -ENODEV;
+	if (!vmm_is_valid_userspace_address((v_addr_t)dirp))
+		return -EFAULT;
+
+	return file->op->getdents(file, dirp, nbytes);
+}
+
+ssize_t _dirent_init(struct dirent* __user dirp, uint32_t d_ino,
+					 uint8_t d_type, uint8_t d_namlen, char d_name[])
+{
+#define copy_to_user_member(member)									\
+	do {															\
+		err = copy_to_user(&dirp->member, &member, sizeof(member)); \
+		if (err)													\
+			return err;												\
+	} while (0)
+
+	const ssize_t len = __dirent_size() + d_namlen;
+	const uint16_t d_reclen = len; // for copy_to_user_member(d_reclen)
+	int err;
+
+	copy_to_user_member(d_ino);
+	copy_to_user_member(d_reclen);
+	copy_to_user_member(d_type);
+	copy_to_user_member(d_namlen);
+
+	err = strlcpy_to_user((char*)&dirp->d_name, d_name, d_namlen);
+	if (err)
+		return err;
+
+	return len;
 }

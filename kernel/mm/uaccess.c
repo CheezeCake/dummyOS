@@ -70,7 +70,7 @@ fixup:
 	return -EFAULT;
 }
 
-ssize_t strlcpy_from_user(char* dest, const char* __user src, ssize_t n)
+ssize_t uaccess_strlcpy(char* dest, const char* src, ssize_t n)
 {
 	const char* src0 = src;
 	size_t s = n;
@@ -95,6 +95,16 @@ ssize_t strlcpy_from_user(char* dest, const char* __user src, ssize_t n)
 fixup:
 	uaccess_reset();
 	return -EFAULT;
+}
+
+ssize_t strlcpy_to_user(char* __user dest, const char* src, ssize_t n)
+{
+	return uaccess_strlcpy(dest, src, n);
+}
+
+ssize_t strlcpy_from_user(char* dest, const char* __user src, ssize_t n)
+{
+	return uaccess_strlcpy(dest, src, n);
 }
 
 int strndup_from_user(const char* __user str, ssize_t n, char** dup)

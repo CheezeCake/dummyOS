@@ -282,6 +282,12 @@ bool vmm_is_userspace_address(v_addr_t addr)
 	return (vmm_impl) ? vmm_impl->is_userspace_address(addr) : false;
 }
 
+bool vmm_is_valid_userspace_address(v_addr_t addr)
+{
+	return (vmm_is_userspace_address(addr) &&
+			find_mapping(&current_vmm->mappings, addr));
+}
+
 static inline bool range_in_userspace(v_addr_t start, size_t size)
 {
 	return (vmm_is_userspace_address(start) &&

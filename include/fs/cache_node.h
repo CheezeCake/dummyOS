@@ -7,6 +7,8 @@
 #include <libk/list.h>
 #include <libk/refcount.h>
 
+struct vfs_file;
+
 /**
  * @brief Cached file system node
  */
@@ -23,6 +25,8 @@ struct vfs_cache_node
 
 	/** Chained in vfs_cache_node::children */
 	list_node_t cn_children_list;
+	/** Chained in vfs_inode::cnodes */
+	list_node_t i_cnodes;
 
 	refcount_t refcnt;
 };
@@ -106,5 +110,8 @@ void vfs_cache_node_unref(struct vfs_cache_node* node);
  * @brief Returns the reference counter value.
  */
 int vfs_cache_node_get_ref(const struct vfs_cache_node* node);
+
+int vfs_cache_node_open(struct vfs_cache_node* cnode, int flags,
+						struct vfs_file* file);
 
 #endif

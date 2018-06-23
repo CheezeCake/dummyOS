@@ -211,7 +211,7 @@ static int tty_close(struct vfs_file* this)
 static ssize_t tty_read(struct vfs_file* this, void* buf, size_t count)
 {
 	int err = 0;
-	struct tty* tty = this->inode->private_data;
+	struct tty* tty = vfs_file_get_inode(this)->private_data;
 	uint8_t* buffer = (uint8_t*)buf;
 	uint8_t c;
 	size_t n = 0;
@@ -249,7 +249,7 @@ static ssize_t tty_read(struct vfs_file* this, void* buf, size_t count)
 
 static ssize_t tty_write(struct vfs_file* this, void* buf, size_t count)
 {
-	struct tty* tty = this->inode->private_data;
+	struct tty* tty = vfs_file_get_inode(this)->private_data;
 	char* buffer = (char*)buf;
 
 	if (!tty)
@@ -268,7 +268,7 @@ static ssize_t tty_write(struct vfs_file* this, void* buf, size_t count)
 
 static int tty_ioctl(struct vfs_file* this, int request, intptr_t arg)
 {
-	struct tty* tty = this->inode->private_data;
+	struct tty* tty = vfs_file_get_inode(this)->private_data;
 	struct process* current;
 
 	if (request != TIOCSCTTY)

@@ -10,6 +10,7 @@
 #include <fs/file.h>
 #include <fs/filesystem.h>
 #include <fs/inode.h>
+#include <fs/io.h>
 #include <fs/superblock.h>
 #include <kernel/errno.h>
 #include <kernel/kmalloc.h>
@@ -447,6 +448,66 @@ static int lookup_fullname(const struct vfs_inode* this,
 	return (found) ? ramfs_vfs_inode_create(fh, this->sb, result) : -ENOENT;
 }
 
+static int ustar_header_dirname(struct ustar_header* fh, char* buf,
+								size_t buf_size, vfs_path_t* dirname)
+{
+	vfs_path_t fullname;
+	int err;
+
+	err = ustar_header_fullname_init(buf, buf_size, fh, NULL);
+	if (err)
+		return err;
+
+	err = vfs_path_init(&fullname, buf, strlen(buf));
+	if (err)
+		return err;
+
+	err = vfs_path_dirname(&fullname, dirname);
+
+	return err;
+}
+
+static int getdents(struct vfs_file* this, struct dirent* __user dirp,
+					size_t nbytes)
+{
+	struct ramfs_inode_info* ramfs_inode =
+		get_ramfs_inode(vfs_file_get_inode(this));
+	struct ustar_header* fh = ramfs_inode->header;
+	size_t fullname_str_len = USTAR_FULLNAME_MAX_LEN + 1;
+	char* fullname_str = kmalloc(fullname_str_len);
+	vfs_path_t this_dirname;
+	vfs_path_t cur_dirname;
+	size_t offset = 0;
+	bool done = false;
+	int err;
+
+	if (!fullname_str)
+		return -ENOMEM;
+
+	err = ustar_header_dirname(fh, fullname_str, fullname_str_len,
+							   &this_dirname);
+
+	while (!err && !done && ustar_header_valid(fh)) {
+		err = ustar_header_dirname(fh, fullname_str, fullname_str_len,
+								   &cur_dirname);
+		if (!err) {
+			if (vfs_path_same(&this_dirname, &cur_dirname)) {
+				offset += _dirent_init((struct dirent*)((int8_t*)dirp + offset), 0, 0, 0, 0);
+				fh = ustar_header_get_next_header(fh);
+			}
+			else {
+				done = true;
+			}
+
+			vfs_path_reset(&cur_dirname);
+		}
+	}
+
+	kfree(fullname_str);
+
+	return 0;
+}
+
 static int lookup(struct vfs_inode* this, const vfs_path_t* name,
 				  struct vfs_inode** result)
 {
@@ -510,7 +571,8 @@ int close(struct vfs_file* this)
 off_t lseek(struct vfs_file* this, off_t offset, int whence)
 {
 	off_t new;
-	struct ramfs_inode_info* ramfs_inode = get_ramfs_inode(this->inode);
+	struct ramfs_inode_info* ramfs_inode =
+		get_ramfs_inode(vfs_file_get_inode(this));
 
 	switch (whence) {
 		case SEEK_CUR:
@@ -537,11 +599,12 @@ off_t lseek(struct vfs_file* this, off_t offset, int whence)
 
 ssize_t read(struct vfs_file* this, void* buf, size_t count)
 {
-	if (this->inode->type == DIRECTORY)
+	struct vfs_inode* inode = vfs_file_get_inode(this);
+
+	if (inode->type == DIRECTORY)
 		return -EISDIR;
 
-	const struct ramfs_inode_info* ramfs_inode =
-		get_ramfs_inode(this->inode);
+	const struct ramfs_inode_info* ramfs_inode = get_ramfs_inode(inode);
 	size_t left = ramfs_inode->data_size - this->cur;
 
 	if (count > left)
@@ -582,11 +645,12 @@ static struct vfs_inode_operations ramfs_inode_op = {
 };
 
 static struct vfs_file_operations ramfs_file_op = {
-	.open	= open,
-	.close	= close,
-	.lseek	= lseek,
-	.read	= read,
-	.write	= write,
+	.open		= open,
+	.close		= close,
+	.getdents	= getdents,
+	.lseek		= lseek,
+	.read		= read,
+	.write		= write,
 };
 
 int ramfs_init_and_register(void)

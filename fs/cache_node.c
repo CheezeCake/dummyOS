@@ -50,8 +50,10 @@ int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
 	}
 
 	node->inode = inode;
-	if (inode)
+	if (inode) {
 		vfs_inode_ref(inode);
+		vfs_inode_add_cnode(inode, node);
+	}
 
 	list_init(&node->children);
 	list_init(&node->cn_children_list);
@@ -68,8 +70,10 @@ static void destroy(struct vfs_cache_node* node)
 {
 	vfs_path_destroy(&node->name);
 
-	if (node->inode)
+	if (node->inode) {
+		vfs_inode_remove_cnode(node->inode, node);
 		vfs_inode_unref(node->inode);
+	}
 
 	list_node_t* child;
 	list_foreach(&node->children, child) {
@@ -159,4 +163,30 @@ void vfs_cache_node_unref(struct vfs_cache_node* node)
 int vfs_cache_node_get_ref(const struct vfs_cache_node* node)
 {
 	return refcount_get(&node->refcnt);
+}
+
+int vfs_cache_node_open(struct vfs_cache_node* cnode, int flags,
+						struct vfs_file* file)
+{
+	struct vfs_file_operations* fops;
+	int err;
+
+	err = vfs_inode_open_fops(cnode->inode, &fops);
+	if (err)
+		return err;
+
+	err = vfs_file_init(file, fops, cnode, flags);
+	if (err)
+		goto fail;
+
+	err = file->op->open(cnode->inode, flags, file);
+	if (err)
+		goto fail;
+
+	return 0;
+
+fail:
+	vfs_file_reset(file);
+
+	return err;
 }

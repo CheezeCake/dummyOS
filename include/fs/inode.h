@@ -4,6 +4,7 @@
 #include <fs/chardev.h>
 #include <fs/path.h>
 #include <fs/superblock.h>
+#include <libk/list.h>
 #include <libk/refcount.h>
 
 struct vfs_cache_node;
@@ -39,6 +40,7 @@ struct vfs_inode
 
 	void* private_data;
 
+	list_t cnodes;
 	refcount_t refcnt;
 };
 
@@ -92,7 +94,8 @@ void vfs_inode_init(struct vfs_inode* inode, enum vfs_node_type type,
 void vfs_inode_init_dev(struct vfs_inode* inode, enum device_major major,
 						enum device_minor minor);
 
-int vfs_inode_open(struct vfs_inode* inode, int flags, struct vfs_file* file);
+int vfs_inode_open_fops(struct vfs_inode* inode,
+						struct vfs_file_operations** result_fops);
 
 /**
  * @brief Increments the reference counter by one.
@@ -109,5 +112,10 @@ void vfs_inode_unref(struct vfs_inode* inode);
  * if the count drops to zero.
  */
 void vfs_inode_release(struct vfs_inode* inode);
+
+void vfs_inode_add_cnode(struct vfs_inode* inode, struct vfs_cache_node* cnode);
+
+void vfs_inode_remove_cnode(struct vfs_inode* inode,
+							struct vfs_cache_node* cnode);
 
 #endif

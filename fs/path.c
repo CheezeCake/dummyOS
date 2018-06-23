@@ -288,6 +288,13 @@ int vfs_path_basename(const vfs_path_t* path,
 	return 0;
 }
 
+int vfs_path_dirname(const vfs_path_t* path,
+					 vfs_path_t* dirname)
+{
+	//TODO: implement
+	return 0;
+}
+
 /**
  * "strictly" compares two paths by comparing their underlying strings.
  */
