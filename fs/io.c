@@ -181,7 +181,8 @@ ssize_t _dirent_init(struct dirent* __user dirp, long d_ino,
 			return err;												\
 	} while (0)
 
-	const int16_t d_reclen = __dirent_size() + d_namlen + 1;
+	const int16_t d_reclen = align_up(__dirent_size() + d_namlen + 1,
+									  _Alignof(struct dirent));
 	ssize_t n;
 	int err;
 
