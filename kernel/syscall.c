@@ -29,6 +29,7 @@ int sys_setpgrp(void);
 pid_t sys_getpgrp(void);
 int sys_ioctl(int fd, int request, intptr_t arg);
 void* sys_sbrk(intptr_t increment);
+ssize_t sys_getdents(int fd, struct dirent* __user dirp, size_t nbytes);
 
 
 #define __syscall(s) ((v_addr_t)s)
@@ -58,6 +59,7 @@ v_addr_t syscall_table[SYSCALL_NR_COUNT] = {
 	[NR_getpgrp]	= __syscall(sys_getpgrp),
 	[NR_ioctl]		= __syscall(sys_ioctl),
 	[NR_sbrk]		= __syscall(sys_sbrk),
+	[NR_getdents]	= __syscall(sys_getdents),
 };
 
 #include <kernel/log.h>

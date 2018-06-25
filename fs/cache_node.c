@@ -7,15 +7,22 @@
 #include <libk/refcount.h>
 #include <libk/utils.h>
 
+static struct vfs_inode cnode_root_inode;
 static struct vfs_cache_node* cache_node_root = NULL;
 
-int vfs_cache_init(struct vfs_cache_node* root)
+int vfs_cache_init(void)
 {
-	kassert(root->inode->type == DIRECTORY);
+	vfs_path_t root_path;
+	int err;
 
-	int err = vfs_path_init(&root->name, "/", 1);
-	if (!err)
-		cache_node_root = root;
+	vfs_inode_init(&cnode_root_inode, DIRECTORY, NULL, NULL, NULL);
+
+	err = vfs_path_init(&root_path, "/", 1);
+	if (!err) {
+		err = vfs_cache_node_create(&cnode_root_inode, &root_path,
+									&cache_node_root);
+		vfs_path_reset(&root_path);
+	}
 
 	return err;
 }

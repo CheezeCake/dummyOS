@@ -15,7 +15,7 @@ void sys_exit(int status)
 	struct process* p = cur_thr->process;
 	kassert(p != NULL);
 
-	log_e_printf("\nSYSCALL: _exit(0x%x), pid=%d\n", status, p->pid);
+	log_e_printf("\nSYSCALL: _exit(%d), pid=%d\n", status, p->pid);
 
 	process_exit(p, status);
 	sched_exit();

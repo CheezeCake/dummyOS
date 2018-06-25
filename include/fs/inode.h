@@ -6,6 +6,7 @@
 #include <fs/superblock.h>
 #include <libk/list.h>
 #include <libk/refcount.h>
+#include <usr/dirent.h>
 
 struct vfs_cache_node;
 struct vfs_inode_operations;
@@ -16,11 +17,11 @@ struct vfs_file;
  */
 enum vfs_node_type
 {
-	REGULAR,
-	DIRECTORY,
-	SYMLINK,
-	CHARDEV,
-	BLOCKDEV
+	REGULAR		= DT_REG,
+	DIRECTORY	= DT_DIR,
+	SYMLINK		= DT_LNK,
+	CHARDEV		= DT_CHR,
+	BLOCKDEV	= DT_BLK
 };
 
 /**

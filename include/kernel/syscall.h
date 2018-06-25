@@ -27,8 +27,9 @@
 #define NR_getpgrp		21
 #define NR_ioctl		22
 #define NR_sbrk			23
+#define NR_getdents		24
 
-#define SYSCALL_NR_TOP		23 /**< last syscall number */
+#define SYSCALL_NR_TOP		24 /**< last syscall number */
 #define SYSCALL_NR_COUNT	(SYSCALL_NR_TOP + 1) /**< number of syscalls */
 
 #endif

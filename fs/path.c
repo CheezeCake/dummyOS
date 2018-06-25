@@ -172,7 +172,10 @@ int vfs_path_copy_create(const vfs_path_t* path, vfs_path_t** result)
 
 void vfs_path_reset(vfs_path_t* path)
 {
-	vfs_path_string_destroy(path->base_str);
+	if (path->base_str)
+		vfs_path_string_destroy(path->base_str);
+
+	memset(path, 0, sizeof(vfs_path_t));
 }
 
 void vfs_path_destroy(vfs_path_t* path)
@@ -231,7 +234,7 @@ static int build_component_path(vfs_path_t* path)
 	path->offset += start;
 	path->size = end - start;
 
-	return (vfs_path_empty(path)) ? -EINVAL : 0;
+	return 0;
 }
 
 int vfs_path_first_component(const vfs_path_t* path,
@@ -257,42 +260,74 @@ int vfs_path_component_next(vfs_path_component_t* component)
 	return build_component_path(path);
 }
 
-int vfs_path_basename(const vfs_path_t* path,
-					  vfs_path_component_t* basename)
+void vfs_path_ignore_trailing_slashes(vfs_path_t* path)
 {
-	int err;
-
-	err = vfs_path_component_init(basename, path);
-	if (err)
-		return err;
-
-	vfs_path_t* basename_path = &basename->as_path;
-	const char* start = vfs_path_get_str(basename_path);
-	const char* end = start + basename_path->size;
+	const char* start = vfs_path_get_str(path);
+	const char* end = start + path->size;
 
 	// ignore trailing slashes
 	while (start < end - 1 && end[-1] == '/')
 		--end;
 
-	// basename start
-	const char* bname_start = end - 1;
-	while (start < bname_start && *bname_start != '/')
-		--bname_start;
+	path->size = (end - start);
+}
 
-	if (start < bname_start)
-		++bname_start;
+static const char* basename_start(const vfs_path_t* path)
+{
+	const char* start = vfs_path_get_str(path);
+	const char* end = start + path->size;
 
-	basename_path->offset += bname_start - start;
-	basename_path->size = end - bname_start;
+	while (start <= end - 1 && end[-1] != '/')
+		--end;
+
+	return end;
+}
+
+int vfs_path_basename(const vfs_path_t* path, vfs_path_t* basename)
+{
+	int err;
+
+	err = vfs_path_copy_init(path, basename);
+	if (err)
+		return err;
+
+	vfs_path_ignore_trailing_slashes(basename);
+
+	const char* start = vfs_path_get_str(basename);
+	const char* end = start + basename->size;
+	const char* bname_start = basename_start(basename);
+
+	basename->offset += bname_start - start;
+	basename->size = end - bname_start;
 
 	return 0;
 }
 
-int vfs_path_dirname(const vfs_path_t* path,
-					 vfs_path_t* dirname)
+int vfs_path_dirname(const vfs_path_t* path, vfs_path_t* dirname)
 {
-	//TODO: implement
-	return 0;
+	int err;
+
+	err = vfs_path_copy_init(path, dirname);
+	if (err)
+		return err;
+
+	vfs_path_ignore_trailing_slashes(dirname);
+
+	const char* start = vfs_path_get_str(dirname);
+	const char* bname_start = basename_start(dirname);
+
+	dirname->size = (bname_start - start);
+	if (dirname->size == 0) {
+		vfs_path_reset(dirname);
+		err = vfs_path_init(dirname, ".", 1);
+	}
+	else {
+		vfs_path_ignore_trailing_slashes(dirname);
+		if (dirname->size == 0)
+			++dirname->size;
+	}
+
+	return err;
 }
 
 /**

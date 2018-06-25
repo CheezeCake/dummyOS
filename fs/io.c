@@ -153,7 +153,7 @@ int sys_ioctl(int fd, int request, intptr_t arg)
 	return file->op->ioctl(file, request, arg);
 }
 
-int sys_getdents(int fd, struct dirent* __user dirp, size_t nbytes)
+ssize_t sys_getdents(int fd, struct dirent* __user dirp, size_t nbytes)
 {
 	struct vfs_file* file;
 
@@ -171,8 +171,8 @@ int sys_getdents(int fd, struct dirent* __user dirp, size_t nbytes)
 	return file->op->getdents(file, dirp, nbytes);
 }
 
-ssize_t _dirent_init(struct dirent* __user dirp, uint32_t d_ino,
-					 uint8_t d_type, uint8_t d_namlen, char d_name[])
+ssize_t _dirent_init(struct dirent* __user dirp, long d_ino,
+					 int d_type, size_t d_namlen, const char d_name[])
 {
 #define copy_to_user_member(member)									\
 	do {															\
@@ -181,8 +181,8 @@ ssize_t _dirent_init(struct dirent* __user dirp, uint32_t d_ino,
 			return err;												\
 	} while (0)
 
-	const ssize_t len = __dirent_size() + d_namlen;
-	const uint16_t d_reclen = len; // for copy_to_user_member(d_reclen)
+	const int16_t d_reclen = __dirent_size() + d_namlen + 1;
+	ssize_t n;
 	int err;
 
 	copy_to_user_member(d_ino);
@@ -190,9 +190,9 @@ ssize_t _dirent_init(struct dirent* __user dirp, uint32_t d_ino,
 	copy_to_user_member(d_type);
 	copy_to_user_member(d_namlen);
 
-	err = strlcpy_to_user((char*)&dirp->d_name, d_name, d_namlen);
-	if (err)
-		return err;
+	n = strlcpy_to_user((char*)&dirp->d_name, d_name, d_namlen + 1);
+	if (n < 0)
+		return n;
 
-	return len;
+	return d_reclen;
 }

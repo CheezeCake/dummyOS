@@ -73,7 +73,8 @@ static inline enum vfs_node_type ustar2vfs_type(uint8_t type)
 		case REGTYPE:
 		case AREGTYPE:
 			return REGULAR;
-		case LNKTYPE:
+		/* case LNKTYPE: */
+		case SYMTYPE:
 			return SYMLINK;
 		case CHRTYPE:
 			return CHARDEV;
@@ -165,9 +166,9 @@ static int ustar_header_fullname_init(char* fullname, size_t fullname_len,
 		if (h) {
 			strncpy(fullname, (const char*)h->prefix, prefix_len);
 			strncat(fullname, (const char*)h->name, name_len);
-			strncat(fullname, "/", 1);
 		}
 		if (append) {
+			strncat(fullname, "/", 1);
 			strncat(fullname, vfs_path_get_str(append), append_len);
 		}
 
@@ -304,14 +305,25 @@ static int create_root_node(struct vfs_superblock* sb,
 {
 	int err;
 	struct ramfs_inode_info* ramfs_inode = NULL;
+	vfs_path_t root_path;
 
 	// create inode
 	err = ramfs_inode_info_create(NULL, sb, &ramfs_inode);
-	if (!err) {
-		// grabs the inode
-		err = vfs_cache_node_create(&ramfs_inode->inode, NULL, result);
-		vfs_inode_unref(&ramfs_inode->inode); // drop inode
-	}
+	if (err)
+		return err;
+
+	err = vfs_path_init(&root_path, ".", 1);
+	if (err)
+		return err;
+
+	// refs the inode
+	err = vfs_cache_node_create(&ramfs_inode->inode, &root_path, result);
+	if (err)
+		goto out;
+	vfs_inode_unref(&ramfs_inode->inode); // unref inode
+
+out:
+	vfs_path_reset(&root_path);
 
 	return err;
 }
@@ -448,8 +460,9 @@ static int lookup_fullname(const struct vfs_inode* this,
 	return (found) ? ramfs_vfs_inode_create(fh, this->sb, result) : -ENOENT;
 }
 
-static int ustar_header_dirname(struct ustar_header* fh, char* buf,
-								size_t buf_size, vfs_path_t* dirname)
+static int ustar_header_dirname_basename(struct ustar_header* fh, char* buf,
+										 size_t buf_size, vfs_path_t* dirname,
+										 vfs_path_t* basename)
 {
 	vfs_path_t fullname;
 	int err;
@@ -462,37 +475,57 @@ static int ustar_header_dirname(struct ustar_header* fh, char* buf,
 	if (err)
 		return err;
 
-	err = vfs_path_dirname(&fullname, dirname);
+	if (dirname) {
+		err = vfs_path_dirname(&fullname, dirname);
+	}
+	if (!err && basename) {
+		err = vfs_path_basename(&fullname, basename);
+	}
+
+	vfs_path_reset(&fullname);
 
 	return err;
 }
 
-static int getdents(struct vfs_file* this, struct dirent* __user dirp,
-					size_t nbytes)
+static ssize_t getdents(struct vfs_file* this, struct dirent* __user dirp,
+						size_t nbytes)
 {
-	struct ramfs_inode_info* ramfs_inode =
-		get_ramfs_inode(vfs_file_get_inode(this));
-	struct ustar_header* fh = ramfs_inode->header;
-	size_t fullname_str_len = USTAR_FULLNAME_MAX_LEN + 1;
-	char* fullname_str = kmalloc(fullname_str_len);
-	vfs_path_t this_dirname;
+	struct vfs_inode* inode = vfs_file_get_inode(this);
+	struct ustar_header* fh = get_ramfs_inode(inode)->header;
+	const vfs_path_t* dirname = &vfs_file_get_cache_node(this)->name;
 	vfs_path_t cur_dirname;
+	vfs_path_t cur_basename;
+	const size_t fullname_str_len = USTAR_FULLNAME_MAX_LEN + 1;
+	char* fullname_str;
 	size_t offset = 0;
 	bool done = false;
-	int err;
+	int err = 0;
 
+	fullname_str = kmalloc(fullname_str_len);
 	if (!fullname_str)
 		return -ENOMEM;
 
-	err = ustar_header_dirname(fh, fullname_str, fullname_str_len,
-							   &this_dirname);
+	// root->header == NULL
+	fh = (fh) ? ustar_header_get_next_header(fh) : inode->sb->data;
 
 	while (!err && !done && ustar_header_valid(fh)) {
-		err = ustar_header_dirname(fh, fullname_str, fullname_str_len,
-								   &cur_dirname);
+		err = ustar_header_dirname_basename(fh, fullname_str, fullname_str_len,
+											&cur_dirname, &cur_basename);
 		if (!err) {
-			if (vfs_path_same(&this_dirname, &cur_dirname)) {
-				offset += _dirent_init((struct dirent*)((int8_t*)dirp + offset), 0, 0, 0, 0);
+			if (vfs_path_same(dirname, &cur_dirname)) {
+				ssize_t n = _dirent_init((struct dirent*)((int8_t*)dirp + offset),
+										 (uint32_t)fh,
+										 ustar2vfs_type(fh->typeflag),
+										 vfs_path_get_size(&cur_basename),
+										 vfs_path_get_str(&cur_basename));
+				if (n < 0)
+					err = n;
+				else
+					offset += n;
+
+				if (offset >= nbytes)
+					err = -ENOMEM;
+
 				fh = ustar_header_get_next_header(fh);
 			}
 			else {
@@ -500,12 +533,13 @@ static int getdents(struct vfs_file* this, struct dirent* __user dirp,
 			}
 
 			vfs_path_reset(&cur_dirname);
+			vfs_path_reset(&cur_basename);
 		}
 	}
 
 	kfree(fullname_str);
 
-	return 0;
+	return (err) ? err : offset;
 }
 
 static int lookup(struct vfs_inode* this, const vfs_path_t* name,
@@ -526,11 +560,9 @@ static int lookup(struct vfs_inode* this, const vfs_path_t* name,
 	kfree(this_fullname_str);
 
 	if (!err) {
-		struct ustar_header* next;
-		if (!h) // root->header == NULL
-			next = this->sb->data;
-		else
-			next = ustar_header_get_next_header(h);
+		// root->header == NULL
+		struct ustar_header* next =
+			(h) ? ustar_header_get_next_header(h) : this->sb->data;
 		err = lookup_fullname(this, next, &this_fullname, result);
 
 		vfs_path_reset(&this_fullname);

@@ -29,21 +29,24 @@ extern int8_t _binary_archive_start;
 
 static int mount_root(void)
 {
-	int err;
-	struct vfs_superblock* sb;
+	int err = -ENODEV;
 
-	err = get_superblock(NULL, "ramfs", &_binary_archive_start, &sb);
-	if (!err)
-		err = vfs_cache_init(sb->root);
+	err = vfs_mount(NULL, vfs_cache_node_get_root(), &_binary_archive_start,
+					"ramfs");
 
 	return err;
-
-	return -ENODEV;
 }
 
 int vfs_init(void)
 {
+	int err;
+
+	err = vfs_cache_init();
+	if (err)
+		return err;
+
 	list_init(&mounted_list);
+
 	// parse cmd line?
 	return mount_root();
 }
@@ -145,28 +148,42 @@ static int read_and_cache_inode(struct vfs_cache_node* parent,
 									   cached_result);
 }
 
-static int lookup(vfs_path_component_t* path_component, struct vfs_cache_node* start,
+static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
 				  struct vfs_cache_node* root, struct vfs_cache_node** result,
 				  unsigned int recursion_level)
 {
+	vfs_path_component_t component;
+	struct vfs_cache_node* current_node =
+		vfs_cache_node_resolve_mounted_fs(start);
+	struct vfs_cache_node* tmp = NULL;
+	int err = 0;
+
 	if (recursion_level >= VFS_LOOKUP_MAX_RECURSION_LEVEL)
 		return -ELOOP;
-
 	if (!start || !root)
 		return -EINVAL;
+	if (vfs_path_empty(path))
+		return -ENOENT;
 
-	const vfs_path_t* path = vfs_path_component_as_path(path_component);
-	struct vfs_cache_node* current_node = start;
+	err = vfs_path_first_component(path, &component);
+	if (err)
+		return err;
 
-	while (!vfs_path_empty(path)) {
-		current_node = vfs_cache_node_resolve_mounted_fs(current_node);
+	while (!vfs_path_empty(vfs_path_component_as_path(&component))) {
+		const vfs_path_t* path_component =
+			vfs_path_component_as_path(&component);
 
-		log_print("path: "); print_path(path);
+		log_print("path: ");
+		print_path(vfs_path_component_as_path(&component));
 		log_print("current_node: "); print_path(&current_node->name);
 
-		// if it's a symlink resolve it
-		if (current_node->inode->type == SYMLINK)
-			return readlink(current_node, root, result, recursion_level);
+		// if it's a symlink, resolve it
+		if (current_node->inode->type == SYMLINK) {
+			err = readlink(current_node, root, &tmp, recursion_level);
+			if (err)
+				return err;
+			current_node = tmp;
+		}
 
 		// file in the middle of the path
 		if (current_node->inode->type != DIRECTORY) {
@@ -174,23 +191,35 @@ static int lookup(vfs_path_component_t* path_component, struct vfs_cache_node* s
 			return -ENOTDIR;
 		}
 
+		current_node = vfs_cache_node_resolve_mounted_fs(current_node);
+		log_print("current_node mnt resol: "); print_path(&current_node->name);
+
 		struct vfs_cache_node* looked_up =
-			vfs_cache_node_lookup_child(current_node, path);
+			vfs_cache_node_lookup_child(current_node, path_component);
 		if (!looked_up) {
 			// node is not in the cache, fetch and cache it
-			int err = read_and_cache_inode(current_node, path, &looked_up);
+			err = read_and_cache_inode(current_node, path_component, &looked_up);
 			if (err)
 				return err;
 		}
 
-		vfs_path_component_next(path_component);
+		vfs_path_component_next(&component);
 		current_node = looked_up;
 	}
 
-	*result = current_node;
-	vfs_cache_node_ref(*result);
+	if (current_node->inode->type == SYMLINK) {
+		err = readlink(current_node, root, &tmp, recursion_level);
+		current_node = tmp;
+	}
 
-	return 0;
+	if (current_node) {
+		*result = current_node;
+		vfs_cache_node_ref(*result);
+	}
+
+	vfs_path_component_reset(&component);
+
+	return err;
 }
 
 int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
@@ -198,16 +227,9 @@ int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
 				unsigned int recursion_level)
 {
 	int err;
-	vfs_path_component_t path_component;
 	struct vfs_cache_node* start = (vfs_path_absolute(path)) ? root : cwd;
 
-	err = vfs_path_first_component(path, &path_component);
-	if (err)
-		return err;
-
-	err = lookup(&path_component, start, root, result, recursion_level);
-
-	vfs_path_component_reset(&path_component);
+	err = lookup(path, start, root, result, recursion_level);
 
 	return err;
 }

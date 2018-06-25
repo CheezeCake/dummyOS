@@ -207,16 +207,14 @@ bool vfs_path_component_equals(const vfs_path_component_t* c1,
  *
  * @param basename will represent the basename of path
  */
-int vfs_path_basename(const vfs_path_t* path,
-					  vfs_path_component_t* basename);
+int vfs_path_basename(const vfs_path_t* path, vfs_path_t* basename);
 
 /*
  * @brief Gets the dirname of a path
  *
  * @param dirname will represent the dirname of path
  */
-int vfs_path_dirname(const vfs_path_t* path,
-					 vfs_path_t* dirname);
+int vfs_path_dirname(const vfs_path_t* path, vfs_path_t* dirname);
 
 /**
  * @brief Compares two paths

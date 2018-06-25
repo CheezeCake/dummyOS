@@ -36,7 +36,7 @@ struct vfs_cache_node
  *
  * @return 0 on success
  */
-int vfs_cache_init(struct vfs_cache_node* root);
+int vfs_cache_init(void);
 
 /**
  * @brief Creates a vfs_cache_node object

@@ -40,8 +40,8 @@ struct vfs_file_operations
 	int (*open)(struct vfs_inode* inode, int flags, struct vfs_file* file);
 	int (*close)(struct vfs_file* this);
 
-	int (*getdents)(struct vfs_file* this, struct dirent* __user dirp,
-					size_t nbytes);
+	ssize_t (*getdents)(struct vfs_file* this, struct dirent* __user dirp,
+						size_t nbytes);
 
 	off_t (*lseek)(struct vfs_file* this, off_t offset, int whence);
 	ssize_t (*read)(struct vfs_file* this, void* buf, size_t count);
