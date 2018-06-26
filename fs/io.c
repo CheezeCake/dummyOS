@@ -1,4 +1,6 @@
 #include <dummyos/const.h>
+#include <dummyos/dirent.h>
+#include <dummyos/fcntl.h>
 #include <fs/vfs.h>
 #include <kernel/errno.h>
 #include <kernel/kmalloc.h>
@@ -6,8 +8,6 @@
 #include <kernel/process.h>
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
-#include <usr/fcntl.h>
-#include <usr/dirent.h>
 
 int sys_open(const char* __user path, int flags)
 {

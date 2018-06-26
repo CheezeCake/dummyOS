@@ -1,5 +1,5 @@
-#ifndef _USR_SIGNAL_H_
-#define _USR_SIGNAL_H_
+#ifndef _DUMMYOS_SIGNAL_H_
+#define _DUMMYOS_SIGNAL_H_
 
 #define SIGHUP		1
 #define SIGINT		2

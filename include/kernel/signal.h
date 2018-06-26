@@ -4,10 +4,10 @@
 // http://pubs.opengroup.org/onlinepubs/009695399/basedefs/signal.h.html
 
 #include <dummyos/const.h>
+#include <dummyos/signal.h>
 #include <kernel/types.h>
 #include <kernel/process.h>
 #include <libk/list.h>
-#include <usr/signal.h>
 
 struct process;
 struct thread;

@@ -1,5 +1,5 @@
-#ifndef _USR_FCNTL_H_
-#define _USR_FCNTL_H_
+#ifndef _DUMMYOS_FCNTL_H_
+#define _DUMMYOS_FCNTL_H_
 
 /*
  * @brief open() flags

@@ -1,12 +1,12 @@
 #ifndef _FS_VFS_INODE_H_
 #define _FS_VFS_INODE_H_
 
+#include <dummyos/dirent.h>
 #include <fs/chardev.h>
 #include <fs/path.h>
 #include <fs/superblock.h>
 #include <libk/list.h>
 #include <libk/refcount.h>
-#include <usr/dirent.h>
 
 struct vfs_cache_node;
 struct vfs_inode_operations;

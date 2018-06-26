@@ -1,5 +1,5 @@
-#ifndef _USR_DIRENT_H_
-#define _USR_DIRENT_H_
+#ifndef _DUMMYOS_DIRENT_H_
+#define _DUMMYOS_DIRENT_H_
 
 #include <stdint.h>
 

@@ -1,5 +1,6 @@
 #include <arch/vm.h>
 #include <dummyos/const.h>
+#include <dummyos/fcntl.h>
 #include <fs/file.h>
 #include <fs/vfs.h>
 #include <kernel/elf.h>
@@ -12,7 +13,6 @@
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
 #include <libk/utils.h>
-#include <usr/fcntl.h>
 
 #include <kernel/log.h>
 

@@ -2,9 +2,9 @@
 #define _FS_VFS_FILE_H_
 
 #include <dummyos/const.h>
+#include <dummyos/dirent.h>
 #include <fs/inode.h>
 #include <kernel/types.h>
-#include <usr/dirent.h>
 
 struct vfs_cache_node;
 struct vfs_inode;

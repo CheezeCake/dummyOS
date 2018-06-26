@@ -1,5 +1,5 @@
-#ifndef _USR_TERMIOS_H_
-#define _USR_TERMIOS_H_
+#ifndef _DUMMYOS_TERMIOS_H_
+#define _DUMMYOS_TERMIOS_H_
 
 #include <stdint.h>
 

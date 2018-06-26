@@ -1,3 +1,4 @@
+#include <dummyos/fcntl.h>
 #include <fs/filesystem.h>
 #include <fs/inode.h>
 #include <fs/vfs.h>
@@ -7,7 +8,6 @@
 #include <kernel/types.h>
 #include <libk/libk.h>
 #include <libk/list.h>
-#include <usr/fcntl.h>
 
 #include <kernel/log.h>
 
