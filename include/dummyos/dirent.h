@@ -24,8 +24,4 @@ struct dirent
 	char d_name[];
 };
 
-#if __STDC_VERSION__ >= 199901L
-# define __dirent_size() offsetof(struct dirent, d_name)
-#endif
-
 #endif
