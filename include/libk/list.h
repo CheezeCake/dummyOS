@@ -45,6 +45,24 @@ static inline list_node_t* list_back(const list_t* list)
 	return list->prev;
 }
 
+static inline list_node_t* list_begin(list_t* list);
+static inline list_node_t* list_end(list_t* list);
+static inline list_node_t* list_it_next(list_node_t* it);
+
+static inline list_node_t* list_get(list_t* list, size_t n)
+{
+	list_node_t* it = list_begin(list);
+	size_t i = 0;
+
+	while (i < n && it != list_end(list)) {
+		it = list_it_next(it);
+		++i;
+	}
+
+	return it;
+}
+
+
 
 /*
  * get enclosing struct

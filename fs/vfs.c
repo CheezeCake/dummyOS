@@ -125,12 +125,28 @@ static int readlink(const struct vfs_cache_node* symlink,
 	return err;
 }
 
+int vfs_read_and_cache_inode(struct vfs_cache_node* parent,
+							 struct vfs_inode* inode,
+							 const vfs_path_t* name,
+							 struct vfs_cache_node** cached_result)
+{
+	int err;
+
+	err = inode->sb->op->read_inode(inode->sb, inode);
+	if (err)
+		return err;
+
+	err = vfs_cache_node_insert_child(parent, inode, name, cached_result);
+
+	return err;
+}
+
 /**
- * Fetch an inode, insert it in the cache
+ * Lookup, fetch an inode and insert it in the cache
  */
-static int read_and_cache_inode(struct vfs_cache_node* parent,
-								const vfs_path_t* lookup_pathname,
-								struct vfs_cache_node** cached_result)
+static int lookup_read_and_cache_inode(struct vfs_cache_node* parent,
+									   const vfs_path_t* lookup_pathname,
+									   struct vfs_cache_node** cached_result)
 {
 	struct vfs_inode* parent_inode = parent->inode;
 	struct vfs_inode* inode = NULL;
@@ -140,12 +156,10 @@ static int read_and_cache_inode(struct vfs_cache_node* parent,
 	if (err)
 		return err;
 
-	err = inode->sb->op->read_inode(inode->sb, inode);
-	if (err)
-		return err;
+	err = vfs_read_and_cache_inode(parent, inode, lookup_pathname,
+								   cached_result);
 
-	return vfs_cache_node_insert_child(parent, inode, lookup_pathname,
-									   cached_result);
+	return err;
 }
 
 static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
@@ -197,8 +211,9 @@ static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
 		struct vfs_cache_node* looked_up =
 			vfs_cache_node_lookup_child(current_node, path_component);
 		if (!looked_up) {
-			// node is not in the cache, fetch and cache it
-			err = read_and_cache_inode(current_node, path_component, &looked_up);
+			// node is not in the cache, look it up, fetch it and cache it
+			err = lookup_read_and_cache_inode(current_node, path_component,
+											  &looked_up);
 			if (err)
 				return err;
 		}
@@ -268,7 +283,7 @@ int vfs_close(struct vfs_file* file)
 	if (file->op && file->op->close) {
 		err = file->op->close(file);
 		if (!err)
-			vfs_file_reset(file);
+			vfs_file_destroy(file);
 	}
 
 	return err;

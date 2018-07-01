@@ -65,6 +65,8 @@ int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
 	list_init(&node->children);
 	list_init(&node->cn_children_list);
 
+	mutex_init(&node->lock);
+
 	refcount_init(&node->refcnt);
 
 	return 0;
@@ -87,6 +89,19 @@ static void destroy(struct vfs_cache_node* node)
 		vfs_cache_node_unref(container_of(child, struct vfs_cache_node,
 											 cn_children_list));
 	}
+
+	mutex_destroy(&node->lock);
+}
+
+static void insert_child(struct vfs_cache_node* parent,
+						 struct vfs_cache_node* child)
+{
+	mutex_lock(&parent->lock);
+
+	child->parent = parent;
+	list_push_back(&parent->children, &child->cn_children_list);
+
+	mutex_unlock(&parent->lock);
 }
 
 int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
@@ -94,25 +109,29 @@ int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
 								const vfs_path_t* name,
 								struct vfs_cache_node** inserted_child)
 {
+	struct vfs_cache_node* child;
 	int err;
-	struct vfs_cache_node* cache_node;
 
-	err = vfs_cache_node_create(child_inode, name, &cache_node);
+	if (vfs_cache_node_lookup_child(parent, name))
+		return -EEXIST;
+
+	err = vfs_cache_node_create(child_inode, name, &child);
 	if (err)
 		return err;
 
-	if (parent) {
-		cache_node->parent = parent;
-		list_push_back(&parent->children, &cache_node->cn_children_list);
+	if (parent)
+		insert_child(parent, child);
+
+	if (inserted_child) {
+		*inserted_child = child;
+		vfs_cache_node_ref(child);
 	}
-	if (inserted_child)
-		*inserted_child = cache_node;
 
 	return 0;
 }
 
 struct vfs_cache_node*
-vfs_cache_node_lookup_child(const struct vfs_cache_node* parent,
+vfs_cache_node_lookup_child(struct vfs_cache_node* parent,
 							const vfs_path_t* name)
 {
 	const char dot[] = "..";
@@ -123,14 +142,20 @@ vfs_cache_node_lookup_child(const struct vfs_cache_node* parent,
 	if (vfs_path_str_same(name, dot, 2))
 		return parent->parent;
 
+	mutex_lock(&parent->lock);
+
 	list_node_t* it;
 	list_foreach(&parent->children, it) {
 		struct vfs_cache_node* node_it = list_entry(it,
 													struct vfs_cache_node,
 													cn_children_list);
-		if (vfs_path_same(name, &node_it->name))
+		if (vfs_path_same(name, &node_it->name)) {
+			mutex_unlock(&parent->lock);
 			return node_it;
+		}
 	}
+
+	mutex_unlock(&parent->lock);
 
 	return NULL;
 }

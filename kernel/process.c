@@ -111,15 +111,9 @@ static int copy_fds(const struct process* proc, struct process* child)
 		file = proc->fds[i];
 
 		if (file) {
-			copy = kmalloc(sizeof(struct vfs_file));
-			if (!copy)
-				return -ENOMEM;
-
-			err = vfs_file_dup(file, copy);
-			if (err) {
-				kfree(copy);
+			err = vfs_file_dup(file, &copy);
+			if (err)
 				return err;
-			}
 
 			child->fds[i] = copy;
 		}

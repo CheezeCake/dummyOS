@@ -4,6 +4,7 @@
 #include <fs/file.h>
 #include <fs/inode.h>
 #include <fs/path.h>
+#include <kernel/locking/mutex.h>
 #include <libk/list.h>
 #include <libk/refcount.h>
 
@@ -27,6 +28,10 @@ struct vfs_cache_node
 	list_node_t cn_children_list;
 	/** Chained in vfs_inode::cnodes */
 	list_node_t i_cnodes;
+	/** Chained in vfs_file::readdir_cache */
+	list_node_t f_readdir;
+
+	mutex_t lock;
 
 	refcount_t refcnt;
 };
@@ -73,7 +78,7 @@ int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
  * @return the child node if it was found, NULL otherwise
  */
 struct vfs_cache_node*
-vfs_cache_node_lookup_child(const struct vfs_cache_node* parent,
+vfs_cache_node_lookup_child(struct vfs_cache_node* parent,
 							const vfs_path_t* name);
 
 /*

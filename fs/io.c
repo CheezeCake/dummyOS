@@ -8,6 +8,7 @@
 #include <kernel/process.h>
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
+#include <libk/list.h>
 
 int sys_open(const char* __user path, int flags)
 {
@@ -25,11 +26,9 @@ int sys_open(const char* __user path, int flags)
 	if (err)
 		goto fail_path;
 
-	file = kmalloc(sizeof(struct vfs_file));
-	if (!file) {
-		err = -ENOMEM;
+	err = vfs_file_create(NULL, NULL, flags, &file);
+	if (err)
 		goto fail_file;
-	}
 
 	err = vfs_open(&vfspath, flags, file);
 	if (err) {
@@ -50,7 +49,7 @@ int sys_open(const char* __user path, int flags)
 fail_add:
 	vfs_close(file);
 fail_open:
-	kfree(file);
+	vfs_file_destroy(file);
 fail_file:
 	vfs_path_reset(&vfspath);
 fail_path:
@@ -153,26 +152,8 @@ int sys_ioctl(int fd, int request, intptr_t arg)
 	return file->op->ioctl(file, request, arg);
 }
 
-ssize_t sys_getdents(int fd, struct dirent* __user dirp, size_t nbytes)
-{
-	struct vfs_file* file;
-
-	file = process_get_file(sched_get_current_process(), fd);
-	if (!file)
-		return -EBADF;
-
-	if (file->cnode->inode->type != DIRECTORY)
-		return -ENOTDIR;
-	if (!file->op->getdents)
-		return -ENODEV;
-	if (!vmm_is_valid_userspace_address((v_addr_t)dirp))
-		return -EFAULT;
-
-	return file->op->getdents(file, dirp, nbytes);
-}
-
-ssize_t _dirent_init(struct dirent* __user dirp, long d_ino,
-					 int d_type, size_t d_namlen, const char d_name[])
+static ssize_t _dirent_init(struct dirent* __user dirp, long d_ino,
+							int d_type, size_t d_namlen, const char d_name[])
 {
 #define copy_to_user_member(member)									\
 	do {															\
@@ -196,4 +177,65 @@ ssize_t _dirent_init(struct dirent* __user dirp, long d_ino,
 		return n;
 
 	return d_reclen;
+}
+
+static ssize_t getdents(struct vfs_file* file, struct dirent* __user dirp,
+						size_t nbytes)
+{
+	list_node_t* it = list_get(&file->readdir_cache, file->cur);
+	size_t offset = 0;
+	int err = 0;
+
+	for (; !err && it != list_end(&file->readdir_cache);
+		 it = list_it_next(it), ++file->cur)
+	{
+		struct vfs_cache_node* cnode =
+			list_entry(it, struct vfs_cache_node, f_readdir);
+		struct vfs_inode* inode = cnode->inode;
+		ssize_t n = _dirent_init((struct dirent*)((int8_t*)dirp + offset),
+								 (long)inode,
+								 inode->type,
+								 vfs_path_get_size(&cnode->name),
+								 vfs_path_get_str(&cnode->name));
+		if (n < 0)
+			err = n;
+		else
+			offset += n;
+
+		if (offset >= nbytes)
+			err = -ENOMEM;
+	}
+
+	return (err) ? err : offset;
+}
+
+ssize_t sys_getdents(int fd, struct dirent* __user dirp, size_t nbytes)
+{
+	struct vfs_file* file;
+	ssize_t n;
+	int err;
+
+	file = process_get_file(sched_get_current_process(), fd);
+	if (!file)
+		return -EBADF;
+
+	if (file->cnode->inode->type != DIRECTORY)
+		return -ENOTDIR;
+	if (!file->op->readdir)
+		return -ENODEV;
+	if (!vmm_is_valid_userspace_address((v_addr_t)dirp))
+		return -EFAULT;
+
+	if (list_empty(&file->readdir_cache)) {
+		err = file->op->readdir(file, vfs_file_add_readdir_entry);
+		file->cur = 0;
+		if (err)
+			return err;
+	}
+
+	mutex_lock(&file->lock);
+	n = getdents(file, dirp, nbytes);
+	mutex_unlock(&file->lock);
+
+	return n;
 }

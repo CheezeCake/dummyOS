@@ -10,8 +10,8 @@
 #include <fs/file.h>
 #include <fs/filesystem.h>
 #include <fs/inode.h>
-#include <fs/io.h>
 #include <fs/superblock.h>
+#include <fs/vfs.h>
 #include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/types.h>
@@ -487,61 +487,6 @@ static int ustar_header_dirname_basename(struct ustar_header* fh, char* buf,
 	return err;
 }
 
-static ssize_t getdents(struct vfs_file* this, struct dirent* __user dirp,
-						size_t nbytes)
-{
-	struct vfs_inode* inode = vfs_file_get_inode(this);
-	struct ustar_header* fh = get_ramfs_inode(inode)->header;
-	const vfs_path_t* dirname = &vfs_file_get_cache_node(this)->name;
-	vfs_path_t cur_dirname;
-	vfs_path_t cur_basename;
-	const size_t fullname_str_len = USTAR_FULLNAME_MAX_LEN + 1;
-	char* fullname_str;
-	size_t offset = 0;
-	bool done = false;
-	int err = 0;
-
-	fullname_str = kmalloc(fullname_str_len);
-	if (!fullname_str)
-		return -ENOMEM;
-
-	// root->header == NULL
-	fh = (fh) ? ustar_header_get_next_header(fh) : inode->sb->data;
-
-	while (!err && !done && ustar_header_valid(fh)) {
-		err = ustar_header_dirname_basename(fh, fullname_str, fullname_str_len,
-											&cur_dirname, &cur_basename);
-		if (!err) {
-			if (vfs_path_same(dirname, &cur_dirname)) {
-				ssize_t n = _dirent_init((struct dirent*)((int8_t*)dirp + offset),
-										 (uint32_t)fh,
-										 ustar2vfs_type(fh->typeflag),
-										 vfs_path_get_size(&cur_basename),
-										 vfs_path_get_str(&cur_basename));
-				if (n < 0)
-					err = n;
-				else
-					offset += n;
-
-				if (offset >= nbytes)
-					err = -ENOMEM;
-
-				fh = ustar_header_get_next_header(fh);
-			}
-			else {
-				done = true;
-			}
-
-			vfs_path_reset(&cur_dirname);
-			vfs_path_reset(&cur_basename);
-		}
-	}
-
-	kfree(fullname_str);
-
-	return (err) ? err : offset;
-}
-
 static int lookup(struct vfs_inode* this, const vfs_path_t* name,
 				  struct vfs_inode** result)
 {
@@ -599,6 +544,64 @@ int close(struct vfs_file* this)
 {
 	return 0;
 }
+
+static int readdir(struct vfs_file* this,
+				   void (*add_entry)(struct vfs_file*, struct vfs_cache_node*))
+{
+	struct vfs_inode* inode = vfs_file_get_inode(this);
+	struct ustar_header* fh = get_ramfs_inode(inode)->header;
+	const vfs_path_t* dirname = &vfs_file_get_cache_node(this)->name;
+	vfs_path_t cur_dirname;
+	vfs_path_t cur_basename;
+	const size_t fullname_str_len = USTAR_FULLNAME_MAX_LEN + 1;
+	char* fullname_str;
+	size_t offset = 0;
+	bool done = false;
+	int err = 0;
+
+	fullname_str = kmalloc(fullname_str_len);
+	if (!fullname_str)
+		return -ENOMEM;
+
+	// root->header == NULL
+	fh = (fh) ? ustar_header_get_next_header(fh) : inode->sb->data;
+
+	while (!err && !done && ustar_header_valid(fh)) {
+		err = ustar_header_dirname_basename(fh, fullname_str, fullname_str_len,
+											&cur_dirname, &cur_basename);
+		if (err)
+			continue;
+
+		if (vfs_path_same(dirname, &cur_dirname)) {
+			struct vfs_cache_node* cnode =
+				vfs_cache_node_lookup_child(this->cnode, &cur_basename);
+			if (!cnode) {
+				struct vfs_inode* inode;
+				err = ramfs_vfs_inode_create(fh, this->cnode->inode->sb, &inode);
+				if (!err) {
+					err = vfs_read_and_cache_inode(this->cnode, inode,
+												   &cur_basename, &cnode);
+				}
+			}
+
+			if (!err && cnode)
+				add_entry(this, cnode);
+
+			fh = ustar_header_get_next_header(fh);
+		}
+		else {
+			done = true;
+		}
+
+		vfs_path_reset(&cur_dirname);
+		vfs_path_reset(&cur_basename);
+	}
+
+	kfree(fullname_str);
+
+	return (err) ? err : offset;
+}
+
 
 off_t lseek(struct vfs_file* this, off_t offset, int whence)
 {
@@ -679,7 +682,7 @@ static struct vfs_inode_operations ramfs_inode_op = {
 static struct vfs_file_operations ramfs_file_op = {
 	.open		= open,
 	.close		= close,
-	.getdents	= getdents,
+	.readdir	= readdir,
 	.lseek		= lseek,
 	.read		= read,
 	.write		= write,

@@ -50,4 +50,12 @@ int vfs_open(const vfs_path_t* path, int flags, struct vfs_file* file);
  */
 int vfs_close(struct vfs_file* file);
 
+/**
+ * @brief Fetches inode from filesystem and adds it to the cache
+ */
+int vfs_read_and_cache_inode(struct vfs_cache_node* parent,
+							 struct vfs_inode* inode,
+							 const vfs_path_t* name,
+							 struct vfs_cache_node** cached_result);
+
 #endif

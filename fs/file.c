@@ -4,6 +4,28 @@
 #include <kernel/kmalloc.h>
 #include <libk/libk.h>
 
+int vfs_file_create(struct vfs_file_operations* fops,
+					struct vfs_cache_node* cnode,
+					int flags, struct vfs_file** result)
+{
+	struct vfs_file* file;
+	int err;
+
+	file = kmalloc(sizeof(struct vfs_file));
+	if (!file)
+		return -ENOMEM;
+
+	err = vfs_file_init(file, fops, cnode, flags);
+	if (err) {
+		kfree(file);
+		file = NULL;
+	}
+
+	*result = file;
+
+	return err;
+}
+
 int vfs_file_init(struct vfs_file* file, struct vfs_file_operations* fops,
 				  struct vfs_cache_node* cnode,
 				  int flags)
@@ -11,25 +33,59 @@ int vfs_file_init(struct vfs_file* file, struct vfs_file_operations* fops,
 	memset(file, 0, sizeof(struct vfs_file));
 
 	file->cnode = cnode;
-	vfs_cache_node_ref(cnode);
+	if (cnode)
+		vfs_cache_node_ref(cnode);
 
 	file->flags = flags;
 	file->op = fops;
 
+	list_init(&file->readdir_cache);
+	mutex_init(&file->lock);
+
 	return 0;
+}
+
+static int vfs_file_copy_create(struct vfs_file* file, struct vfs_file** copy)
+{
+	int err;
+
+	err = vfs_file_create(file->op, file->cnode, file->flags, copy);
+	if (!err)
+		(*copy)->cur = file->cur;
+
+	return err;
+}
+
+static void clear_readdir_cache(struct vfs_file* file)
+{
+	list_node_t* it;
+	struct vfs_cache_node* cnode;
+
+	list_foreach(&file->readdir_cache, it) {
+		cnode = list_entry(it, struct vfs_cache_node, f_readdir);
+		vfs_cache_node_unref(cnode);
+	}
+
+	list_clear(&file->readdir_cache);
 }
 
 void vfs_file_reset(struct vfs_file* file)
 {
-	vfs_cache_node_unref(file->cnode);
+	if (file->cnode)
+		vfs_cache_node_unref(file->cnode);
+	clear_readdir_cache(file);
+	mutex_destroy(&file->lock);
 }
 
-int vfs_file_dup(struct vfs_file* file, struct vfs_file* dup)
+void vfs_file_destroy(struct vfs_file* file)
 {
-	memcpy(dup, file, sizeof(struct vfs_file));
-	vfs_cache_node_ref(dup->cnode);
+	vfs_file_reset(file);
+	kfree(file);
+}
 
-	return 0;
+int vfs_file_dup(struct vfs_file* file, struct vfs_file** dup)
+{
+	return vfs_file_copy_create(file, dup);
 }
 
 struct vfs_cache_node* vfs_file_get_cache_node(struct vfs_file* file)
@@ -40,4 +96,14 @@ struct vfs_cache_node* vfs_file_get_cache_node(struct vfs_file* file)
 struct vfs_inode* vfs_file_get_inode(struct vfs_file* file)
 {
 	return vfs_file_get_cache_node(file)->inode;
+}
+
+void vfs_file_add_readdir_entry(struct vfs_file* file,
+								struct vfs_cache_node* entry)
+{
+	mutex_lock(&file->lock);
+
+	list_push_back(&file->readdir_cache, &entry->f_readdir);
+
+	mutex_unlock(&file->lock);
 }
