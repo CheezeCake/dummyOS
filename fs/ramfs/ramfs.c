@@ -584,8 +584,11 @@ static int readdir(struct vfs_file* this,
 				}
 			}
 
-			if (!err && cnode)
-				add_entry(this, cnode);
+			if (cnode) {
+				if (!err)
+					add_entry(this, cnode);
+				vfs_cache_node_unref(cnode);
+			}
 
 			fh = ustar_header_get_next_header(fh);
 		}

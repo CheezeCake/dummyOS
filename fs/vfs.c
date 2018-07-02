@@ -101,6 +101,7 @@ static int readlink(const struct vfs_cache_node* symlink,
 					struct vfs_cache_node** target,
 					unsigned int recursion_level)
 {
+	struct vfs_cache_node* start = root;
 	vfs_path_t *target_path;
 	int err;
 
@@ -112,12 +113,13 @@ static int readlink(const struct vfs_cache_node* symlink,
 	if (err)
 		return err;
 
-	struct vfs_cache_node* const start =
-		(vfs_path_absolute(target_path))
-		? root
-		: vfs_cache_node_get_parent(symlink);
+	if (vfs_path_absolute(target_path))
+		start = vfs_cache_node_get_parent(symlink); // refs start
 
 	err = lookup_path(target_path, start, root, target, recursion_level + 1);
+
+	if (start != root)
+		vfs_cache_node_unref(start); // unref start
 
 	// destroy target_path
 	vfs_path_destroy(target_path);
@@ -196,6 +198,7 @@ static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
 			err = readlink(current_node, root, &tmp, recursion_level);
 			if (err)
 				return err;
+			vfs_cache_node_unref(current_node);
 			current_node = tmp;
 		}
 
@@ -205,7 +208,9 @@ static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
 			return -ENOTDIR;
 		}
 
-		current_node = vfs_cache_node_resolve_mounted_fs(current_node);
+		tmp = vfs_cache_node_resolve_mounted_fs(current_node);
+		vfs_cache_node_unref(current_node);
+		current_node = tmp;
 		log_print("current_node mnt resol: "); print_path(&current_node->name);
 
 		struct vfs_cache_node* looked_up =
@@ -219,17 +224,22 @@ static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
 		}
 
 		vfs_path_component_next(&component);
+
+		vfs_cache_node_unref(current_node);
 		current_node = looked_up;
 	}
 
 	if (current_node->inode->type == SYMLINK) {
 		err = readlink(current_node, root, &tmp, recursion_level);
+		vfs_cache_node_unref(current_node);
 		current_node = tmp;
 	}
 
 	if (current_node) {
 		*result = current_node;
-		vfs_cache_node_ref(*result);
+		// transfer ownership
+		/* vfs_cache_node_ref(*result); */
+		/* vfs_cache_node_unref(current_node); */
 	}
 
 	vfs_path_component_reset(&component);

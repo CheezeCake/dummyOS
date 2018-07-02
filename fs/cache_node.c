@@ -7,6 +7,8 @@
 #include <libk/refcount.h>
 #include <libk/utils.h>
 
+#include <kernel/log.h>
+
 static struct vfs_inode cnode_root_inode;
 static struct vfs_cache_node* cache_node_root = NULL;
 
@@ -84,6 +86,12 @@ static void destroy(struct vfs_cache_node* node)
 		vfs_inode_unref(node->inode);
 	}
 
+	if (node->parent) {
+		mutex_lock(&node->parent->lock);
+		list_erase(&node->cn_children_list);
+		mutex_unlock(&node->parent->lock);
+	}
+
 	list_node_t* child;
 	list_foreach(&node->children, child) {
 		vfs_cache_node_unref(list_entry(child, struct vfs_cache_node,
@@ -99,6 +107,8 @@ static void insert_child(struct vfs_cache_node* parent,
 	mutex_lock(&parent->lock);
 
 	child->parent = parent;
+	vfs_cache_node_ref(parent);
+
 	list_push_back(&parent->children, &child->cn_children_list);
 
 	mutex_unlock(&parent->lock);
@@ -112,8 +122,11 @@ int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
 	struct vfs_cache_node* child;
 	int err;
 
-	if (vfs_cache_node_lookup_child(parent, name))
+	child = vfs_cache_node_lookup_child(parent, name);
+	if (child) {
+		vfs_cache_node_unref(child);
 		return -EEXIST;
+	}
 
 	err = vfs_cache_node_create(child_inode, name, &child);
 	if (err)
@@ -150,6 +163,7 @@ vfs_cache_node_lookup_child(struct vfs_cache_node* parent,
 													struct vfs_cache_node,
 													cn_children_list);
 		if (vfs_path_same(name, &node_it->name)) {
+			vfs_cache_node_ref(node_it);
 			mutex_unlock(&parent->lock);
 			return node_it;
 		}
@@ -168,6 +182,7 @@ struct vfs_cache_node* vfs_cache_node_get_root(void)
 struct vfs_cache_node*
 vfs_cache_node_get_parent(const struct vfs_cache_node* node)
 {
+	vfs_cache_node_ref(node->parent);
 	return node->parent;
 }
 
@@ -178,18 +193,28 @@ vfs_cache_node_resolve_mounted_fs(struct vfs_cache_node* mountpoint)
 	while (mounted->mounted)
 		mounted = mounted->mounted;
 
+	vfs_cache_node_ref(mounted);
 	return mounted;
 }
 
 void vfs_cache_node_ref(struct vfs_cache_node* node)
 {
-	refcount_inc(&node->refcnt);
+	if (node) {
+		log_printf("REF cnode %p (rc=%d) path:", (void*)node, refcount_get(&node->refcnt));
+		print_path(&node->name);
+		refcount_inc(&node->refcnt);
+	}
 }
 
 void vfs_cache_node_unref(struct vfs_cache_node* node)
 {
-	if (refcount_dec(&node->refcnt) == 0)
-		destroy(node);
+	if (node) {
+		log_printf("UNREF cnode %p (rc=%d) path:", (void*)node, refcount_get(&node->refcnt));
+		print_path(&node->name);
+
+		if (refcount_dec(&node->refcnt) == 0)
+			destroy(node);
+	}
 }
 
 int vfs_cache_node_get_ref(const struct vfs_cache_node* node)
