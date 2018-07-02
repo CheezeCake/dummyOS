@@ -44,6 +44,9 @@ int sys_open(const char* __user path, int flags)
 		goto fail_add;
 	}
 
+	vfs_path_reset(&vfspath);
+	kfree(kpath);
+
 	return fd;
 
 fail_add:
