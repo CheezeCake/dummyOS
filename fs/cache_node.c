@@ -86,8 +86,8 @@ static void destroy(struct vfs_cache_node* node)
 
 	list_node_t* child;
 	list_foreach(&node->children, child) {
-		vfs_cache_node_unref(container_of(child, struct vfs_cache_node,
-											 cn_children_list));
+		vfs_cache_node_unref(list_entry(child, struct vfs_cache_node,
+										cn_children_list));
 	}
 
 	mutex_destroy(&node->lock);
