@@ -198,6 +198,8 @@ void signal_reset(struct signal_manager* sigm)
 		queued_siginfo_t* qsinfo = list_entry(it, queued_siginfo_t, s_queue);
 		kfree(qsinfo);
 	}
+
+	memset(sigm, 0, sizeof(struct signal_manager));
 }
 
 void signal_destroy(struct signal_manager* sigm)

@@ -3,6 +3,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/sched/sched.h>
 #include <kernel/sched/wait.h>
+#include <libk/libk.h>
 
 int wait_init(wait_queue_t* wq)
 {
@@ -18,6 +19,8 @@ void wait_reset(wait_queue_t* wq)
 
 	list_foreach_safe(&wq->threads, it, next)
 		thread_unref(list_entry(it, struct thread, wqe));
+
+	memset(wq, 0, sizeof(wait_queue_t));
 }
 
 int wait_wait(wait_queue_t* wq)

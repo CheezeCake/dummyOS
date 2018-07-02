@@ -189,6 +189,8 @@ int tty_input(struct tty* tty, uint16_t c)
 static inline void tty_reset(struct tty* tty)
 {
 	mutex_destroy(&tty->lock);
+
+	memset(tty, 0, sizeof(struct tty));
 }
 
 void tty_destroy(struct tty* tty)

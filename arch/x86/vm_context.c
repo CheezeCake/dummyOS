@@ -44,6 +44,8 @@ void vm_context_reset(struct vm_context* vm_context)
 {
 	if (vm_context->cr3)
 		memory_page_frame_free(vm_context->cr3);
+
+	memset(vm_context, 0, sizeof(struct vm_context));
 }
 
 void vm_context_destroy(struct vm_context* vm_context)

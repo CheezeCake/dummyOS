@@ -52,6 +52,8 @@ void vfs_superblock_reset(struct vfs_superblock* sb)
 		vfs_cache_node_unref(sb->device);
 	if (sb->root)
 		vfs_cache_node_unref(sb->root);
+
+	memset(sb, 0, sizeof(struct vfs_superblock));
 }
 
 void vfs_superblock_destroy(struct vfs_superblock* sb)

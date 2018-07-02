@@ -417,6 +417,7 @@ void process_destroy(struct process* proc)
 void process_exec(struct process* proc)
 {
 	wait_reset(&proc->wait_wq);
+	wait_init(&proc->wait_wq);
 
 	exit_threads(proc);
 	destroy_threads(proc);

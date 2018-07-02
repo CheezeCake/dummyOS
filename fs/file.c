@@ -75,6 +75,8 @@ void vfs_file_reset(struct vfs_file* file)
 		vfs_cache_node_unref(file->cnode);
 	clear_readdir_cache(file);
 	mutex_destroy(&file->lock);
+
+	memset(file, 0, sizeof(struct vfs_file));
 }
 
 void vfs_file_destroy(struct vfs_file* file)
