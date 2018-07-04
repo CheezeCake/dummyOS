@@ -56,13 +56,18 @@ static int create(struct vmm** result)
 	return err;
 }
 
+static void x86_vmm_reset(struct x86_vmm* x86vmm)
+{
+	paging_clear_userspace(x86vmm->cr3);
+	memory_page_frame_free(x86vmm->cr3);
+	x86vmm->cr3 = 0;
+}
+
 static void destroy(struct vmm* vmm)
 {
 	struct x86_vmm* x86vmm = get_x86_vmm(vmm);
 
-	paging_clear_userspace(x86vmm->cr3);
-	memory_page_frame_free(x86vmm->cr3);
-
+	x86_vmm_reset(x86vmm);
 	kfree(x86vmm);
 }
 

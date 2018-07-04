@@ -1,5 +1,6 @@
 #include <kernel/time/timer.h>
 #include <kernel/time/time.h>
+#include <libk/libk.h>
 
 struct timer* timer_create(unsigned int delay_ms, timer_callback_t cb, void* data)
 {
@@ -18,8 +19,14 @@ struct timer* timer_create(unsigned int delay_ms, timer_callback_t cb, void* dat
 	return timer;
 }
 
+static void timer_reset(struct timer* timer)
+{
+	memset(timer, 0, sizeof(struct timer));
+}
+
 static void timer_destroy(struct timer* timer)
 {
+	timer_reset(timer);
 	kfree(timer);
 }
 

@@ -7,6 +7,8 @@
 #include <kernel/thread.h>
 #include <libk/libk.h>
 
+#include <kernel/log.h>
+
 static int create_kstack(struct stack* kstack, size_t size)
 {
 	void* sp = kmalloc(size);
@@ -24,14 +26,20 @@ static inline void free_kstack(struct stack* kstack)
 	kfree((void*)kstack->sp);
 }
 
-#include <kernel/log.h>
+static void thread_reset(struct thread* thread)
+{
+	if (thread->type == KTHREAD)
+		kfree(thread->name);
+	free_kstack(&thread->kstack);
+
+	/* memset(thread, 0, sizeof(struct thread)); */
+}
+
 static void thread_destroy(struct thread* thread)
 {
 	log_printf("#### %s(): %s (%p) state=%d\n", __func__, thread->name,
 			   (void*)thread, thread->state);
-	if (thread->type == KTHREAD)
-		kfree(thread->name);
-	free_kstack(&thread->kstack);
+	thread_reset(thread);
 	kfree(thread);
 }
 

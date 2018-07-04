@@ -106,6 +106,7 @@ void vfs_file_add_readdir_entry(struct vfs_file* file,
 	mutex_lock(&file->lock);
 
 	list_push_back(&file->readdir_cache, &entry->f_readdir);
+	vfs_cache_node_ref(entry);
 
 	mutex_unlock(&file->lock);
 }

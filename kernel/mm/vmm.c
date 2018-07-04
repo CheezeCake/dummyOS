@@ -121,9 +121,10 @@ static void vmm_destroy(struct vmm* vmm)
 {
 	log_e_printf("VMM_DESTROY: %p\n", (void*)vmm);
 	vmm_destroy_mappings(&vmm->mappings);
+	list_erase(&vmm->vmm_list_node);
 	vmm_impl->destroy(vmm);
 
-	list_erase(&vmm->vmm_list_node);
+	memset(vmm, 0, sizeof(struct vmm));
 }
 
 void vmm_ref(struct vmm* vmm)

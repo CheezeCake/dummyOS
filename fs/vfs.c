@@ -292,8 +292,6 @@ int vfs_close(struct vfs_file* file)
 
 	if (file->op && file->op->close) {
 		err = file->op->close(file);
-		if (!err)
-			vfs_file_destroy(file);
 	}
 
 	return err;

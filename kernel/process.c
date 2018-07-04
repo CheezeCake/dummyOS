@@ -392,12 +392,14 @@ static inline void remove_from_parent_list(struct process* proc)
 static void close_fds(struct process* proc)
 {
 	for (int i = 0; i < PROCESS_MAX_FD; ++i) {
-		if (proc->fds[i])
+		if (proc->fds[i]) {
 			vfs_close(proc->fds[i]);
+			vfs_file_destroy(proc->fds[i]);
+		}
 	}
 }
 
-void process_destroy(struct process* proc)
+static void process_reset(struct process* proc)
 {
 	vmm_unref(proc->vmm);
 	signal_destroy(proc->signals);
@@ -411,6 +413,13 @@ void process_destroy(struct process* proc)
 		vfs_cache_node_unref(proc->cwd);
 
 	remove_from_parent_list(proc);
+
+	memset(proc, 0, sizeof(struct process));
+}
+
+void process_destroy(struct process* proc)
+{
+	process_reset(proc);
 	kfree(proc);
 }
 

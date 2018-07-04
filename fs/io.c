@@ -51,6 +51,7 @@ int sys_open(const char* __user path, int flags)
 
 fail_add:
 	vfs_close(file);
+	vfs_file_destroy(file);
 fail_open:
 	vfs_file_destroy(file);
 fail_file:
@@ -71,6 +72,7 @@ int sys_close(int fd)
 		return -EBADF;
 
 	err = vfs_close(file);
+	vfs_file_destroy(file);
 
 	return err;
 }

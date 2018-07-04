@@ -144,8 +144,14 @@ static int queued_siginfo_create(uint32_t sig, void* addr,
 	return 0;
 }
 
+static void queued_siginfo_reset(queued_siginfo_t* qsinfo)
+{
+	memset(qsinfo, 0, sizeof(queued_siginfo_t));
+}
+
 static void queued_siginfo_destroy(queued_siginfo_t* qsinfo)
 {
+	queued_siginfo_reset(qsinfo);
 	kfree(qsinfo);
 }
 

@@ -74,10 +74,7 @@ int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
 	return 0;
 }
 
-/**
- * @brief Destroys a vfs_cache_node object
- */
-static void destroy(struct vfs_cache_node* node)
+static void reset(struct vfs_cache_node* node)
 {
 	vfs_path_destroy(&node->name);
 
@@ -99,6 +96,17 @@ static void destroy(struct vfs_cache_node* node)
 	}
 
 	mutex_destroy(&node->lock);
+
+	memset(node, 0, sizeof(struct vfs_cache_node));
+}
+
+/**
+ * @brief Destroys a vfs_cache_node object
+ */
+static void destroy(struct vfs_cache_node* node)
+{
+	reset(node);
+	kfree(node);
 }
 
 static void insert_child(struct vfs_cache_node* parent,
@@ -200,7 +208,7 @@ vfs_cache_node_resolve_mounted_fs(struct vfs_cache_node* mountpoint)
 void vfs_cache_node_ref(struct vfs_cache_node* node)
 {
 	if (node) {
-		log_printf("REF cnode %p (rc=%d) path:", (void*)node, refcount_get(&node->refcnt));
+		/* log_printf("REF cnode %p (rc=%d) path:", (void*)node, refcount_get(&node->refcnt)); */
 		print_path(&node->name);
 		refcount_inc(&node->refcnt);
 	}
@@ -209,7 +217,7 @@ void vfs_cache_node_ref(struct vfs_cache_node* node)
 void vfs_cache_node_unref(struct vfs_cache_node* node)
 {
 	if (node) {
-		log_printf("UNREF cnode %p (rc=%d) path:", (void*)node, refcount_get(&node->refcnt));
+		/* log_printf("UNREF cnode %p (rc=%d) path:", (void*)node, refcount_get(&node->refcnt)); */
 		print_path(&node->name);
 
 		if (refcount_dec(&node->refcnt) == 0)
