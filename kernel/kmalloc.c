@@ -163,13 +163,13 @@ void kfree(void* ptr)
 
 	memory_block_header_t* block = (memory_block_header_t*)ptr - 1;
 
-	if (!block->used) {
-		log_i_printf("Trying to free a free block! (%p)\n", (void*)block);
-		goto end;
-	}
 	if (block->magic != MAGIC) {
 		log_i_printf("Trying to free an invalid block! "
 					 "Invalid magic number (%p)\n", (void*)block);
+		goto end;
+	}
+	if (!block->used) {
+		log_i_printf("Trying to free a free block! (%p)\n", (void*)block);
 		goto end;
 	}
 
