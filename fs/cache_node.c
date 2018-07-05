@@ -76,7 +76,7 @@ int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
 
 static void reset(struct vfs_cache_node* node)
 {
-	vfs_path_destroy(&node->name);
+	vfs_path_reset(&node->name);
 
 	if (node->inode) {
 		vfs_inode_remove_cnode(node->inode, node);
@@ -87,6 +87,7 @@ static void reset(struct vfs_cache_node* node)
 		mutex_lock(&node->parent->lock);
 		list_erase(&node->cn_children_list);
 		mutex_unlock(&node->parent->lock);
+		vfs_cache_node_unref(node->parent);
 	}
 
 	list_node_t* child;
@@ -147,6 +148,8 @@ int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
 		*inserted_child = child;
 		vfs_cache_node_ref(child);
 	}
+
+	vfs_cache_node_unref(child);
 
 	return 0;
 }
@@ -209,7 +212,8 @@ void vfs_cache_node_ref(struct vfs_cache_node* node)
 {
 	if (node) {
 		/* log_printf("REF cnode %p (rc=%d) path:", (void*)node, refcount_get(&node->refcnt)); */
-		print_path(&node->name);
+		/* print_path(&node->name); */
+
 		refcount_inc(&node->refcnt);
 	}
 }
@@ -218,7 +222,7 @@ void vfs_cache_node_unref(struct vfs_cache_node* node)
 {
 	if (node) {
 		/* log_printf("UNREF cnode %p (rc=%d) path:", (void*)node, refcount_get(&node->refcnt)); */
-		print_path(&node->name);
+		/* print_path(&node->name); */
 
 		if (refcount_dec(&node->refcnt) == 0)
 			destroy(node);
@@ -254,4 +258,36 @@ fail:
 	vfs_file_reset(file);
 
 	return err;
+}
+
+static void indent(size_t n)
+{
+	for (size_t i = 0; i < n; ++i)
+		log_putchar('\t');
+}
+
+static void dump(const struct vfs_cache_node* node, size_t n)
+{
+	if (!node)
+		return;
+
+	indent(n); log_printf("rc=%d | ", vfs_cache_node_get_ref(node)); print_path(&node->name);
+
+	if (node->mounted) {
+		log_puts("[mounted] "); dump(node->mounted, n);
+	}
+	else {
+		list_node_t* it;
+		list_foreach(&node->children, it) {
+			dump(list_entry(it, struct vfs_cache_node, cn_children_list),
+				 n + 1);
+		}
+	}
+}
+
+void dump_cache_tree(void)
+{
+	log_puts("### VFS_CACHE DUMP START\n");
+	dump(cache_node_root, 0);
+	log_puts("### VFS_CACHE DUMP END\n\n");
 }

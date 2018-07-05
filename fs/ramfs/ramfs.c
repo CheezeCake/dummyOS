@@ -348,10 +348,11 @@ static int superblock_create(struct vfs_filesystem* this,
 	if (!sb)
 		goto fail;
 
-	err = create_root_node(sb, &root);
+	err = create_root_node(sb, &root); // refs root
 	if (!err) {
 		vfs_superblock_init(sb, device,  &ramfs, root, data,
 							&ramfs_superblock_op);
+		vfs_cache_node_unref(root); // unref root
 		*result = sb;
 
 		return 0;

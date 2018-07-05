@@ -77,6 +77,7 @@ int vfs_mount(struct vfs_cache_node* device, struct vfs_cache_node* mountpoint,
 	list_push_back(&mounted_list, &sb->mounted_list);
 	sb->root->mountpoint = mountpoint;
 	mountpoint->mounted = sb->root;
+	vfs_cache_node_ref(mountpoint->mounted);
 
 	return 0;
 }
@@ -91,6 +92,7 @@ int vfs_umount(struct vfs_cache_node* mountpoint)
 	struct vfs_superblock* sb = root->inode->sb;
 	list_erase(&sb->mounted_list);
 	root->mountpoint = NULL;
+	vfs_cache_node_unref(root->mounted);
 	mountpoint->mounted = NULL;
 
 	return sb->fs->superblock_destroy(sb->fs, sb);
@@ -102,7 +104,7 @@ static int readlink(const struct vfs_cache_node* symlink,
 					unsigned int recursion_level)
 {
 	struct vfs_cache_node* start = root;
-	vfs_path_t *target_path;
+	vfs_path_t* target_path;
 	int err;
 
 	if (symlink->inode->type != SYMLINK)
@@ -164,48 +166,38 @@ static int lookup_read_and_cache_inode(struct vfs_cache_node* parent,
 	return err;
 }
 
-static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
-				  struct vfs_cache_node* root, struct vfs_cache_node** result,
-				  unsigned int recursion_level)
+static int do_lookup(vfs_path_component_t* component,
+					 struct vfs_cache_node* const start_node,
+					 struct vfs_cache_node* root,
+					 struct vfs_cache_node** result,
+					 unsigned int recursion_level)
 {
-	vfs_path_component_t component;
-	struct vfs_cache_node* current_node =
-		vfs_cache_node_resolve_mounted_fs(start);
+	struct vfs_cache_node* current_node = NULL;
 	struct vfs_cache_node* tmp = NULL;
 	int err = 0;
 
-	if (recursion_level >= VFS_LOOKUP_MAX_RECURSION_LEVEL)
-		return -ELOOP;
-	if (!start || !root)
-		return -EINVAL;
-	if (vfs_path_empty(path))
-		return -ENOENT;
+	current_node = start_node;
+	vfs_cache_node_ref(current_node);
 
-	err = vfs_path_first_component(path, &component);
-	if (err)
-		return err;
+	while (!vfs_path_empty(vfs_path_component_as_path(component))) {
+		const vfs_path_t* path_component = vfs_path_component_as_path(component);
 
-	while (!vfs_path_empty(vfs_path_component_as_path(&component))) {
-		const vfs_path_t* path_component =
-			vfs_path_component_as_path(&component);
-
-		log_print("path: ");
-		print_path(vfs_path_component_as_path(&component));
+		log_print("path: "); print_path(vfs_path_component_as_path(component));
 		log_print("current_node: "); print_path(&current_node->name);
 
 		// if it's a symlink, resolve it
 		if (current_node->inode->type == SYMLINK) {
 			err = readlink(current_node, root, &tmp, recursion_level);
 			if (err)
-				return err;
+				goto out;
 			vfs_cache_node_unref(current_node);
 			current_node = tmp;
 		}
 
 		// file in the middle of the path
 		if (current_node->inode->type != DIRECTORY) {
-			*result = NULL;
-			return -ENOTDIR;
+			err = -ENOTDIR;
+			goto out;
 		}
 
 		tmp = vfs_cache_node_resolve_mounted_fs(current_node);
@@ -220,29 +212,73 @@ static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
 			err = lookup_read_and_cache_inode(current_node, path_component,
 											  &looked_up);
 			if (err)
-				return err;
+				goto out;
 		}
 
-		vfs_path_component_next(&component);
+		vfs_path_component_next(component);
 
 		vfs_cache_node_unref(current_node);
 		current_node = looked_up;
 	}
 
-	if (current_node->inode->type == SYMLINK) {
-		err = readlink(current_node, root, &tmp, recursion_level);
-		vfs_cache_node_unref(current_node);
-		current_node = tmp;
-	}
+	if (current_node == start_node)
+		err = -ENOENT;
 
+out:
 	if (current_node) {
-		*result = current_node;
-		// transfer ownership
-		/* vfs_cache_node_ref(*result); */
-		/* vfs_cache_node_unref(current_node); */
+		if (!err) {
+			*result = current_node;
+			vfs_cache_node_ref(*result);
+		}
+
+		vfs_cache_node_unref(current_node);
 	}
 
+	return err;
+}
+
+static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
+				  struct vfs_cache_node* root, struct vfs_cache_node** result,
+				  unsigned int recursion_level)
+{
+	vfs_path_component_t component;
+	struct vfs_cache_node* result_node = NULL;
+	struct vfs_cache_node* tmp = NULL;
+	int err = 0;
+
+	if (recursion_level >= VFS_LOOKUP_MAX_RECURSION_LEVEL)
+		return -ELOOP;
+	if (!start || !root)
+		return -EINVAL;
+
+	start = vfs_cache_node_resolve_mounted_fs(start);
+
+	err = vfs_path_first_component(path, &component);
+	if (err)
+		goto fail_component;
+
+	err = do_lookup(&component, start, root, &result_node, recursion_level);
+	if (err)
+		goto out;
+
+	if (result_node->inode->type == SYMLINK) {
+		err = readlink(result_node, root, &tmp, recursion_level);
+		if (!err) {
+			vfs_cache_node_unref(result_node);
+			result_node = tmp;
+		}
+	}
+
+	if (!err) {
+		*result = result_node;
+		vfs_cache_node_ref(*result);
+	}
+
+	vfs_cache_node_unref(result_node);
+out:
 	vfs_path_component_reset(&component);
+fail_component:
+	vfs_cache_node_unref(start);
 
 	return err;
 }
@@ -282,6 +318,8 @@ int vfs_open(const vfs_path_t* path, int flags, struct vfs_file* file)
 		return err;
 
 	err = vfs_cache_node_open(cnode, flags, file);
+	if (!err)
+		vfs_cache_node_unref(cnode);
 
 	return err;
 }

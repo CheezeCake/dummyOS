@@ -13,8 +13,15 @@ int vfs_superblock_init(struct vfs_superblock* sb,
 	memset(sb, 0, sizeof(struct vfs_superblock));
 
 	sb->device = device;
+	if (device)
+		vfs_cache_node_ref(device);
+
 	sb->fs = fs;
+
 	sb->root = root;
+	if (root)
+		vfs_cache_node_ref(root);
+
 	sb->data = data;
 	sb->op = op;
 
