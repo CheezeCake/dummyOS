@@ -182,7 +182,7 @@ static int do_lookup(vfs_path_component_t* component,
 	while (!vfs_path_empty(vfs_path_component_as_path(component))) {
 		const vfs_path_t* path_component = vfs_path_component_as_path(component);
 
-		log_print("path: "); print_path(vfs_path_component_as_path(component));
+		log_print("path: "); print_path(path_component);
 		log_print("current_node: "); print_path(&current_node->name);
 
 		// if it's a symlink, resolve it
@@ -221,9 +221,6 @@ static int do_lookup(vfs_path_component_t* component,
 		current_node = looked_up;
 	}
 
-	if (current_node == start_node)
-		err = -ENOENT;
-
 out:
 	if (current_node) {
 		if (!err) {
@@ -251,7 +248,7 @@ static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
 	if (!start || !root)
 		return -EINVAL;
 
-	start = vfs_cache_node_resolve_mounted_fs(start);
+	start = vfs_cache_node_resolve_mounted_fs(start); // refs start
 
 	err = vfs_path_first_component(path, &component);
 	if (err)
@@ -278,12 +275,12 @@ static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
 out:
 	vfs_path_component_reset(&component);
 fail_component:
-	vfs_cache_node_unref(start);
+	vfs_cache_node_unref(start); // unref start
 
 	return err;
 }
 
-int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
+int lookup_path(const vfs_path_t* const path, struct vfs_cache_node* root,
 				struct vfs_cache_node* cwd, struct vfs_cache_node** result,
 				unsigned int recursion_level)
 {
