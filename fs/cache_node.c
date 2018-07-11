@@ -74,7 +74,7 @@ int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
 	return 0;
 }
 
-static void reset(struct vfs_cache_node* node)
+static void vfs_cache_node_reset(struct vfs_cache_node* node)
 {
 	vfs_path_reset(&node->name);
 
@@ -104,9 +104,9 @@ static void reset(struct vfs_cache_node* node)
 /**
  * @brief Destroys a vfs_cache_node object
  */
-static void destroy(struct vfs_cache_node* node)
+static void vfs_cache_node_destroy(struct vfs_cache_node* node)
 {
-	reset(node);
+	vfs_cache_node_reset(node);
 	kfree(node);
 }
 
@@ -225,7 +225,7 @@ void vfs_cache_node_unref(struct vfs_cache_node* node)
 		/* print_path(&node->name); */
 
 		if (refcount_dec(&node->refcnt) == 0)
-			destroy(node);
+			vfs_cache_node_destroy(node);
 	}
 }
 
