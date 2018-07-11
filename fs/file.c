@@ -59,9 +59,10 @@ static int vfs_file_copy_create(struct vfs_file* file, struct vfs_file** copy)
 static void clear_readdir_cache(struct vfs_file* file)
 {
 	list_node_t* it;
+	list_node_t* next;
 	struct vfs_cache_node* cnode;
 
-	list_foreach(&file->readdir_cache, it) {
+	list_foreach_safe(&file->readdir_cache, it, next) {
 		cnode = list_entry(it, struct vfs_cache_node, f_readdir);
 		vfs_cache_node_unref(cnode);
 	}
