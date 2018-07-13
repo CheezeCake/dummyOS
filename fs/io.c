@@ -1,8 +1,8 @@
 #include <dummyos/const.h>
 #include <dummyos/dirent.h>
+#include <dummyos/errno.h>
 #include <dummyos/fcntl.h>
 #include <fs/vfs.h>
-#include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/mm/uaccess.h>
 #include <kernel/process.h>

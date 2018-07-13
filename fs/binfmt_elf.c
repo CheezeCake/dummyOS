@@ -1,6 +1,6 @@
+#include <dummyos/errno.h>
 #include <fs/file.h>
 #include <kernel/elf.h>
-#include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/mm/memory.h>
 #include <kernel/mm/uaccess.h>

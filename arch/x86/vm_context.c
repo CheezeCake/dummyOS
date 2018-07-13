@@ -1,5 +1,5 @@
 #include <arch/paging.h>
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/memory.h>
 #include <kernel/paging.h>

@@ -6,13 +6,13 @@
  */
 
 #include <dummyos/compiler.h>
+#include <dummyos/errno.h>
 #include <fs/device.h>
 #include <fs/file.h>
 #include <fs/filesystem.h>
 #include <fs/inode.h>
 #include <fs/superblock.h>
 #include <fs/vfs.h>
-#include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/types.h>
 #include <libk/libk.h>

@@ -1,5 +1,5 @@
+#include <dummyos/errno.h>
 #include <fs/vfs.h>
-#include <kernel/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>

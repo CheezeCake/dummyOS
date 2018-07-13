@@ -1,4 +1,4 @@
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/mm/uaccess.h>
 #include <kernel/sched/sched.h>

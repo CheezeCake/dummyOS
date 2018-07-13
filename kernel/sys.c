@@ -1,4 +1,4 @@
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/process.h>
 #include <kernel/sched/sched.h>
 

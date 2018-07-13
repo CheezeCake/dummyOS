@@ -1,4 +1,4 @@
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/mm/memory.h>
 #include <kernel/mm/region.h>

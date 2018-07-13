@@ -1,5 +1,5 @@
 #include <kernel/process.h>
-#include <kernel/syscall.h>
+#include <dummyos/syscall.h>
 #include <kernel/types.h>
 
 /* static int nosys(void); */

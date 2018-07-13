@@ -1,6 +1,6 @@
+#include <dummyos/errno.h>
 #include <fs/file.h>
 #include <fs/inode.h>
-#include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <libk/libk.h>
 

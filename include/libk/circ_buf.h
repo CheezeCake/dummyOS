@@ -1,7 +1,7 @@
 #ifndef _LIBK_CIRC_BUF_H_
 #define _LIBK_CIRC_BUF_H_
 
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/types.h>
 
 typedef struct circ_buf

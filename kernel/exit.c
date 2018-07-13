@@ -1,5 +1,5 @@
 #include <dummyos/compiler.h>
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/kassert.h>
 #include <kernel/mm/uaccess.h>
 #include <kernel/process.h>

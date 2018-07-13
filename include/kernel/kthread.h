@@ -1,7 +1,7 @@
 #ifndef _KERNEL_KTHREAD_H_
 #define _KERNEL_KTHREAD_H_
 
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/thread.h>
 #include <libk/libk.h>

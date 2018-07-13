@@ -1,10 +1,10 @@
 #include <arch/vm.h>
 #include <dummyos/const.h>
+#include <dummyos/errno.h>
 #include <dummyos/fcntl.h>
 #include <fs/file.h>
 #include <fs/vfs.h>
 #include <kernel/elf.h>
-#include <kernel/errno.h>
 #include <kernel/exec.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>

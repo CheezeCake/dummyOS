@@ -1,5 +1,5 @@
+#include <dummyos/errno.h>
 #include <fs/chardev.h>
-#include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <libk/list.h>
 

@@ -1,5 +1,5 @@
+#include <dummyos/errno.h>
 #include <fs/filesystem.h>
-#include <kernel/errno.h>
 #include <kernel/types.h>
 #include <libk/libk.h>
 

@@ -1,5 +1,5 @@
 #include <arch/vm.h>
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/types.h>
 #include <kernel/mm/vmm.h>

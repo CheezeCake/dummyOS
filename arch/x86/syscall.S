@@ -1,6 +1,6 @@
 #define ASSEMBLY
 
-#include <kernel/syscall.h>
+#include <dummyos/syscall.h>
 #include "interrupt.S" /* common macros */
 
 .text

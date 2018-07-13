@@ -1,8 +1,8 @@
+#include <dummyos/errno.h>
 #include <dummyos/fcntl.h>
 #include <fs/filesystem.h>
 #include <fs/inode.h>
 #include <fs/vfs.h>
-#include <kernel/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/sched/sched.h>
 #include <kernel/types.h>

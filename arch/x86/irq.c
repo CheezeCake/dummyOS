@@ -1,4 +1,4 @@
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/types.h>
 #include "irq.h"

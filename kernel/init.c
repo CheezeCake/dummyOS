@@ -1,4 +1,4 @@
-#include <kernel/errno.h>
+#include <dummyos/errno.h>
 #include <kernel/exec.h>
 #include <kernel/kassert.h>
 #include <kernel/panic.h>
