@@ -1,35 +1,35 @@
 #ifndef _DUMMYOS_SYSCALL_H_
 #define _DUMMYOS_SYSCALL_H_
 
-#define SYSCALL_NR_BASE 0 /**< first syscall number */
+#define _SYSCALL_NR_BASE 0 /**< first syscall number */
 
-#define NR_nosys		0
-#define NR_exit			1
-#define NR_fork			2
-#define NR_getpid		3
-#define NR_getppid		4
-#define NR_signal		5
-#define NR_sigaction	6
-#define NR_sigreturn	7
-#define NR_kill			8
-#define NR_wait			9
-#define NR_waitpid		10
-#define NR_execve		11
-#define NR_open			12
-#define NR_close		13
-#define NR_lseek		14
-#define NR_read			15
-#define NR_write		16
-#define NR_setsid		17
-#define NR_setpgid		18
-#define NR_getpgid		19
-#define NR_setpgrp		20
-#define NR_getpgrp		21
-#define NR_ioctl		22
-#define NR_sbrk			23
-#define NR_getdents		24
+#define SYS_nosys		0
+#define SYS_exit			1
+#define SYS_fork			2
+#define SYS_getpid		3
+#define SYS_getppid		4
+#define SYS_signal		5
+#define SYS_sigaction	6
+#define SYS_sigreturn	7
+#define SYS_kill			8
+#define SYS_wait			9
+#define SYS_waitpid		10
+#define SYS_execve		11
+#define SYS_open			12
+#define SYS_close		13
+#define SYS_lseek		14
+#define SYS_read			15
+#define SYS_write		16
+#define SYS_setsid		17
+#define SYS_setpgid		18
+#define SYS_getpgid		19
+#define SYS_setpgrp		20
+#define SYS_getpgrp		21
+#define SYS_ioctl		22
+#define SYS_sbrk			23
+#define SYS_getdents		24
 
-#define SYSCALL_NR_TOP		24 /**< last syscall number */
-#define SYSCALL_NR_COUNT	(SYSCALL_NR_TOP + 1) /**< number of syscalls */
+#define _SYSCALL_NR_TOP		24 /**< last syscall number */
+#define _SYSCALL_NR_COUNT	(_SYSCALL_NR_TOP + 1) /**< number of syscalls */
 
 #endif

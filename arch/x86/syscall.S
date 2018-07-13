@@ -21,7 +21,7 @@
 */
 syscall_handler:
 	/* check if syscall number is valid */
-	cmpl $SYSCALL_NR_TOP, %eax
+	cmpl $_SYSCALL_NR_TOP, %eax
 	jle 1f
 	movl $-1, %eax
 	iret
@@ -57,6 +57,6 @@ syscall_handler:
 .global __sig_tramp_end
 
 __sig_tramp_start:
-	movl $NR_sigreturn, %eax
+	movl $SYS_sigreturn, %eax
 	int $0x80
 __sig_tramp_end:
