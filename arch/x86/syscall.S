@@ -17,7 +17,6 @@
 	edx =  arg3
 	esi =  arg4
 	edi =  arg5
-	ebp =  arg6
 */
 syscall_handler:
 	/* check if syscall number is valid */
@@ -38,9 +37,9 @@ syscall_handler:
 	call thread_set_syscall_context
 	addl $8, %esp
 
-	/* esp = cpu_ctx -> eax, ebx, ecx, edx, esi, edi, ebp */
+	/* esp = cpu_ctx -> eax, ebx, ecx, edx, esi, edi */
 	popl %eax
-	/* esp = cpu_ctx + 4 -> ebx, ecx, edx, esi, edi, ebp  (syscall args) */
+	/* esp = cpu_ctx + 4 -> ebx, ecx, edx, esi, edi (syscall args) */
 
 	leal syscall_table, %edi
 	call *(%edi, %eax, 4) /* call C handler */
