@@ -160,11 +160,17 @@ vfs_cache_node_lookup_child(struct vfs_cache_node* parent,
 {
 	const char dot[] = "..";
 	// "."
-	if (vfs_path_str_same(name, dot, 1))
-		return (struct vfs_cache_node*)parent;
+	if (vfs_path_str_same(name, dot, 1)) {
+		if (parent)
+			vfs_cache_node_ref(parent);
+		return parent;
+	}
 	// ".."
-	if (vfs_path_str_same(name, dot, 2))
+	if (vfs_path_str_same(name, dot, 2)) {
+		if (parent->parent)
+			vfs_cache_node_ref(parent->parent);
 		return parent->parent;
+	}
 
 	mutex_lock(&parent->lock);
 
