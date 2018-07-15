@@ -138,12 +138,14 @@ static int tty_input_c(struct tty* tty, char c)
 	}
 
 	if (l_canon(tty)) {
-		if (is_erase(tty, c) && !circ_buf_empty(&tty->buffer)) {
-			circ_buf_peek_last(&tty->buffer, &peek);
-			if (peek != '\n') {
-				circ_buf_remove_last(&tty->buffer);
-				if (l_echo(tty))
-					tty->putchar('\b');
+		if (is_erase(tty, c)) {
+			if (!circ_buf_empty(&tty->buffer)) {
+				circ_buf_peek_last(&tty->buffer, &peek);
+				if (peek != '\n') {
+					circ_buf_remove_last(&tty->buffer);
+					if (l_echo(tty))
+						tty->putchar('\b');
+				}
 			}
 			return 0;
 		}
