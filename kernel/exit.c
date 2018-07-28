@@ -24,9 +24,10 @@ void sys_exit(int status)
 static pid_t _wait(int* __user status, const struct process* p, pid_t pid)
 {
 	list_node_t* it;
+	list_node_t* next;
 	int err;
 
-	list_foreach(&p->children, it) {
+	list_foreach_safe(&p->children, it, next) {
 		struct process* child = list_entry(it, struct process, p_child);
 		pid_t child_pid = child->pid;
 
