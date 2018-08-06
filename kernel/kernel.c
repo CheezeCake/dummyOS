@@ -21,7 +21,6 @@
 void clock_tick(int nr, struct cpu_context* interrupted_ctx)
 {
 	time_tick();
-	sched_tick(interrupted_ctx);
 }
 
 static void mm_init(size_t mem)

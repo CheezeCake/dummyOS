@@ -20,6 +20,7 @@
 	pushw %es
 	pushw %ds
 
+	pushl %eax
 	pushl %ebp
 	pushl %edi
 	pushl %esi
@@ -27,7 +28,6 @@
 	pushl %edx
 	pushl %ecx
 	pushl %ebx
-	pushl %eax
 
 	/* function prologue */
 	movl $0, %ebp
@@ -38,7 +38,6 @@
 	call thread_switch_setup
 	addl $4, %esp
 
-	popl %eax
 	popl %ebx
 	popl %ecx
 	popl %edx
@@ -46,6 +45,7 @@
 	popl %esi
 	popl %edi
 	popl %ebp
+	popl %eax
 
 	popw %ds
 	popw %es

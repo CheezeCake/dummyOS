@@ -54,9 +54,8 @@ static int init(struct thread* thread, char* name, size_t kstack_size,
 
 	err = create_kstack(&thread->kstack, kstack_size);
 	if (!err) {
-		const v_addr_t stack_top = thread->kstack.sp + kstack_size;
-		thread->cpu_context = (struct cpu_context*)(stack_top -
-													cpu_context_sizeof());
+		const v_addr_t top = stack_get_top(&thread->kstack);
+		thread->cpu_context = cpu_context_get_next_user((struct cpu_context*)top);
 
 		thread->syscall_ctx = NULL;
 		thread->state = THREAD_READY;
@@ -100,16 +99,27 @@ int __kthread_create(char* name, v_addr_t start, struct thread** result)
 	return err;
 }
 
-int thread_create(v_addr_t start, v_addr_t stack, struct thread** result)
+int thread_create(v_addr_t start, v_addr_t user_stack, struct thread** result)
 {
 	int err;
 
 	err = __thread_create(NULL, DEFAULT_KSTACK_SIZE, UTHREAD, result);
-	if (!err) {
-		cpu_context_user_init((*result)->cpu_context, start, stack);
-	}
+	if (!err)
+		cpu_context_user_init((*result)->cpu_context, start, user_stack);
 
 	return err;
+}
+
+static void clone_kstack(const struct thread* thread, struct thread* new)
+{
+	kassert((v_addr_t)thread->cpu_context >= thread->kstack.sp);
+
+	ptrdiff_t diff = (v_addr_t)thread->cpu_context - thread->kstack.sp;
+	new->cpu_context = (struct cpu_context*)(new->kstack.sp + diff);
+
+	// copies cpu_context
+	memcpy((void*)new->kstack.sp, (void*)thread->kstack.sp,
+		   thread->kstack.size);
 }
 
 static int clone(const struct thread* thread, char* name, struct thread* new)
@@ -118,7 +128,7 @@ static int clone(const struct thread* thread, char* name, struct thread* new)
 
 	err = init(new, name, thread->kstack.size, thread->type, thread->priority);
 	if (!err)
-		memcpy(new->cpu_context, thread->cpu_context, cpu_context_sizeof());
+		clone_kstack(thread, new);
 
 	return err;
 }
@@ -186,7 +196,8 @@ void thread_switch_setup(struct cpu_context* cpu_ctx)
 
 int thread_intr_sleep(struct thread* thr)
 {
-	if (thread_get_state(thr) != THREAD_SLEEPING)
+	if (thr->type == KTHREAD ||
+		thread_get_state(thr) != THREAD_SLEEPING)
 		return -EINVAL;
 
 	kassert(!cpu_context_is_usermode(thr->cpu_context));
@@ -195,13 +206,22 @@ int thread_intr_sleep(struct thread* thr)
 	kassert(cpu_context_is_usermode(thr->syscall_ctx));
 	kassert(list_node_chained(&thr->wqe));
 
-	thr->cpu_context = thr->syscall_ctx;
 	list_erase(&thr->wqe);
 	sched_add_thread(thr);
 
-	cpu_context_set_syscall_return_value(thr->cpu_context, -EINTR);
+	thr->cpu_context = thr->syscall_ctx;
 
 	return 0;
+}
+
+bool thread_sleep_was_intr(const struct thread* thr)
+{
+	return (thr->cpu_context == thr->syscall_ctx);
+}
+
+void thread_set_cpu_context(struct thread* thr, struct cpu_context* ctx)
+{
+	thr->cpu_context = ctx;
 }
 
 void thread_set_syscall_context(struct thread* thr, struct cpu_context* ctx)

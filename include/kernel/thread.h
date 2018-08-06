@@ -36,6 +36,11 @@ struct stack
 	size_t size;
 };
 
+static inline v_addr_t stack_get_top(const struct stack* stack)
+{
+	return (stack->sp + stack->size);
+}
+
 struct thread
 {
 	char* name;
@@ -65,7 +70,7 @@ struct thread
 };
 
 int __kthread_create(char* name, v_addr_t start, struct thread** result);
-int thread_create(v_addr_t start, v_addr_t stack, struct thread** result);
+int thread_create(v_addr_t start, v_addr_t user_stack, struct thread** result);
 int thread_clone(const struct thread* thread, char* name,
 				 struct thread** result);
 
@@ -86,6 +91,10 @@ void thread_switch_setup(struct cpu_context* cpu_ctx);
 v_addr_t thread_get_kstack_top(const struct thread* thread);
 
 int thread_intr_sleep(struct thread* thr);
+
+bool thread_sleep_was_intr(const struct thread* thr);
+
+void thread_set_cpu_context(struct thread* thr, struct cpu_context* ctx);
 
 void thread_set_syscall_context(struct thread* thr, struct cpu_context* ctx);
 

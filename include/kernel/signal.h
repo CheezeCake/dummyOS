@@ -48,6 +48,12 @@ int signal_send(struct signal_manager* sigm, uint32_t sig, void* addr,
 
 siginfo_t* signal_pop(struct signal_manager* sigm);
 
+void signal_reset_dispositions(struct signal_manager* sigm);
+
 int signal_handle(struct thread* thr);
+
+bool signal_is_ign(uint32_t sig, const struct signal_manager* sigm);
+
+bool signal_is_dlf(uint32_t sig, const struct signal_manager* sigm);
 
 #endif

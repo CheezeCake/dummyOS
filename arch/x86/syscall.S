@@ -8,6 +8,8 @@
 /* see kernel/syscall.c */
 .extern syscall_table
 
+.global __syscall_restart
+
 .global syscall_handler
 .type syscall_handler, @function
 /*
@@ -29,25 +31,36 @@ syscall_handler:
 	pushl $0 /* error code */
 	interrupt_enter
 
-	/* update syscall context */
-	movl %esp, %ebx
+__syscall_restart:
+	/* update contexts */
 	call sched_get_current_thread
-	pushl %ebx
+	pushl %esp /* cpu_context */
 	pushl %eax /* current_thread */
+	call thread_set_cpu_context
 	call thread_set_syscall_context
 	addl $8, %esp
 
-	/* esp = cpu_ctx -> eax, ebx, ecx, edx, esi, edi */
-	popl %eax
-	/* esp = cpu_ctx + 4 -> ebx, ecx, edx, esi, edi (syscall args) */
+	/* esp = cpu_ctx -> ebx, ecx, edx, esi, edi (syscall args) */
+
+	movl 24(%esp), %eax /* eax = cpu_ctx->eax */
 
 	leal syscall_table, %edi
 	call *(%edi, %eax, 4) /* call C handler */
 
 	/* syscall return value */
-	/* override cpu_ctx.eax and restore esp at the same time */
-	pushl %eax
-	/* esp = cpu_ctx */
+	movl %eax, 24(%esp) /* cpu_ctx->eax = eax */
+
+	/* set syscall context to NULL */
+	call sched_get_current_thread
+	pushl $0 /* cpu_context */
+	pushl %eax /* current_thread */
+	call thread_set_syscall_context
+	addl $8, %esp
+
+	/* update tss */
+	pushl %esp
+	call cpu_context_update_tss
+	addl $4, %esp
 
 	interrupt_leave
 

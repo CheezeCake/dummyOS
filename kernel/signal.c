@@ -52,7 +52,7 @@ int sys_sigaction(uint32_t sig, const struct sigaction* restrict __user act,
 	if (err)
 		return -EFAULT;
 
-	err = sigaction(sig, act, (oact) ? &old : NULL);
+	err = sigaction(sig, &new, (oact) ? &old : NULL);
 	if (!err && oact)
 		err = copy_to_user(oact, &old, sizeof(struct sigaction));
 
@@ -81,7 +81,7 @@ void sys_sigreturn(void)
 	struct cpu_context* cpu_ctx = current_thread->cpu_context;
 	struct signal_manager* sigm = current_thread->process->signals;
 
-	cpu_ctx = (struct cpu_context*)((int8_t*)cpu_ctx + cpu_context_sizeof());
+	cpu_ctx = cpu_context_get_previous(cpu_ctx);
 	if ((v_addr_t)cpu_ctx > thread_get_kstack_top(current_thread)) {
 		log_e_print("sigreturn while not returning from signal\n");
 		return;
@@ -214,9 +214,34 @@ void signal_destroy(struct signal_manager* sigm)
 	kfree(sigm);
 }
 
+void signal_reset_dispositions(struct signal_manager* sigm)
+{
+	sigset_t mask = sigm->mask;
+
+	signal_init(sigm);
+	sigm->mask = mask;
+}
+
 bool signal_pending(const struct signal_manager* sigm)
 {
 	return !list_empty(&sigm->sig_queue);
+}
+
+static inline bool signal_is(uint32_t sig, const struct signal_manager* sigm,
+							 sighandler_t hdlr)
+{
+	const struct sigaction* act = &sigm->actions[sig - 1];
+	return sigaction_is(act, hdlr);
+}
+
+bool signal_is_dlf(uint32_t sig, const struct signal_manager* sigm)
+{
+	return signal_is(sig, sigm, SIG_DFL);
+}
+
+bool signal_is_ign(uint32_t sig, const struct signal_manager* sigm)
+{
+	return signal_is(sig, sigm, SIG_IGN);
 }
 
 int signal_send(struct signal_manager* sigm, uint32_t sig, void* addr,
@@ -258,9 +283,6 @@ static inline queued_siginfo_t* siginfo_get_queued_siginfo(siginfo_t* sinfo)
 	return container_of(sinfo, queued_siginfo_t, sinfo);
 }
 
-extern const uint8_t __sig_tramp_start;
-extern const uint8_t __sig_tramp_end;
-
 static int copy_to_user_stack(struct cpu_context* cpu_ctx, const void* data,
 							   size_t size, size_t alignment)
 {
@@ -278,6 +300,9 @@ static int copy_to_user_stack(struct cpu_context* cpu_ctx, const void* data,
 
 static v_addr_t setup_signal_trampoline(struct cpu_context* cpu_ctx)
 {
+	extern const uint8_t __sig_tramp_start;
+	extern const uint8_t __sig_tramp_end;
+
 	const size_t sig_tramp_size = &__sig_tramp_end - &__sig_tramp_start;
 	int err;
 
@@ -285,23 +310,6 @@ static v_addr_t setup_signal_trampoline(struct cpu_context* cpu_ctx)
 							 sizeof(void*));
 
 	return (err) ? 0 : cpu_context_get_user_sp(cpu_ctx);
-}
-
-static inline bool signal_is(uint32_t sig, const struct signal_manager* sigm,
-							 sighandler_t hdlr)
-{
-	const struct sigaction* act = &sigm->actions[sig - 1];
-	return sigaction_is(act, hdlr);
-}
-
-static inline bool signal_is_dlf(uint32_t sig, const struct signal_manager* sigm)
-{
-	return signal_is(sig, sigm, SIG_DFL);
-}
-
-static inline bool signal_is_ign(uint32_t sig, const struct signal_manager* sigm)
-{
-	return signal_is(sig, sigm, SIG_IGN);
 }
 
 static int handle_dfl(uint32_t sig, const struct thread* thr)
@@ -321,8 +329,7 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 	uint32_t sig = sinfo->si_signo;
 	struct signal_manager* sigm = thr->process->signals;
 	const struct sigaction* act = &sigm->actions[sig - 1];
-	struct cpu_context* sh_ctx =
-		(struct cpu_context*)((int8_t*)thr->cpu_context - cpu_context_sizeof());
+	struct cpu_context* sh_ctx = cpu_context_get_next_user(thr->cpu_context);
 	sigset_t saved_mask = sigm->mask;
 	int err;
 
@@ -331,19 +338,30 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 	if (signal_is_dlf(sig, sigm))
 		return handle_dfl(sig, thr);
 
-	kassert(cpu_context_is_usermode(thr->cpu_context));
-
-	memcpy(sh_ctx, thr->cpu_context, cpu_context_sizeof());
-
 	if (!(act->sa_flags & SA_NODEFER))
 		sigm->mask |= 1 << (sig - 1);
 	sigm->mask |= act->sa_mask;
 
-	if (act->sa_flags & SA_ONSTACK)
-		cpu_context_set_user_sp(sh_ctx, (v_addr_t)sigm->altstack.ss_sp);
+	if (thread_sleep_was_intr(thr)) {
+		if (act->sa_flags & SA_RESTART) {
+			struct cpu_context* sc_restart =
+				cpu_context_get_next_kernel(thr->cpu_context);
+			sh_ctx = cpu_context_get_next_user(sc_restart);
 
-	if (act->sa_flags & SA_RESETHAND)
-		signal_reset_handler(sigm, sig);
+			extern v_addr_t __syscall_restart;
+			cpu_context_kernel_init(sc_restart, (v_addr_t)&__syscall_restart);
+			cpu_context_copy_syscall_regs(sc_restart, thr->cpu_context);
+		}
+		else {
+			cpu_context_set_syscall_return_value(thr->cpu_context, -EINTR);
+		}
+	}
+
+	v_addr_t usr_sp = cpu_context_get_user_sp(thr->cpu_context);
+	if (act->sa_flags & SA_ONSTACK)
+		usr_sp = (v_addr_t)sigm->altstack.ss_sp;
+
+	cpu_context_user_init(sh_ctx, (v_addr_t)NULL, usr_sp);
 
 	v_addr_t sig_tramp = setup_signal_trampoline(sh_ctx);
 	if (!sig_tramp)
@@ -373,6 +391,9 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 		goto fail;
 
 	thr->cpu_context = sh_ctx;
+
+	if (act->sa_flags & SA_RESETHAND)
+		signal_reset_handler(sigm, sig);
 
 	queued_siginfo_t* qsinfo = siginfo_get_queued_siginfo(sinfo);
 	qsinfo->saved_mask = saved_mask;

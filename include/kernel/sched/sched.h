@@ -15,7 +15,6 @@
 void sched_init(void);
 void sched_start(void);
 
-void sched_tick(struct cpu_context* interrupted_ctx);
 struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx);
 struct cpu_context* sched_schedule(struct cpu_context* cpu_ctx);
 

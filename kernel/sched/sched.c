@@ -63,13 +63,6 @@ static inline bool preemptible(struct cpu_context* cpu_ctx)
 	return cpu_context_is_usermode(cpu_ctx);
 }
 
-/*
- * called from time tick interrupt handler
- */
-void sched_tick(struct cpu_context* interrupted_ctx)
-{
-}
-
 static bool quatum_expired(struct thread* thr, const struct time* start)
 {
 	struct time current_time;

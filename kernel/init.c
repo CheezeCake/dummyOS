@@ -54,7 +54,12 @@ int init_process_init(const char* init_path)
 
 	// create user thread
 	err = thread_create((v_addr_t)init_exec, (v_addr_t)NULL, &thr);
+
 	// but assign kernel cpu context to execute init_exec()
+	v_addr_t stack_top = thread_get_kstack_top(thr);
+	thr->cpu_context =
+		cpu_context_get_next_kernel((struct cpu_context*)stack_top);
+
 	cpu_context_kernel_init(thr->cpu_context, (v_addr_t)init_exec);
 	if (!err) {
 		err = process_add_thread(init, thr);

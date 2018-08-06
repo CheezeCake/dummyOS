@@ -299,6 +299,9 @@ int process_kill(pid_t pid, uint32_t sig)
 		if (list_empty(&proc->threads))
 			return -EINVAL;
 
+		if (signal_is_ign(sig, proc->signals))
+			return 0;
+
 		irq_disable();
 		// try to interrupt a sleeping thread if no other thread
 		// can handle the signal
@@ -427,6 +430,8 @@ void process_exec(struct process* proc)
 {
 	wait_reset(&proc->wait_wq);
 	wait_init(&proc->wait_wq);
+
+	signal_reset_dispositions(proc->signals);
 
 	exit_threads(proc);
 	destroy_threads(proc);
