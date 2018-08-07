@@ -1,8 +1,6 @@
 #ifndef _KERNEL_SIGNAL_H_
 #define _KERNEL_SIGNAL_H_
 
-// http://pubs.opengroup.org/onlinepubs/009695399/basedefs/signal.h.html
-
 #include <dummyos/const.h>
 #include <dummyos/signal.h>
 #include <kernel/types.h>
@@ -43,7 +41,7 @@ void signal_destroy(struct signal_manager* sigm);
 
 bool signal_pending(const struct signal_manager* sigm);
 
-int signal_send(struct signal_manager* sigm, uint32_t sig, void* addr,
+int signal_send(struct signal_manager* sigm, int sig, void* addr,
 				const struct process* sender);
 
 siginfo_t* signal_pop(struct signal_manager* sigm);
@@ -52,8 +50,8 @@ void signal_reset_dispositions(struct signal_manager* sigm);
 
 int signal_handle(struct thread* thr);
 
-bool signal_is_ign(uint32_t sig, const struct signal_manager* sigm);
+bool signal_is_ign(int sig, const struct signal_manager* sigm);
 
-bool signal_is_dlf(uint32_t sig, const struct signal_manager* sigm);
+bool signal_is_dlf(int sig, const struct signal_manager* sigm);
 
 #endif

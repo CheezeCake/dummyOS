@@ -1,6 +1,8 @@
 #ifndef _DUMMYOS_SIGNAL_H_
 #define _DUMMYOS_SIGNAL_H_
 
+// http://pubs.opengroup.org/onlinepubs/009695399/basedefs/signal.h.html
+
 #define SIGHUP		1
 #define SIGINT		2
 #define SIGQUIT		3
@@ -32,36 +34,36 @@ typedef struct __sig_stack_t
 {
 	void* ss_sp;
 	size_t ss_size;
-	uint32_t ss_flags;
+	int ss_flags;
 } stack_t;
 
 union sigval
 {
-	uint32_t sival_int; /* Integer value */
+	int sival_int; /* Integer value */
 	void* sival_ptr; /* Pointer value */
 };
 
 typedef struct siginfo
 {
-	uint32_t si_signo; /* Signal number */
-	uint32_t si_code; /* Signal code */
+	int si_signo; /* Signal number */
+	int si_code; /* Signal code */
 
-	uint32_t si_errno; /* If non-zero, an errno value associated with
+	int si_errno; /* If non-zero, an errno value associated with
 						  this signal, as defined in <errno.h> */
 
 	pid_t si_pid; /* Sending process ID */
 	/* uid_t si_uid; */ /* Real user ID of sending process */
 	void* si_addr; /* Address of faulting instruction */
-	uint32_t si_status; /* Exit value or signal */
+	int si_status; /* Exit value or signal */
 
-	uint64_t si_band; /* Band event for SIGPOLL */
+	long si_band; /* Band event for SIGPOLL */
 
 	union sigval si_value; /* Signal value */
 } siginfo_t;
 
 
-typedef void (*sighandler_t)(uint32_t sig);
-typedef void (*sigrestore_t)(uint32_t sig, siginfo_t* info, void* ucontext);
+typedef void (*sighandler_t)(int sig);
+typedef void (*sigrestore_t)(int sig, siginfo_t* info, void* ucontext);
 typedef uint32_t sigset_t;
 
 struct sigaction
@@ -74,7 +76,7 @@ struct sigaction
 
 	sigset_t sa_mask;
 
-	uint32_t sa_flags;
+	int sa_flags;
 };
 
 /*

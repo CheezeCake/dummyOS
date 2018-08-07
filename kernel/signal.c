@@ -9,22 +9,22 @@
 
 static void queued_siginfo_destroy(queued_siginfo_t* qsinfo);
 
-int sys_kill(pid_t pid, uint32_t sig)
+int sys_kill(pid_t pid, int sig)
 {
 	return process_kill(pid, sig);
 }
 
-static inline bool sig_is_valid(uint32_t sig)
+static inline bool sig_is_valid(int sig)
 {
 	return (sig > 0 && sig <= SIGNAL_MAX);
 }
 
-static inline bool sig_is_settable(uint32_t sig)
+static inline bool sig_is_settable(int sig)
 {
 	return (sig_is_valid(sig) && sig != SIGKILL && sig != SIGSTOP);
 }
 
-int sigaction(uint32_t sig, const struct sigaction* restrict __kernel act,
+int sigaction(int sig, const struct sigaction* restrict __kernel act,
 			  struct sigaction* restrict __kernel oact)
 {
 	struct process* current_proc = sched_get_current_process();
@@ -38,7 +38,7 @@ int sigaction(uint32_t sig, const struct sigaction* restrict __kernel act,
 	return 0;
 }
 
-int sys_sigaction(uint32_t sig, const struct sigaction* restrict __user act,
+int sys_sigaction(int sig, const struct sigaction* restrict __user act,
 				  struct sigaction* restrict __user oact)
 {
 	struct sigaction new;
@@ -59,7 +59,7 @@ int sys_sigaction(uint32_t sig, const struct sigaction* restrict __user act,
 	return err;
 }
 
-sighandler_t sys_signal(uint32_t sig, sighandler_t handler)
+sighandler_t sys_signal(int sig, sighandler_t handler)
 {
 	const struct sigaction act = {
 		.sa_handler = handler,
@@ -107,7 +107,7 @@ static inline bool sigaction_is(const struct sigaction* act, sighandler_t hdlr)
 		: (act->sa_handler == hdlr);
 }
 
-static void siginfo_init(siginfo_t* sinfo, uint32_t sig,
+static void siginfo_init(siginfo_t* sinfo, int sig,
 						 void* addr, const struct process* sender)
 {
 	memset(sinfo, 0, sizeof(siginfo_t));
@@ -121,7 +121,7 @@ static void siginfo_init(siginfo_t* sinfo, uint32_t sig,
 	}
 }
 
-static void queued_siginfo_init(queued_siginfo_t* qsinfo, uint32_t sig,
+static void queued_siginfo_init(queued_siginfo_t* qsinfo, int sig,
 								void* addr, const struct process* sender)
 {
 	siginfo_init(&qsinfo->sinfo, sig, addr, sender);
@@ -129,9 +129,9 @@ static void queued_siginfo_init(queued_siginfo_t* qsinfo, uint32_t sig,
 	list_node_init(&qsinfo->s_queue);
 }
 
-static int queued_siginfo_create(uint32_t sig, void* addr,
-								  const struct process* sender,
-								  queued_siginfo_t** result)
+static int queued_siginfo_create(int sig, void* addr,
+								 const struct process* sender,
+								 queued_siginfo_t** result)
 {
 	queued_siginfo_t* qsinfo = kmalloc(sizeof(queued_siginfo_t));
 	if (!qsinfo)
@@ -227,24 +227,24 @@ bool signal_pending(const struct signal_manager* sigm)
 	return !list_empty(&sigm->sig_queue);
 }
 
-static inline bool signal_is(uint32_t sig, const struct signal_manager* sigm,
+static inline bool signal_is(int sig, const struct signal_manager* sigm,
 							 sighandler_t hdlr)
 {
 	const struct sigaction* act = &sigm->actions[sig - 1];
 	return sigaction_is(act, hdlr);
 }
 
-bool signal_is_dlf(uint32_t sig, const struct signal_manager* sigm)
+bool signal_is_dlf(int sig, const struct signal_manager* sigm)
 {
 	return signal_is(sig, sigm, SIG_DFL);
 }
 
-bool signal_is_ign(uint32_t sig, const struct signal_manager* sigm)
+bool signal_is_ign(int sig, const struct signal_manager* sigm)
 {
 	return signal_is(sig, sigm, SIG_IGN);
 }
 
-int signal_send(struct signal_manager* sigm, uint32_t sig, void* addr,
+int signal_send(struct signal_manager* sigm, int sig, void* addr,
 				const struct process* sender)
 {
 	queued_siginfo_t* qsinfo;
@@ -257,7 +257,7 @@ int signal_send(struct signal_manager* sigm, uint32_t sig, void* addr,
 	return err;
 }
 
-static void signal_reset_handler(struct signal_manager* sigm, uint32_t sig)
+static void signal_reset_handler(struct signal_manager* sigm, int sig)
 {
 	struct sigaction* act = &sigm->actions[sig - 1];
 
@@ -312,7 +312,7 @@ static v_addr_t setup_signal_trampoline(struct cpu_context* cpu_ctx)
 	return (err) ? 0 : cpu_context_get_user_sp(cpu_ctx);
 }
 
-static int handle_dfl(uint32_t sig, const struct thread* thr)
+static int handle_dfl(int sig, const struct thread* thr)
 {
 	if (sig == SIGCHLD) {
 		// SIGCHLD default action is to ignore the signal
@@ -326,7 +326,7 @@ static int handle_dfl(uint32_t sig, const struct thread* thr)
 
 int handle(siginfo_t* sinfo, struct thread* thr)
 {
-	uint32_t sig = sinfo->si_signo;
+	int sig = sinfo->si_signo;
 	struct signal_manager* sigm = thr->process->signals;
 	const struct sigaction* act = &sigm->actions[sig - 1];
 	struct cpu_context* sh_ctx = cpu_context_get_next_user(thr->cpu_context);
