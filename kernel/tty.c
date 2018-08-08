@@ -1,14 +1,14 @@
-#include <dummyos/ioctl/ioctls.h>
+#include <dummyos/ioctl.h>
 #include <dummyos/keymap.h>
 #include <dummyos/termios.h>
 #include <fs/chardev.h>
 #include <fs/file.h>
 #include <kernel/kmalloc.h>
 #include <kernel/process.h>
-#include <kernel/tty.h>
 #include <kernel/sched/sched.h>
 #include <kernel/sched/wait.h>
 #include <kernel/signal.h>
+#include <kernel/tty.h>
 #include <libk/libk.h>
 
 #define TTY_BUFFER_SIZE	256
