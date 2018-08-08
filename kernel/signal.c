@@ -24,6 +24,48 @@ static inline bool sig_is_settable(int sig)
 	return (sig_is_valid(sig) && sig != SIGKILL && sig != SIGSTOP);
 }
 
+static inline bool sigset_contains(sigset_t set, int sig)
+{
+	return (set & (1 << sig));
+}
+
+int sys_sigprocmask(int how, const sigset_t* set, sigset_t* oset)
+{
+	struct process* current_proc = sched_get_current_process();
+	struct signal_manager* sigm = current_proc->signals;
+	sigset_t uset;
+	sigset_t new = sigm->mask;
+	int err;
+
+	err = copy_from_user(&uset, set, sizeof(sigset_t));
+	if (err)
+		return err;
+
+	if (how == SIG_BLOCK || how == SIG_SETMASK) {
+		if (sigset_contains(uset, SIGKILL) || sigset_contains(uset, SIGSTOP))
+			return -EINVAL;
+	}
+
+	if (how == SIG_BLOCK)
+		new |= uset;
+	else if (how == SIG_UNBLOCK)
+		new &= ~uset;
+	else if (how == SIG_SETMASK)
+		new = uset;
+	else
+		return -EINVAL;
+
+	if (oset) {
+		err = copy_to_user(oset, &sigm->mask, sizeof(sigset_t));
+		if (err)
+			return err;
+	}
+
+	sigm->mask = new;
+
+	return 0;
+}
+
 int sigaction(int sig, const struct sigaction* restrict __kernel act,
 			  struct sigaction* restrict __kernel oact)
 {

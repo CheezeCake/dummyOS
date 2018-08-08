@@ -54,10 +54,18 @@ typedef struct siginfo
 	union sigval si_value; /* Signal value */
 } siginfo_t;
 
+typedef unsigned long sigset_t;
+
+/*
+ * sigprocmask
+ */
+#define SIG_SETMASK		0		/* Set mask with sigprocmask() */
+#define SIG_BLOCK		1		/* Set of signals to block */
+#define SIG_UNBLOCK		2		/* Set of signals to unblock */
+
 
 typedef void (*sighandler_t)(int sig);
 typedef void (*sigrestore_t)(int sig, siginfo_t* info, void* ucontext);
-typedef unsigned long sigset_t;
 
 struct sigaction
 {

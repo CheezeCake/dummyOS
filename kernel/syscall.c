@@ -30,36 +30,38 @@ pid_t sys_getpgrp(void);
 int sys_ioctl(int fd, int request, intptr_t arg);
 void* sys_sbrk(intptr_t increment);
 ssize_t sys_getdents(int fd, struct dirent* __user dirp, size_t nbytes);
+int sys_sigprocmask(int how, const sigset_t* set, sigset_t* oset);
 
 
 #define __syscall(s) ((v_addr_t)s)
 
 v_addr_t syscall_table[_SYSCALL_NR_COUNT] = {
-	[SYS_nosys]		= __syscall(nosys),
-	[SYS_exit]		= __syscall(sys_exit),
-	[SYS_fork]		= __syscall(sys_fork),
-	[SYS_getpid]	= __syscall(sys_getpid),
-	[SYS_getppid]	= __syscall(sys_getppid),
-	[SYS_signal]	= __syscall(sys_signal),
-	[SYS_sigaction]	= __syscall(sys_sigaction),
-	[SYS_sigreturn]	= __syscall(sys_sigreturn),
-	[SYS_kill]		= __syscall(sys_kill),
-	[SYS_wait]		= __syscall(sys_wait),
-	[SYS_waitpid]	= __syscall(sys_waitpid),
-	[SYS_execve]	= __syscall(sys_execve),
-	[SYS_open]		= __syscall(sys_open),
-	[SYS_close]		= __syscall(sys_close),
-	[SYS_lseek]		= __syscall(sys_lseek),
-	[SYS_read]		= __syscall(sys_read),
-	[SYS_write]		= __syscall(sys_write),
-	[SYS_setsid]	= __syscall(sys_setsid),
-	[SYS_setpgid]	= __syscall(sys_setpgid),
-	[SYS_getpgid]	= __syscall(sys_getpgid),
-	[SYS_setpgrp]	= __syscall(sys_setpgrp),
-	[SYS_getpgrp]	= __syscall(sys_getpgrp),
-	[SYS_ioctl]		= __syscall(sys_ioctl),
-	[SYS_sbrk]		= __syscall(sys_sbrk),
-	[SYS_getdents]	= __syscall(sys_getdents),
+	[SYS_nosys]			= __syscall(nosys),
+	[SYS_exit]			= __syscall(sys_exit),
+	[SYS_fork]			= __syscall(sys_fork),
+	[SYS_getpid]		= __syscall(sys_getpid),
+	[SYS_getppid]		= __syscall(sys_getppid),
+	[SYS_signal]		= __syscall(sys_signal),
+	[SYS_sigaction]		= __syscall(sys_sigaction),
+	[SYS_sigreturn]		= __syscall(sys_sigreturn),
+	[SYS_kill]			= __syscall(sys_kill),
+	[SYS_wait]			= __syscall(sys_wait),
+	[SYS_waitpid]		= __syscall(sys_waitpid),
+	[SYS_execve]		= __syscall(sys_execve),
+	[SYS_open]			= __syscall(sys_open),
+	[SYS_close]			= __syscall(sys_close),
+	[SYS_lseek]			= __syscall(sys_lseek),
+	[SYS_read]			= __syscall(sys_read),
+	[SYS_write]			= __syscall(sys_write),
+	[SYS_setsid]		= __syscall(sys_setsid),
+	[SYS_setpgid]		= __syscall(sys_setpgid),
+	[SYS_getpgid]		= __syscall(sys_getpgid),
+	[SYS_setpgrp]		= __syscall(sys_setpgrp),
+	[SYS_getpgrp]		= __syscall(sys_getpgrp),
+	[SYS_ioctl]			= __syscall(sys_ioctl),
+	[SYS_sbrk]			= __syscall(sys_sbrk),
+	[SYS_getdents]		= __syscall(sys_getdents),
+	[SYS_sigprocmask]	= __syscall(sys_sigprocmask),
 };
 
 #include <kernel/log.h>
