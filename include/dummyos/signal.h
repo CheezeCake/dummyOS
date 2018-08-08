@@ -57,7 +57,7 @@ typedef struct siginfo
 
 typedef void (*sighandler_t)(int sig);
 typedef void (*sigrestore_t)(int sig, siginfo_t* info, void* ucontext);
-typedef uint32_t sigset_t;
+typedef unsigned long sigset_t;
 
 struct sigaction
 {
