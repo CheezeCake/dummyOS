@@ -1,7 +1,7 @@
 #ifndef _DUMMYOS_SIGNAL_H_
 #define _DUMMYOS_SIGNAL_H_
 
-// http://pubs.opengroup.org/onlinepubs/009695399/basedefs/signal.h.html
+/* http://pubs.opengroup.org/onlinepubs/009695399/basedefs/signal.h.html */
 
 #define SIGHUP		1
 #define SIGINT		2
@@ -21,21 +21,14 @@
 #define SIGCHLD		17
 #define SIGCONT		18
 #define SIGSTOP		19
+#define NSIG		20 /* 0 implied */
 
-#define SIGNAL_MAX	19
+#ifdef __KERNEL__
+# define SIG_DFL	((sighandler_t)0)
+# define SIG_IGN	((sighandler_t)1)
+# define SIG_ERR	((sighandler_t)-1)
+#endif
 
-#define SIG_DFL		((sighandler_t)0)
-#define SIG_IGN		((sighandler_t)1)
-
-#define SIG_ERR		((sighandler_t)-1)
-
-
-typedef struct __sig_stack_t
-{
-	void* ss_sp;
-	size_t ss_size;
-	int ss_flags;
-} stack_t;
 
 union sigval
 {

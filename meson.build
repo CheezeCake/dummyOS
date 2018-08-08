@@ -19,6 +19,7 @@ if host_machine.endian() == 'little'
 else
   c_flags += '-DARCH_ENDIAN_BIG'
 endif
+c_flags += '-D__KERNEL__'
 ld_flags = [
   '-T@0@/@1@'.format(meson.current_source_dir(), linker_script[0]),
   '-nostdlib'

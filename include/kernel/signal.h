@@ -12,6 +12,13 @@ struct thread;
 
 #define SIGNAL_MAX_PENDING 16
 
+typedef struct __sig_stack_t
+{
+	void* ss_sp;
+	size_t ss_size;
+	int ss_flags;
+} stack_t;
+
 typedef struct queued_siginfo
 {
 	siginfo_t sinfo;
@@ -25,7 +32,7 @@ struct signal_manager
 	list_t sig_queue;
 
 	sigset_t mask;
-	struct sigaction actions[SIGNAL_MAX];
+	struct sigaction actions[NSIG];
 
 	stack_t altstack;
 	list_t handled_stack;

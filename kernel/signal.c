@@ -16,7 +16,7 @@ int sys_kill(pid_t pid, int sig)
 
 static inline bool sig_is_valid(int sig)
 {
-	return (sig > 0 && sig <= SIGNAL_MAX);
+	return (sig > 0 && sig < NSIG);
 }
 
 static inline bool sig_is_settable(int sig)
