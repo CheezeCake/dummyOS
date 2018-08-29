@@ -117,7 +117,10 @@ static void clear_recursive_entry(pde_t* pd, v_addr_t recursive_entry_addr)
 
 	memset(recursive_entry, 0, sizeof(pde_t));
 
-	invlpg(recursive_entry_addr);
+	// invalidate the 4MB covered by the pd entry
+	v_addr_t addr = recursive_entry_addr;
+	for (size_t i = 0; i < PAGE_TABLE_ENTRY_COUNT; ++i, addr += PAGE_SIZE)
+		invlpg(addr);
 }
 
 static void setup_recursive_entry(pde_t* pd, p_addr_t pd_phys)
