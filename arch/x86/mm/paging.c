@@ -136,7 +136,6 @@ static void setup_temp_recursive_entry(p_addr_t pd)
 static void reset_temp_recursive_entry()
 {
 	clear_recursive_entry(get_page_directory(), TEMP_RECURSIVE_ENTRY_START);
-	invlpg(TEMP_RECURSIVE_ENTRY_START);
 }
 
 /**
@@ -290,10 +289,8 @@ static int init_kernel_space(p_addr_t cr3, v_addr_t addr, size_t nr_pages)
 	pde_t* cur_pd = get_page_directory();
 
 	size_t nr_pd_entries = (nr_pages + 1023) / 1024;
-
-	for (size_t i = idx; i < idx + nr_pd_entries; ++i) {
-		memcpy(&pd[i], &cur_pd[i], sizeof(pde_t));
-	}
+	for (size_t i = idx; i < idx + nr_pd_entries; ++i)
+		pd[i] = cur_pd[i];
 
 	reset_temp_recursive_entry();
 
