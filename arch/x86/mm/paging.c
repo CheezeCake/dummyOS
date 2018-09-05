@@ -8,6 +8,7 @@
 #include <kernel/sched/sched.h>
 #include <kernel/types.h>
 #include <libk/libk.h>
+#include "memory.h"
 #include "paging.h"
 
 #define index_in_pd(addr) (addr >> 22)
@@ -150,7 +151,7 @@ static void map_to_fit_kernel(void)
 
 	// 0 to X86_MEMORY_HARDWARE_MAP_BEGIN
 	for (v_addr_t low_mem = KERNEL_SPACE_START;
-		 low_mem < KERNEL_SPACE_START + X86_MEMORY_HARDWARE_MAP_BEGIN;
+		 low_mem < KERNEL_SPACE_START + X86_MEMORY_HARDWARE_MAP_START;
 		 low_mem += PAGE_SIZE)
 	{
 		const int pt_index = index_in_pt(low_mem);

@@ -12,7 +12,10 @@
  * |   |temp              |
  * |   |recursive mapping |
  * |   +------------------+ 4GB - 8MB (0xff800000)
- * |                      |
+ * |   +------------------+ 4GB - 256MB (0xf0000000)
+ * |   | drivers, etc...  |
+ * |   |                  |
+ * |   +------------------+ 4GB - 512MB (0xe0000000)
  * | kernel address space |
  * |                      |
  * |   +------------------+ 3GB + 0xa0000 (0xc00a0000)
@@ -49,16 +52,18 @@
 /*
  * limits
  */
-#define KERNEL_SPACE_START	0xc0000000 // 3GB
+#define KERNEL_SPACE_START		0xc0000000 // 3GB
 #define KERNEL_SPACE_END		0xffffffff // 4GB
-#define RECURSIVE_ENTRY_START		0xffc00000 // 4GB - 4MB
-#define KERNEL_SPACE_LIMIT	RECURSIVE_ENTRY_START
-#define KERNEL_SPACE_RESERVED KERNEL_SPACE_START
+#define RECURSIVE_ENTRY_START	0xffc00000 // 4GB - 4MB
+#define KERNEL_SPACE_LIMIT		RECURSIVE_ENTRY_START
+#define KERNEL_SPACE_RESERVED	KERNEL_SPACE_START
 
-#define TEMP_RECURSIVE_ENTRY_START		0xff800000 // 4GB - 8MB
+#define TEMP_RECURSIVE_ENTRY_START	0xff800000 // 4GB - 8MB
+
+#define DRIVERS_KERNEL_SPACE_START	0xe0000000 // 4GB - 512MB
 
 #define USER_SPACE_START	0x0
-#define USER_SPACE_END	0xc0000000 // 3GB
+#define USER_SPACE_END		0xc0000000 // 3GB
 
 /*
  * page directory entry count

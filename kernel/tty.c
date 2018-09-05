@@ -251,7 +251,7 @@ static ssize_t tty_read(struct vfs_file* this, void* buf, size_t count)
 	return n;
 }
 
-static ssize_t tty_write(struct vfs_file* this, void* buf, size_t count)
+static ssize_t tty_write(struct vfs_file* this, const void* buf, size_t count)
 {
 	struct tty* tty = vfs_file_get_inode(this)->private_data;
 	char* buffer = (char*)buf;

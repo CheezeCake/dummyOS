@@ -18,6 +18,9 @@ struct region
 int __region_init(region_t* region, p_addr_t* frames, size_t nr_frames,
 				  int prot);
 
+int region_create_from_range(p_addr_t start, size_t size, int prot,
+							 region_t** result);
+
 int region_create(size_t nr_frames, int prot, region_t** result);
 
 void region_unref(region_t* region);

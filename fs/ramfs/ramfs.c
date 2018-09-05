@@ -83,6 +83,7 @@ static inline enum vfs_node_type ustar2vfs_type(uint8_t type)
 		case DIRTYPE:
 			return DIRECTORY;
 		case FIFOTYPE:
+			return FIFO;
 		default:
 			return -1;
 	}
@@ -656,7 +657,7 @@ ssize_t read(struct vfs_file* this, void* buf, size_t count)
 	return count;
 }
 
-ssize_t write(struct vfs_file* this, void* buf, size_t count)
+ssize_t write(struct vfs_file* this, const void* buf, size_t count)
 {
 	return -EROFS;
 }

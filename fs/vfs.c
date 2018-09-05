@@ -24,19 +24,6 @@ static int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
 					   struct vfs_cache_node* cwd, struct vfs_cache_node** result,
 					   unsigned int recursion_level);
 
-#include <fs/ramfs/ramfs.h>
-extern int8_t _binary_archive_start;
-
-static int mount_root(void)
-{
-	int err = -ENODEV;
-
-	err = vfs_mount(NULL, vfs_cache_node_get_root(), &_binary_archive_start,
-					"ramfs");
-
-	return err;
-}
-
 int vfs_init(void)
 {
 	int err;
@@ -47,8 +34,7 @@ int vfs_init(void)
 
 	list_init(&mounted_list);
 
-	// parse cmd line?
-	return mount_root();
+	return 0;
 }
 
 static int get_superblock(struct vfs_cache_node* device, const char* filesystem,

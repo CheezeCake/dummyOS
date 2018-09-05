@@ -16,6 +16,45 @@ void mapping_destroy(mapping_t* mapping)
 	kfree(mapping);
 }
 
+static int mapping_init_from_range(mapping_t* mapping, v_addr_t mstart,
+								   p_addr_t pstart, size_t size, int prot,
+								   int flags)
+{
+	region_t* region;
+	int err;
+
+	err = region_create_from_range(pstart, size, prot, &region);
+	if (err)
+		return err;
+
+	err = __mapping_init(mapping, region, mstart, size, flags);
+
+	region_unref(region);
+
+	return err;
+}
+
+int mapping_create_from_range(v_addr_t mstart, p_addr_t pstart, size_t size,
+							  int prot, int flags, mapping_t** result)
+{
+	mapping_t* mapping;
+	int err;
+
+	mapping = kmalloc(sizeof(mapping_t));
+	if (!mapping)
+		return -ENOMEM;
+
+	err = mapping_init_from_range(mapping, mstart, pstart, size, prot, flags);
+	if (err) {
+		kfree(mapping);
+		mapping = NULL;
+	}
+
+	*result = mapping;
+
+	return err;
+}
+
 int __mapping_init(mapping_t* mapping, region_t* region, v_addr_t start,
 				   size_t size, int flags)
 {

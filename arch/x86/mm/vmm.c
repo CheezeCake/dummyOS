@@ -119,7 +119,7 @@ static int create_mapping(const mapping_t* mapping)
 
 	for (size_t i = 0; i < nr_pages; ++i, addr += PAGE_SIZE) {
 		int err = paging_map(mapping->region->frames[i], addr,
-						 mapping->region->prot);
+							 mapping->region->prot);
 		if (err)
 			return __destroy_mapping(mapping->start, i);
 	}

@@ -1,4 +1,5 @@
 #include <dummyos/errno.h>
+#include <fs/fifo.h>
 #include <fs/file.h>
 #include <fs/inode.h>
 #include <kernel/kmalloc.h>
@@ -88,15 +89,33 @@ void vfs_file_destroy(struct vfs_file* file)
 
 int vfs_file_dup(struct vfs_file* file, struct vfs_file** dup)
 {
-	return vfs_file_copy_create(file, dup);
+	int err;
+
+	err = vfs_file_copy_create(file, dup);
+	if (err)
+		return err;
+
+	if (file->cnode && file->cnode->inode) {
+		if (file->cnode->inode->type == FIFO) {
+			err = fifo_dup(file);
+			if (err)
+				goto fail;
+		}
+	}
+
+	return 0;
+
+fail:
+	vfs_file_destroy(*dup);
+	return err;
 }
 
-struct vfs_cache_node* vfs_file_get_cache_node(struct vfs_file* file)
+struct vfs_cache_node* vfs_file_get_cache_node(const struct vfs_file* file)
 {
 	return file->cnode;
 }
 
-struct vfs_inode* vfs_file_get_inode(struct vfs_file* file)
+struct vfs_inode* vfs_file_get_inode(const struct vfs_file* file)
 {
 	return vfs_file_get_cache_node(file)->inode;
 }

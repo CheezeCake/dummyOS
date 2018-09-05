@@ -54,7 +54,7 @@ void vmm_switch_to(struct vmm* vmm)
 }
 
 
-static mapping_t* find_mapping(list_t* mappings, v_addr_t addr)
+static mapping_t* find_mapping(const list_t* mappings, v_addr_t addr)
 {
 	list_node_t* it;
 
@@ -240,6 +240,41 @@ int vmm_create_kernel_mapping(v_addr_t start, size_t size, int prot)
 	err = vmm_create_mapping(start, size, prot & ~VMM_PROT_USER, 0, &mapping);
 	if (!err)
 		add_mapping(&kernel_mappings, mapping);
+
+	return err;
+}
+
+static inline bool is_within_physical_memory_bounds(p_addr_t start,
+													p_addr_t end)
+{
+	return (start >= memory_get_memory_base() &&
+			end <= memory_get_memory_top());
+}
+
+int vmm_map_to_kernel_space(p_addr_t start, size_t size, int prot,
+							v_addr_t mapping_addr)
+{
+	mapping_t* mapping;
+	int err;
+
+	if (!is_within_physical_memory_bounds(start, start + size))
+		return -EINVAL;
+
+	if (!is_aligned(mapping_addr, PAGE_SIZE))
+		return -EINVAL;
+
+	if (find_mapping(&kernel_mappings, mapping_addr))
+		return -EADDRINUSE;
+
+
+	err = mapping_create_from_range(mapping_addr, start, size,
+									prot & ~VMM_PROT_USER, 0, &mapping);
+	if (err)
+		return err;
+
+	err = vmm_setup_kernel_mapping(mapping);
+	if (!err)
+		return 0;
 
 	return err;
 }

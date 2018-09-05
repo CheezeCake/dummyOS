@@ -7,3 +7,4 @@ peda-session-*.txt
 build/
 doc/
 Doxyfile
+run-clang-tidy.py

@@ -41,6 +41,15 @@ static inline bool circ_buf_empty(const circ_buf_t* cb)
 	return (cb->head == cb->tail);
 }
 
+static inline bool circ_buf_full(const circ_buf_t* cb)
+{
+	size_t next = cb->head + 1;
+	if (next >= cb->size)
+		next = 0;
+
+	return (next == cb->tail);
+}
+
 static inline int circ_buf_push(circ_buf_t* cb, uint8_t data)
 {
 	size_t next = cb->head + 1;

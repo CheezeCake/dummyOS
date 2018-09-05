@@ -33,7 +33,6 @@ libgcc = cc.find_library('gcc', required: true)
 kernel_bin = 'dummy_os.bin'
 bin = executable(kernel_bin,
   src,
-  objects: files('../dummyOS_user/archive.o'),
   include_directories: inc,
   implicit_include_directories: false,
   c_args: c_flags,
@@ -45,14 +44,14 @@ bin = executable(kernel_bin,
 kernel_iso = 'dummy_os.iso'
 iso = custom_target('iso',
   output: kernel_iso,
-  command: [files(join_paths('scripts', 'iso.sh')), kernel_bin, '@OUTPUT@'],
+  command: [files(join_paths('scripts', 'iso.sh')), kernel_bin, '@OUTPUT@', '/home/manu/dummyOS_user/archive'],
   depends: bin
   )
 
 # run targets
 qemu = join_paths('scripts', 'qemu.sh')
 run_target('run',
-  command: [qemu, arch, '-kernel', kernel_bin],
+  command: [qemu, arch, '-kernel', kernel_bin, '-initrd', '/home/manu/dummyOS_user/archive'],
   depends: bin
   )
 run_target('run-iso',
@@ -60,6 +59,6 @@ run_target('run-iso',
   depends: iso
   )
 run_target('debug',
-  command: [qemu, arch, '-kernel', kernel_bin, '-s', '-S'],
+  command: [qemu, arch, '-kernel', kernel_bin, '-initrd', '/home/manu/dummyOS_user/archive', '-s', '-S'],
   depends: bin
   )

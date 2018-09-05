@@ -197,7 +197,7 @@ v_addr_t kmalloc_early(size_t size)
 			  "kmalloc subsytem!");
 
 	const v_addr_t kernel_end = kernel_image_get_virt_end();
-	kernel_image_shift_kernel_end(size);
+	kernel_image_shift_kernel_end(align_up(size, ALIGNMENT));
 
 	return kernel_end;
 }

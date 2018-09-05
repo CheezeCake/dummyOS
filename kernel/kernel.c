@@ -36,7 +36,12 @@ static void register_filesystems(void)
 	kassert(ramfs_init_and_register() == 0);
 }
 
-void kernel_main(size_t mem_size)
+static int mount_initrd(void* initrd)
+{
+	return vfs_mount(NULL, vfs_cache_node_get_root(), initrd, "ramfs");
+}
+
+void kernel_main(size_t mem_size, void* initrd)
 {
 	terminal_init();
 
@@ -46,12 +51,12 @@ void kernel_main(size_t mem_size)
 	terminal_printf("CPU: %s\tRAM: %dMB (%p)\n", cpu->cpu_vendor,
 			(unsigned int)(mem_size >> 20), (void*)mem_size);
 
-
 	kassert(arch_init() == 0);
 	mm_init(mem_size);
 
 	register_filesystems();
 	kassert(vfs_init() == 0);
+	kassert(mount_initrd(initrd) == 0);
 
 	sched_init();
 

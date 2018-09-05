@@ -1,4 +1,5 @@
 #include <dummyos/errno.h>
+#include <fs/fifo.h>
 #include <fs/inode.h>
 #include <kernel/kmalloc.h>
 #include <libk/libk.h>
@@ -39,6 +40,9 @@ int vfs_inode_open_fops(struct vfs_inode* inode,
 			return -ENXIO;
 
 		inode->private_data = chardev_get_device(&inode->dev);
+	}
+	else if (inode->type == FIFO) {
+		fops = fifo_get_fops();
 	}
 
 	*result_fops = fops;

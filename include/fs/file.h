@@ -49,7 +49,7 @@ struct vfs_file_operations
 
 	off_t (*lseek)(struct vfs_file* this, off_t offset, int whence);
 	ssize_t (*read)(struct vfs_file* this, void* buf, size_t count);
-	ssize_t (*write)(struct vfs_file* this, void* buf, size_t count);
+	ssize_t (*write)(struct vfs_file* this, const void* buf, size_t count);
 	int (*ioctl)(struct vfs_file* this, int request, intptr_t arg);
 };
 
@@ -80,9 +80,9 @@ void vfs_file_reset(struct vfs_file* file);
 
 int vfs_file_dup(struct vfs_file* file, struct vfs_file** dup);
 
-struct vfs_cache_node* vfs_file_get_cache_node(struct vfs_file* file);
+struct vfs_cache_node* vfs_file_get_cache_node(const struct vfs_file* file);
 
-struct vfs_inode* vfs_file_get_inode(struct vfs_file* file);
+struct vfs_inode* vfs_file_get_inode(const struct vfs_file* file);
 
 void vfs_file_add_readdir_entry(struct vfs_file* file,
 								struct vfs_cache_node* entry);

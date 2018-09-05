@@ -85,6 +85,18 @@ int vmm_setup_kernel_mapping(mapping_t* mapping);
  */
 int vmm_create_kernel_mapping(v_addr_t start, size_t size, int prot);
 
+/**
+ * Map physical range [start;start + size[ in kernelspace.
+ *
+ * @param start start of physical range to map, must be PAGE_SIZE aligned.
+ * @param size size of physical range to map
+ * @param prot resulting mapping protection flags
+ * @param mapping_addr requested mapping start
+ * @return 0 on success
+ */
+int vmm_map_to_kernel_space(p_addr_t start, size_t size, int prot,
+							v_addr_t mapping_addr);
+
 int vmm_destroy_kernel_mapping(v_addr_t start);
 
 int vmm_sync_kernel_space(void* data);

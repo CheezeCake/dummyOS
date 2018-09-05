@@ -38,6 +38,55 @@ int region_get_ref(const region_t* region)
 	return refcount_get(&region->refcnt);
 }
 
+static void region_init_from_frames(region_t* region, p_addr_t* frames,
+									size_t nr_frames, int prot)
+{
+	region->frames = frames;
+	region->nr_frames = nr_frames;
+	region->prot = prot;
+	refcount_init(&region->refcnt);
+}
+
+static int region_init_from_range(region_t* region, p_addr_t start, size_t size,
+								  int prot)
+{
+	p_addr_t* frames;
+	size_t nr_frames = page_align_up(size) / PAGE_SIZE;
+
+	frames = kcalloc(nr_frames, sizeof(p_addr_t));
+	if (!frames)
+		return -ENOMEM;
+
+	p_addr_t addr = start;
+	for (size_t i = 0; i < nr_frames; ++i, addr += PAGE_SIZE)
+		frames[i] = addr;
+
+	region_init_from_frames(region, frames, nr_frames, prot);
+
+	return 0;
+}
+
+int region_create_from_range(p_addr_t start, size_t size, int prot,
+							 region_t** result)
+{
+	region_t* region;
+	int err;
+
+	region = kmalloc(sizeof(region_t));
+	if (!region)
+		return -ENOMEM;
+
+	err = region_init_from_range(region, start, size, prot);
+	if (err) {
+		kfree(region);
+		region = NULL;
+	}
+
+	*result = region;
+
+	return err;
+}
+
 int __region_init(region_t* region, p_addr_t* frames, size_t nr_frames,
 				  int prot)
 {
@@ -49,16 +98,12 @@ int __region_init(region_t* region, p_addr_t* frames, size_t nr_frames,
 			frames_ok = false;
 	}
 
-	region->frames = frames;
-	region->nr_frames = nr_frames;
+	region_init_from_frames(region, frames, nr_frames, prot);
 
 	if (!frames_ok) {
 		region_reset(region);
 		return -ENOMEM;
 	}
-
-	region->prot = prot;
-	refcount_init(&region->refcnt);
 
 	return 0;
 }

@@ -21,7 +21,8 @@ enum vfs_node_type
 	DIRECTORY	= DT_DIR,
 	SYMLINK		= DT_LNK,
 	CHARDEV		= DT_CHR,
-	BLOCKDEV	= DT_BLK
+	BLOCKDEV	= DT_BLK,
+	FIFO		= DT_FIFO
 };
 
 /**
