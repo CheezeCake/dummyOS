@@ -157,7 +157,7 @@ static int user_args_copy_to_user(const user_args_t* user_args,
 
 	*args = array;
 
-	return 0;
+	return err;
 }
 
 static int main_args_copy_to_user(v_addr_t argc, v_addr_t __user argv,
@@ -337,11 +337,10 @@ int sys_execve(const char* __user path, char* const __user argv[],
 
 	err = exec(kpath, &kargv, &kenvp);
 
-fail_envp:
 	user_args_reset(&kenvp);
-fail_argv:
+fail_envp:
 	user_args_reset(&kargv);
-
+fail_argv:
 	kfree(kpath);
 
 	return err;

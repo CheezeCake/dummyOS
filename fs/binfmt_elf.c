@@ -110,12 +110,6 @@ int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 			start = align_down(vaddr, align);
 		}
 
-		void* buffer = kmalloc(filesz);
-		if (!buffer) {
-			err = -ENOMEM;
-			goto end;
-		}
-
 		uint8_t vmm_flags = VMM_PROT_USER;
 		if (flags & PF_X) vmm_flags |= VMM_PROT_EXEC;
 		if (flags & PF_W) vmm_flags |= VMM_PROT_WRITE;
@@ -129,8 +123,14 @@ int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 			err = -EIO;
 			goto end;
 		}
+		void* buffer = kmalloc(filesz);
+		if (!buffer) {
+			err = -ENOMEM;
+			goto end;
+		}
 		if (binfile->op->read(binfile, buffer, filesz) != filesz) {
 			err = -EIO;
+			kfree(buffer);
 			goto end;
 		}
 

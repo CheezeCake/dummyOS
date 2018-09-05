@@ -95,10 +95,11 @@ int vfs_path_init(vfs_path_t* path, const char* path_str, vfs_path_size_t size)
 		return -ENAMETOOLONG;
 
 	err = vfs_path_string_create(path_str, size, &str);
-
-	path->base_str = str;
-	path->offset = 0;
-	path->size = size;
+	if (!err) {
+		path->base_str = str;
+		path->offset = 0;
+		path->size = size;
+	}
 
 	return err;
 }
@@ -314,6 +315,8 @@ int vfs_path_dirname(const vfs_path_t* path, vfs_path_t* dirname)
 	vfs_path_ignore_trailing_slashes(dirname);
 
 	const char* start = vfs_path_get_str(dirname);
+	if (!start)
+		return -EINVAL;
 	const char* bname_start = basename_start(dirname);
 
 	dirname->size = (bname_start - start);

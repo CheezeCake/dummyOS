@@ -193,6 +193,7 @@ static int ustar_header_fullname_create(const struct ustar_header* h,
 	size_t name_len;
 	size_t append_len = 0;
 	size_t full_len;
+	int err = -ENOMEM;
 
 	ustar_header_fullname_len(h, &prefix_len, &name_len);
 	if (append)
@@ -201,10 +202,13 @@ static int ustar_header_fullname_create(const struct ustar_header* h,
 
 	*fullname = kmalloc(full_len);
 
-	if (*fullname)
-		return ustar_header_fullname_init(*fullname, full_len, h, append);
+	if (*fullname) {
+		err = ustar_header_fullname_init(*fullname, full_len, h, append);
+		if (err)
+			kfree(*fullname);
+	}
 
-	return -ENOMEM;;
+	return err;
 }
 
 static int ustar_header_fullname_init_path_init(vfs_path_t* fullname_path,
@@ -431,14 +435,15 @@ static int lookup_fullname(const struct vfs_inode* this,
 						   struct vfs_inode** result)
 {
 	size_t cur_fullname_str_len = USTAR_FULLNAME_MAX_LEN + 1;
-	char* cur_fullname_str = kmalloc(cur_fullname_str_len);
+	char* cur_fullname_str = NULL;
 	bool found = false;
 	int err = 0;
 
+	cur_fullname_str = kmalloc(cur_fullname_str_len);
 	if (!cur_fullname_str)
 		return -ENOMEM;
 
-	while (!err && !found && ustar_header_valid(fh)) {
+	while (!err && !found && fh && ustar_header_valid(fh)) {
 		vfs_path_t fullname_cur;
 
 		err = ustar_header_fullname_init_path_init(&fullname_cur,
@@ -459,7 +464,7 @@ static int lookup_fullname(const struct vfs_inode* this,
 	if (err)
 		return err;
 
-	return (found) ? ramfs_vfs_inode_create(fh, this->sb, result) : -ENOENT;
+	return (found && fh) ? ramfs_vfs_inode_create(fh, this->sb, result) : -ENOENT;
 }
 
 static int ustar_header_dirname_basename(struct ustar_header* fh, char* buf,
@@ -567,8 +572,10 @@ static int readdir(struct vfs_file* this,
 
 	// root->header == NULL
 	fh = (fh) ? ustar_header_get_next_header(fh) : inode->sb->data;
+	if (!fh)
+		err = -EINVAL;
 
-	while (!err && !done && ustar_header_valid(fh)) {
+	while (!err && !done && fh && ustar_header_valid(fh)) {
 		err = ustar_header_dirname_basename(fh, fullname_str, fullname_str_len,
 											&cur_dirname, &cur_basename);
 		if (err)

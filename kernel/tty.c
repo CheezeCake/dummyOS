@@ -130,7 +130,7 @@ void tty_reset_pgrp(struct tty* tty)
 static int tty_input_c(struct tty* tty, char c)
 {
 	uint8_t peek;
-	int err;
+	int err = 0;
 
 	if (l_flag(tty, ISIG) && is_intr(tty, c)) {
 		tty_intr(tty, SIGINT);
@@ -140,14 +140,14 @@ static int tty_input_c(struct tty* tty, char c)
 	if (l_canon(tty)) {
 		if (is_erase(tty, c)) {
 			if (!circ_buf_empty(&tty->buffer)) {
-				circ_buf_peek_last(&tty->buffer, &peek);
-				if (peek != '\n') {
+				err = circ_buf_peek_last(&tty->buffer, &peek);
+				if (!err && peek != '\n') {
 					circ_buf_remove_last(&tty->buffer);
 					if (l_echo(tty))
 						tty->putchar('\b');
 				}
 			}
-			return 0;
+			return err;
 		}
 	}
 

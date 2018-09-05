@@ -241,6 +241,8 @@ static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
 		goto fail_component;
 
 	err = do_lookup(&component, start, root, &result_node, recursion_level);
+	if (!result_node)
+		err = -ENOENT;
 	if (err)
 		goto out;
 
