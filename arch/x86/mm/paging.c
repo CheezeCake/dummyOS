@@ -59,18 +59,16 @@ struct page_table_entry
 } __attribute__((packed));
 typedef struct page_table_entry pte_t;
 
-/*
- * boot page directory and boot page table symbols
- * defined in boot.s
- */
-extern pde_t __boot_page_directory_phys;
-extern pde_t __boot_page_directory;
-extern pte_t __boot_page_table_phys;
-extern pte_t __boot_page_table;
 
 static inline void invlpg(v_addr_t addr)
 {
 	__asm__ volatile ("invlpg (%0)" : : "r" (addr) : "memory");
+}
+
+void paging_switch_cr3(p_addr_t cr3)
+{
+	log_printf("Switching cr3 (%p)!\n", (void*)cr3);
+	__asm__ volatile ("movl %0, %%cr3" : : "r" (cr3) : "memory");
 }
 
 static inline pde_t* get_page_directory(void)
@@ -139,15 +137,25 @@ static void reset_temp_recursive_entry()
 	clear_recursive_entry(get_page_directory(), TEMP_RECURSIVE_ENTRY_START);
 }
 
-/**
- * The kernel was loaded at 1MB and the first 4MB of physical memory were
- * mapped to KERNEL_VADDR_SPACE_START in boot.s
- * Unmap the "extra" pages that were mapped so only the frames where the kernel
- * actually lives are mapped.
- */
-static void map_to_fit_kernel(void)
+static void cleanup_boot_pd(void)
 {
-	pte_t* const pt = &__boot_page_table;
+	extern pde_t boot_page_directory;
+
+	pde_t* page_directory = &boot_page_directory;
+	const v_addr_t higher_half = 0xc0000000;
+	const int pd_index = index_in_pd(higher_half);
+
+	for (size_t i = 0; i < pd_index; ++i)
+		memset(&page_directory[i], 0, sizeof(pde_t));
+	for (size_t i = pd_index + 1; i < PAGE_DIRECTORY_ENTRY_COUNT; ++i)
+		memset(&page_directory[i], 0, sizeof(pde_t));
+}
+
+static void cleanup_boot_pt(void)
+{
+	extern pte_t boot_page_table;
+
+	pte_t* page_table = &boot_page_table;
 
 	// 0 to X86_MEMORY_HARDWARE_MAP_BEGIN
 	for (v_addr_t low_mem = KERNEL_SPACE_START;
@@ -155,50 +163,32 @@ static void map_to_fit_kernel(void)
 		 low_mem += PAGE_SIZE)
 	{
 		const int pt_index = index_in_pt(low_mem);
-
-		memset(&pt[pt_index], 0, sizeof(pte_t));
-		invlpg(low_mem);
+		memset(&page_table[pt_index], 0, sizeof(pte_t));
 	}
 
-	// kernel top virtual page
 	const v_addr_t kernel_top = kernel_image_get_top_page();
 	const int pt_index = index_in_pt(kernel_top);
-
-	// Clear every entry in the kernel page table starting at the entry for the
-	// kernel_top page
-	v_addr_t page = kernel_top;
-	for (int i = pt_index; i < PAGE_TABLE_ENTRY_COUNT; ++i, page += PAGE_SIZE) {
-		memset(&pt[i], 0, sizeof(pte_t));
-		invlpg(page);
-	}
+	for (size_t i = pt_index; i < PAGE_TABLE_ENTRY_COUNT; ++i)
+		memset(&page_table[i], 0, sizeof(pte_t));
 }
 
-/**
- * The first 4MB of physical memory were identity mapped to avoid a crash,
- * we can now remove this mapping.
- */
-static void unmap_identity_map(void)
+static void remap_kernel(void)
 {
-	pde_t* pd = (pde_t*)&__boot_page_directory;
-	// clear the page directory entry
-	memset(&pd[0], 0, sizeof(pde_t));
+	extern pde_t boot_page_directory_phys;
 
-	// invalidate the translations for the first 4MB/4KB = 1024 pages
-	v_addr_t p = 0;
-	for (int i = 0; i < 1024; ++i) {
-		invlpg(p);
-		p += PAGE_SIZE;
-	}
+	cleanup_boot_pd();
+	cleanup_boot_pt();
+	paging_switch_cr3((p_addr_t)&boot_page_directory_phys);
 }
 
 void paging_init(void)
 {
-	map_to_fit_kernel();
+	extern pde_t boot_page_directory;
+	extern pde_t boot_page_directory_phys;
 
-	setup_recursive_entry(&__boot_page_directory,
-						  (p_addr_t)&__boot_page_directory_phys);
-
-	unmap_identity_map();
+	remap_kernel();
+	setup_recursive_entry(&boot_page_directory,
+						  (p_addr_t)&boot_page_directory_phys);
 }
 
 int paging_map(p_addr_t paddr, v_addr_t vaddr, int prot)
@@ -258,12 +248,6 @@ int paging_unmap(v_addr_t vaddr)
 	invlpg(vaddr);
 
 	return 0;
-}
-
-void paging_switch_cr3(p_addr_t cr3)
-{
-	log_printf("Switching cr3 (%p)!\n", (void*)cr3);
-	__asm__ volatile ("movl %%eax, %%cr3" : : "a" (cr3) : "memory");
 }
 
 int paging_sync_kernel_space(p_addr_t cr3, void* data)
