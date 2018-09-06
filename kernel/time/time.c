@@ -65,7 +65,6 @@ static void release_timer(list_node_t* n)
 {
 	struct timer* timer = list_entry(n, struct timer, t_list);
 	timer_trigger(timer);
-	timer_unref(timer);
 }
 
 static void time_update_timer_list(void)
@@ -89,11 +88,11 @@ static void time_update_timer_list(void)
 void time_add_timer(struct timer* timer)
 {
 	if (timer) {
-		log_printf("sleep add %s\n", ((struct thread*)timer->data)->name);
+		const struct thread* thr = container_of(timer, struct thread, timer);
+		log_printf("sleep add %s\n", thr->name);
 
 		irq_disable();
 		list_push_back(&timer_list, &timer->t_list);
-		timer_ref(timer);
 		irq_enable();
 	}
 }

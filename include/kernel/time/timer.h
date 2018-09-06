@@ -6,25 +6,37 @@
 #include <libk/list.h>
 #include <libk/refcount.h>
 
-typedef int (*timer_callback_t)(void* data);
+typedef void (*timer_callback_t)(struct timer*);
 
 struct timer
 {
 	struct time time;
 	timer_callback_t cb;
-	void* data;
 
-	refcount_t refcnt;
-
-	list_node_t t_list; // timer_list node
+	list_node_t t_list; // time.c::timer_list node
 };
 
-struct timer* timer_create(unsigned int delay_ms, timer_callback_t cb, void* data);
-void timer_ref(struct timer* timer);
-void timer_unref(struct timer* timer);
-int timer_get_ref(const struct timer* timer);
 
+/**
+ * @brief Initializes a struct timer
+ *
+ * @param timer the timer
+ * @param delay_ms the delay in ms
+ * @param cb the callback called when the delay has expired
+ * @return 0 on success
+ */
+int timer_init(struct timer* timer, unsigned delay_ms, timer_callback_t cb);
+
+
+/**
+ * Registers a timer to the time subsystem
+ */
 void timer_register(struct timer* timer);
+
+
+/*
+ * Calls the callback function of a timer
+ */
 void timer_trigger(struct timer* timer);
 
 #endif

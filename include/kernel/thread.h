@@ -5,6 +5,7 @@
 #include <kernel/cpu_context.h>
 #include <kernel/sched/wait.h>
 #include <kernel/time/time.h>
+#include <kernel/time/timer.h>
 #include <kernel/types.h>
 #include <libk/list.h>
 #include <libk/refcount.h>
@@ -63,6 +64,8 @@ struct thread
 	thread_priority_t priority;
 
 	refcount_t refcnt;
+
+	struct timer timer;
 
 	list_node_t p_thr_list; /**< Chained in process::threads */
 	list_node_t s_ready_queue; /**< Chained in sched::@ref ::ready_queues */

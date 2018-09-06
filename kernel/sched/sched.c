@@ -272,14 +272,11 @@ void sched_exit(void)
 	preempt_current();
 }
 
-static int sched_timer_callback(void* data)
+static void sched_timer_callback(struct timer* timer)
 {
-	struct thread* thread = (struct thread*)data;
+	struct thread* thread = container_of(timer, struct thread, timer);
 	sched_add_thread(thread);
-	// timer drops ownership
-	thread_unref(thread);
-
-	return 0;
+	thread_unref(thread); // timer drops ownership
 }
 
 static void __sched_sleep()
@@ -296,12 +293,10 @@ void sched_sleep_millis(unsigned int millis)
 	log_printf("%s(): %s (%p) state=%d\n", __func__, current_thread->name,
 			   (void*)current_thread, current_thread->state);
 
-	struct timer* timer = timer_create(millis, sched_timer_callback,
-			current_thread);
-	kassert(timer != NULL);
-	thread_ref(current_thread); // the timer refererences the thread
+	struct timer* timer = &current_thread->timer;
+	timer_init(timer, millis, sched_timer_callback);
 	timer_register(timer);
-	timer_unref(timer);
+	thread_ref(current_thread); // transfer ownership to the timer
 
 	__sched_sleep();
 
