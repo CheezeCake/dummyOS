@@ -48,11 +48,11 @@ size_t kheap_init(v_addr_t start)
 	kassert(kheap_end < KHEAP_LIMIT);
 
 	err = init_kheap_mappping(start);
-	if (!err)
-		err = vmm_setup_kernel_mapping(&initial_kheap_mapping);
-
 	if (err)
-		return 0;
+		return err;
+	err = vmm_setup_kernel_mapping(&initial_kheap_mapping);
+	if (err)
+		return err;
 
 	// initialiaze the kmalloc subsystem
 	kmalloc_init(kheap_start, kheap_end - kheap_start);
