@@ -277,6 +277,7 @@ static void sched_timer_callback(struct timer* timer)
 	struct thread* thread = container_of(timer, struct thread, timer);
 	sched_add_thread(thread);
 	thread_unref(thread); // timer drops ownership
+	timer_reset(timer);
 }
 
 static void __sched_sleep()

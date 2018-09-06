@@ -11,7 +11,7 @@ int timer_init(struct timer* timer, unsigned delay_ms, timer_callback_t cb)
 	return 0;
 }
 
-static void timer_reset(struct timer* timer)
+void timer_reset(struct timer* timer)
 {
 	memset(timer, 0, sizeof(struct timer));
 }
