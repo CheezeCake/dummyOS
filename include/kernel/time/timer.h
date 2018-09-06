@@ -30,7 +30,7 @@ int timer_init(struct timer* timer, unsigned delay_ms, timer_callback_t cb);
 /**
  * @brief resets a struct timer
  */
-void timer_reset(struct timer* timer)
+void timer_reset(struct timer* timer);
 
 /**
  * Registers a timer to the time subsystem
