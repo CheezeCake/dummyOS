@@ -34,8 +34,8 @@ int timer_init(struct timer* timer, unsigned delay_ms, timer_callback_t cb);
 void timer_register(struct timer* timer);
 
 
-/*
- * Calls the callback function of a timer
+/**
+ * @brief Calls the callback function of a timer
  */
 void timer_trigger(struct timer* timer);
 
