@@ -1,4 +1,4 @@
-#include <kernel/tty.h>
+#include <fs/tty.h>
 #include <kernel/terminal.h>
 #include "console.h"
 #include "drivers/keyboard.h"

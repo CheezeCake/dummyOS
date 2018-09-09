@@ -1,5 +1,5 @@
-#ifndef _KERNEL_TTY_H_
-#define _KERNEL_TTY_H_
+#ifndef _FS_TTY_H_
+#define _FS_TTY_H_
 
 #include <fs/device.h>
 #include <kernel/locking/mutex.h>

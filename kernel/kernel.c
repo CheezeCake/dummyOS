@@ -1,3 +1,4 @@
+#include <fs/tty.h>
 #include <fs/vfs.h>
 #include <kernel/arch.h>
 #include <kernel/cpu.h>
@@ -13,7 +14,6 @@
 #include <kernel/sched/sched.h>
 #include <kernel/terminal.h>
 #include <kernel/thread.h>
-#include <kernel/tty.h>
 #include <kernel/time/time.h>
 
 #include <fs/ramfs/ramfs.h>

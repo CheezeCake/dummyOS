@@ -12,7 +12,6 @@ kernel_src = files(
   'sys.c',
   'syscall.c',
   'thread.c',
-  'tty.c',
   )
 
 subdir('locking')

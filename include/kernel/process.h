@@ -4,10 +4,10 @@
 #include <dummyos/const.h>
 #include <fs/cache_node.h>
 #include <fs/file.h>
+#include <fs/tty.h>
 #include <kernel/mm/vmm.h>
 #include <kernel/signal.h>
 #include <kernel/thread.h>
-#include <kernel/tty.h>
 #include <kernel/types.h>
 #include <kernel/sched/wait.h>
 

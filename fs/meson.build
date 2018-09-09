@@ -9,6 +9,7 @@ fs_src = files(
   'path.c',
   'pipe.c',
   'superblock.c',
+  'tty.c',
   'vfs.c'
   )
 
