@@ -314,8 +314,8 @@ int vfs_close(struct vfs_file* file)
 {
 	int err = 0;
 
-	if (file->op && file->op->close) {
-		err = file->op->close(file); }
+	if (file->op && file->op->close)
+		err = file->op->close(file);
 
 	return err;
 }
