@@ -318,17 +318,17 @@ static struct vfs_file_operations fifo_fops = {
 };
 
 
-int pipe_dup(struct vfs_file* file, struct vfs_file* dup)
+int pipe_copy(struct vfs_file* file, struct vfs_file* copy)
 {
 	int err;
 
 	err = __pipe_acquire(file->private_data, file->flags, false);
-	dup->private_data = file->private_data;
+	copy->private_data = file->private_data;
 
 	return err;
 }
 
-int fifo_dup(struct vfs_file* file, struct vfs_file* dup)
+int fifo_copy(struct vfs_file* file, struct vfs_file* copy)
 {
 	struct vfs_inode* inode = vfs_file_get_inode(file);
 	int err;

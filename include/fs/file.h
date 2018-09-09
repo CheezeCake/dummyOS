@@ -67,7 +67,7 @@ int vfs_file_create(struct vfs_cache_node* cnode, int flags,
  */
 void vfs_file_destroy(struct vfs_file* file);
 
-int vfs_file_dup(struct vfs_file* file, struct vfs_file** dup);
+int vfs_file_copy_create(struct vfs_file* file, struct vfs_file** copy);
 
 struct vfs_cache_node* vfs_file_get_cache_node(const struct vfs_file* file);
 

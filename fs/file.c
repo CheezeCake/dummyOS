@@ -53,7 +53,7 @@ int vfs_file_create(struct vfs_cache_node* cnode, int flags,
 	return err;
 }
 
-static int vfs_file_copy_create(struct vfs_file* file, struct vfs_file** copy)
+static int __vfs_file_copy_create(struct vfs_file* file, struct vfs_file** copy)
 {
 	int err;
 
@@ -61,6 +61,34 @@ static int vfs_file_copy_create(struct vfs_file* file, struct vfs_file** copy)
 	if (!err)
 		vfs_file_init_data_fields(*copy, file->cur, file->op);
 
+	return err;
+}
+
+int vfs_file_copy_create(struct vfs_file* file, struct vfs_file** copy)
+{
+	int err;
+
+	err = __vfs_file_copy_create(file, copy);
+	if (err)
+		return err;
+
+	if (file->cnode && file->cnode->inode) {
+		if (file->cnode->inode->type == FIFO) {
+			err = fifo_copy(file, *copy);
+			if (err)
+				goto fail;
+		}
+	}
+	else {
+		err = pipe_copy(file, *copy);
+		if (err)
+			goto fail;
+	}
+
+	return 0;
+
+fail:
+	vfs_file_destroy(*copy);
 	return err;
 }
 
@@ -92,34 +120,6 @@ void vfs_file_destroy(struct vfs_file* file)
 {
 	vfs_file_reset(file);
 	kfree(file);
-}
-
-int vfs_file_dup(struct vfs_file* file, struct vfs_file** dup)
-{
-	int err;
-
-	err = vfs_file_copy_create(file, dup);
-	if (err)
-		return err;
-
-	if (file->cnode && file->cnode->inode) {
-		if (file->cnode->inode->type == FIFO) {
-			err = fifo_dup(file, *dup);
-			if (err)
-				goto fail;
-		}
-	}
-	else {
-		err = pipe_dup(file, *dup);
-		if (err)
-			goto fail;
-	}
-
-	return 0;
-
-fail:
-	vfs_file_destroy(*dup);
-	return err;
 }
 
 struct vfs_cache_node* vfs_file_get_cache_node(const struct vfs_file* file)

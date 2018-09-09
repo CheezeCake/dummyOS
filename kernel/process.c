@@ -111,7 +111,7 @@ static int copy_fds(const struct process* proc, struct process* child)
 		file = proc->fds[i];
 
 		if (file) {
-			err = vfs_file_dup(file, &copy);
+			err = vfs_file_copy_create(file, &copy);
 			if (err)
 				return err;
 
