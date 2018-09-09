@@ -31,6 +31,7 @@ int sys_ioctl(int fd, int request, intptr_t arg);
 void* sys_sbrk(intptr_t increment);
 ssize_t sys_getdents(int fd, struct dirent* __user dirp, size_t nbytes);
 int sys_sigprocmask(int how, const sigset_t* set, sigset_t* oset);
+int sys_pipe(int __user fds[2]);
 
 
 #define __syscall(s) ((v_addr_t)s)
@@ -62,6 +63,7 @@ v_addr_t syscall_table[_SYSCALL_NR_COUNT] = {
 	[SYS_sbrk]			= __syscall(sys_sbrk),
 	[SYS_getdents]		= __syscall(sys_getdents),
 	[SYS_sigprocmask]	= __syscall(sys_sigprocmask),
+	[SYS_pipe]			= __syscall(sys_pipe),
 };
 
 #include <kernel/log.h>

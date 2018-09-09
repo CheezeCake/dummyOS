@@ -1,13 +1,39 @@
 #include <dummyos/errno.h>
-#include <fs/fifo.h>
+#include <dummyos/fcntl.h>
 #include <fs/file.h>
 #include <fs/inode.h>
+#include <fs/pipe.h>
 #include <kernel/kmalloc.h>
 #include <libk/libk.h>
 
-int vfs_file_create(struct vfs_file_operations* fops,
-					struct vfs_cache_node* cnode,
-					int flags, struct vfs_file** result)
+static inline void vfs_file_init_data_fields(struct vfs_file* file, off_t cur,
+											 struct vfs_file_operations* op)
+{
+	file->cur = cur;
+	file->op = op;
+}
+
+static int vfs_file_init(struct vfs_file* file, struct vfs_cache_node* cnode,
+						 int flags)
+{
+	memset(file, 0, sizeof(struct vfs_file));
+
+	file->cnode = cnode;
+	if (cnode)
+		vfs_cache_node_ref(cnode);
+
+	file->flags = flags;
+
+	list_init(&file->readdir_cache);
+	mutex_init(&file->lock);
+
+	vfs_file_init_data_fields(file, 0, NULL);
+
+	return 0;
+}
+
+int vfs_file_create(struct vfs_cache_node* cnode, int flags,
+					struct vfs_file** result)
 {
 	struct vfs_file* file;
 	int err;
@@ -16,7 +42,7 @@ int vfs_file_create(struct vfs_file_operations* fops,
 	if (!file)
 		return -ENOMEM;
 
-	err = vfs_file_init(file, fops, cnode, flags);
+	err = vfs_file_init(file, cnode, flags);
 	if (err) {
 		kfree(file);
 		file = NULL;
@@ -27,32 +53,13 @@ int vfs_file_create(struct vfs_file_operations* fops,
 	return err;
 }
 
-int vfs_file_init(struct vfs_file* file, struct vfs_file_operations* fops,
-				  struct vfs_cache_node* cnode,
-				  int flags)
-{
-	memset(file, 0, sizeof(struct vfs_file));
-
-	file->cnode = cnode;
-	if (cnode)
-		vfs_cache_node_ref(cnode);
-
-	file->flags = flags;
-	file->op = fops;
-
-	list_init(&file->readdir_cache);
-	mutex_init(&file->lock);
-
-	return 0;
-}
-
 static int vfs_file_copy_create(struct vfs_file* file, struct vfs_file** copy)
 {
 	int err;
 
-	err = vfs_file_create(file->op, file->cnode, file->flags, copy);
+	err = vfs_file_create(file->cnode, file->flags, copy);
 	if (!err)
-		(*copy)->cur = file->cur;
+		vfs_file_init_data_fields(*copy, file->cur, file->op);
 
 	return err;
 }
@@ -71,7 +78,7 @@ static void clear_readdir_cache(struct vfs_file* file)
 	list_clear(&file->readdir_cache);
 }
 
-void vfs_file_reset(struct vfs_file* file)
+static void vfs_file_reset(struct vfs_file* file)
 {
 	if (file->cnode)
 		vfs_cache_node_unref(file->cnode);
@@ -97,10 +104,15 @@ int vfs_file_dup(struct vfs_file* file, struct vfs_file** dup)
 
 	if (file->cnode && file->cnode->inode) {
 		if (file->cnode->inode->type == FIFO) {
-			err = fifo_dup(file);
+			err = fifo_dup(file, *dup);
 			if (err)
 				goto fail;
 		}
+	}
+	else {
+		err = pipe_dup(file, *dup);
+		if (err)
+			goto fail;
 	}
 
 	return 0;
@@ -129,4 +141,14 @@ void vfs_file_add_readdir_entry(struct vfs_file* file,
 	vfs_cache_node_ref(entry);
 
 	mutex_unlock(&file->lock);
+}
+
+bool vfs_file_flags_read(int flags)
+{
+	return ((flags + 1) & (O_RDONLY + 1));
+}
+
+bool vfs_file_flags_write(int flags)
+{
+	return ((flags + 1) & (O_WRONLY + 1));
 }

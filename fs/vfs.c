@@ -3,6 +3,7 @@
 #include <fs/filesystem.h>
 #include <fs/inode.h>
 #include <fs/vfs.h>
+#include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
 #include <kernel/sched/sched.h>
 #include <kernel/types.h>
@@ -292,7 +293,7 @@ int vfs_lookup_in_fs(const vfs_path_t* path, struct vfs_superblock* sb,
 	return vfs_lookup(path, sb->root, NULL, result);
 }
 
-int vfs_open(const vfs_path_t* path, int flags, struct vfs_file* file)
+int vfs_open(const vfs_path_t* path, int flags, struct vfs_file** result)
 {
 	struct vfs_cache_node* cnode;
 	struct process* current_proc = sched_get_current_process();
@@ -302,7 +303,7 @@ int vfs_open(const vfs_path_t* path, int flags, struct vfs_file* file)
 	if (err)
 		return err;
 
-	err = vfs_cache_node_open(cnode, flags, file);
+	err = vfs_cache_node_open(cnode, flags, result);
 	if (!err)
 		vfs_cache_node_unref(cnode);
 
@@ -314,8 +315,7 @@ int vfs_close(struct vfs_file* file)
 	int err = 0;
 
 	if (file->op && file->op->close) {
-		err = file->op->close(file);
-	}
+		err = file->op->close(file); }
 
 	return err;
 }

@@ -43,7 +43,7 @@ int vfs_lookup_in_fs(const vfs_path_t* path, struct vfs_superblock* sb,
 /**
  * @brief Opens a file specified by its path
  */
-int vfs_open(const vfs_path_t* path, int flags, struct vfs_file* file);
+int vfs_open(const vfs_path_t* path, int flags, struct vfs_file** result);
 
 /**
  * @brief Closes a file

@@ -117,7 +117,7 @@ void vfs_cache_node_unref(struct vfs_cache_node* node);
 int vfs_cache_node_get_ref(const struct vfs_cache_node* node);
 
 int vfs_cache_node_open(struct vfs_cache_node* cnode, int flags,
-						struct vfs_file* file);
+						struct vfs_file** result);
 
 void dump_cache_tree(void);
 #endif

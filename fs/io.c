@@ -26,11 +26,7 @@ int sys_open(const char* __user path, int flags)
 	if (err)
 		goto fail_path;
 
-	err = vfs_file_create(NULL, NULL, flags, &file);
-	if (err)
-		goto fail_file;
-
-	err = vfs_open(&vfspath, flags, file);
+	err = vfs_open(&vfspath, flags, &file);
 	if (err) {
 		if (err != ENOENT || !(flags & O_CREAT))
 			goto fail_open;
@@ -53,8 +49,6 @@ fail_add:
 	vfs_close(file);
 	vfs_file_destroy(file);
 fail_open:
-	vfs_file_destroy(file);
-fail_file:
 	vfs_path_reset(&vfspath);
 fail_path:
 	kfree(kpath);
@@ -93,6 +87,8 @@ ssize_t sys_read(int fd, void* __user buf, size_t count)
 	if (!file)
 		return -EBADF;
 
+	if (!vfs_file_perm_read(file))
+		return -EPERM;
 	if (!file->op || !file->op->read)
 		return -EIO;
 
@@ -123,6 +119,8 @@ ssize_t sys_write(int fd, const void* __user buf, size_t count)
 	if (!file)
 		return -EBADF;
 
+	if (!vfs_file_perm_write(file))
+		return -EPERM;
 	if (!file->op || !file->op->write)
 		return -EIO;
 

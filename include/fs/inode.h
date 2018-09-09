@@ -38,7 +38,6 @@ struct vfs_inode
 	unsigned int linkcnt; // hard links
 
 	struct vfs_inode_operations* op;
-	struct vfs_file_operations* fops;
 
 	void* private_data;
 
@@ -51,6 +50,11 @@ struct vfs_inode
  */
 struct vfs_inode_operations
 {
+	/**
+	 * Should set file->op
+	 */
+	int (*open)(struct vfs_inode* this, struct vfs_file* file);
+
 	/**
 	 * @brief Searches for child node
 	 *
@@ -87,8 +91,7 @@ struct vfs_inode_operations
  * @brief Initialiazes a vfs_inode object
  */
 void vfs_inode_init(struct vfs_inode* inode, enum vfs_node_type type,
-					struct vfs_superblock* sb, struct vfs_inode_operations* op,
-					struct vfs_file_operations* fops);
+					struct vfs_superblock* sb, struct vfs_inode_operations* op);
 
 /**
  * @brief Initialiazes the "device" field in a vfs_inode object
@@ -97,7 +100,7 @@ void vfs_inode_init_dev(struct vfs_inode* inode, enum device_major major,
 						enum device_minor minor);
 
 int vfs_inode_open_fops(struct vfs_inode* inode,
-						struct vfs_file_operations** result_fops);
+						struct vfs_file_operations** result);
 
 /**
  * @brief Increments the reference counter by one.

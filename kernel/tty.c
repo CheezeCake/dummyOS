@@ -201,7 +201,7 @@ void tty_destroy(struct tty* tty)
 	kfree(tty);
 }
 
-static int tty_open(struct vfs_inode* inode, int flags, struct vfs_file* file)
+static int tty_open(struct vfs_file* this, int flags)
 {
 	return 0;
 }

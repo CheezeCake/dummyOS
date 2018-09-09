@@ -50,7 +50,6 @@ struct ustar_header
 
 	int8_t padding[12];
 };
-
 static_assert(sizeof(struct ustar_header) == BLOCK_SIZE,
 			  "sizeof(struct ustar_header)");
 
@@ -278,8 +277,7 @@ static int ramfs_inode_info_create(struct ustar_header* header,
 	}
 
 	// create inode
-	vfs_inode_init(&ramfs_inode->inode, DIRECTORY, sb, &ramfs_inode_op,
-				   &ramfs_file_op);
+	vfs_inode_init(&ramfs_inode->inode, DIRECTORY, sb, &ramfs_inode_op);
 
 	*result = ramfs_inode;
 
@@ -336,10 +334,10 @@ out:
 /*
  * vfs_filesystem
  */
-static int superblock_create(struct vfs_filesystem* this,
-							 struct vfs_cache_node* device,
-							 int flags, void* data,
-							 struct vfs_superblock** result)
+static int ramfs_superblock_create(struct vfs_filesystem* this,
+								   struct vfs_cache_node* device,
+								   int flags, void* data,
+								   struct vfs_superblock** result)
 {
 	int err = -ENOMEM;
 	struct vfs_superblock* sb = NULL;
@@ -371,8 +369,8 @@ fail:
 	return err;
 }
 
-static int superblock_destroy(struct vfs_filesystem* this,
-							  struct vfs_superblock* sb)
+static int ramfs_superblock_destroy(struct vfs_filesystem* this,
+									struct vfs_superblock* sb)
 {
 	if (vfs_cache_node_get_ref(sb->root) > 1)
 		return -EBUSY;
@@ -387,12 +385,14 @@ static int superblock_destroy(struct vfs_filesystem* this,
 /*
  * superblock operations
  */
-static int alloc_inode(struct vfs_superblock* this, struct vfs_inode** result)
+static int ramfs_alloc_inode(struct vfs_superblock* this,
+							 struct vfs_inode** result)
 {
 	return -EROFS;
 }
 
-static int free_inode(struct vfs_superblock* this, struct vfs_inode* inode)
+static int ramfs_free_inode(struct vfs_superblock* this,
+							struct vfs_inode* inode)
 {
 	return -EROFS;
 }
@@ -409,7 +409,8 @@ static void inode_read_dev(struct ramfs_inode_info* ramfs_inode,
 	vfs_inode_init_dev(inode, major, minor);
 }
 
-static int read_inode(struct vfs_superblock* this, struct vfs_inode* inode)
+static int ramfs_read_inode(struct vfs_superblock* this,
+							struct vfs_inode* inode)
 {
 	struct ramfs_inode_info* ramfs_inode = get_ramfs_inode(inode);
 	int enum_type = ustar2vfs_type(ramfs_inode->header->typeflag);
@@ -418,7 +419,7 @@ static int read_inode(struct vfs_superblock* this, struct vfs_inode* inode)
 	if (enum_type < 0)
 		return -EINVAL;
 
-	vfs_inode_init(inode, enum_type, this, &ramfs_inode_op, &ramfs_file_op);
+	vfs_inode_init(inode, enum_type, this, &ramfs_inode_op);
 
 	if (ustar_header_is_device(ramfs_inode->header))
 		inode_read_dev(ramfs_inode, inode);
@@ -429,6 +430,12 @@ static int read_inode(struct vfs_superblock* this, struct vfs_inode* inode)
 /*
  * inode operations
  */
+static int ramfs_open_inode(struct vfs_inode* this, struct vfs_file* file)
+{
+	file->op = &ramfs_file_op;
+	return 0;
+}
+
 static int lookup_fullname(const struct vfs_inode* this,
 						   struct ustar_header* fh,
 						   const vfs_path_t* fullname,
@@ -494,8 +501,8 @@ static int ustar_header_dirname_basename(struct ustar_header* fh, char* buf,
 	return err;
 }
 
-static int lookup(struct vfs_inode* this, const vfs_path_t* name,
-				  struct vfs_inode** result)
+static int ramfs_lookup(struct vfs_inode* this, const vfs_path_t* name,
+						struct vfs_inode** result)
 {
 	vfs_path_t this_fullname;
 	int err;
@@ -523,7 +530,7 @@ static int lookup(struct vfs_inode* this, const vfs_path_t* name,
 	return err;
 }
 
-static int readlink(struct vfs_inode* this, vfs_path_t** result)
+static int ramfs_readlink(struct vfs_inode* this, vfs_path_t** result)
 {
 	const struct ustar_header* header = get_ramfs_inode(this)->header;
 	int err;
@@ -534,7 +541,7 @@ static int readlink(struct vfs_inode* this, vfs_path_t** result)
 	return err;
 }
 
-static void destroy(struct vfs_inode* this)
+static void ramfs_destroy(struct vfs_inode* this)
 {
 	ramfs_node_info_destroy(get_ramfs_inode(this));
 }
@@ -542,18 +549,19 @@ static void destroy(struct vfs_inode* this)
 /*
  * file operations
  */
-int open(struct vfs_inode* inode, int flags, struct vfs_file* file)
+int ramfs_open(struct vfs_file* this, int flags)
 {
 	return 0;
 }
 
-int close(struct vfs_file* this)
+int ramfs_close(struct vfs_file* this)
 {
 	return 0;
 }
 
-static int readdir(struct vfs_file* this,
-				   void (*add_entry)(struct vfs_file*, struct vfs_cache_node*))
+static int ramfs_readdir(struct vfs_file* this,
+						 void (*add_entry)(struct vfs_file*,
+										   struct vfs_cache_node*))
 {
 	struct vfs_inode* inode = vfs_file_get_inode(this);
 	struct ustar_header* fh = get_ramfs_inode(inode)->header;
@@ -615,7 +623,7 @@ static int readdir(struct vfs_file* this,
 }
 
 
-off_t lseek(struct vfs_file* this, off_t offset, int whence)
+off_t ramfs_lseek(struct vfs_file* this, off_t offset, int whence)
 {
 	off_t new;
 	struct ramfs_inode_info* ramfs_inode =
@@ -644,7 +652,7 @@ off_t lseek(struct vfs_file* this, off_t offset, int whence)
 	return new;
 }
 
-ssize_t read(struct vfs_file* this, void* buf, size_t count)
+ssize_t ramfs_read(struct vfs_file* this, void* buf, size_t count)
 {
 	struct vfs_inode* inode = vfs_file_get_inode(this);
 
@@ -664,7 +672,7 @@ ssize_t read(struct vfs_file* this, void* buf, size_t count)
 	return count;
 }
 
-ssize_t write(struct vfs_file* this, const void* buf, size_t count)
+ssize_t ramfs_write(struct vfs_file* this, const void* buf, size_t count)
 {
 	return -EROFS;
 }
@@ -674,30 +682,31 @@ ssize_t write(struct vfs_file* this, const void* buf, size_t count)
  */
 static struct vfs_filesystem ramfs = {
 	.name				= "ramfs",
-	.superblock_create	= superblock_create,
-	.superblock_destroy = superblock_destroy,
+	.superblock_create	= ramfs_superblock_create,
+	.superblock_destroy = ramfs_superblock_destroy,
 	.fs_list			= LIST_NODE_NULL
 };
 
 static struct vfs_superblock_operations ramfs_superblock_op = {
-	.alloc_inode	= alloc_inode,
-	.free_inode		= free_inode,
-	.read_inode		= read_inode
+	.alloc_inode	= ramfs_alloc_inode,
+	.free_inode		= ramfs_free_inode,
+	.read_inode		= ramfs_read_inode
 };
 
 static struct vfs_inode_operations ramfs_inode_op = {
-	.lookup		= lookup,
-	.readlink	= readlink,
-	.destroy	= destroy
+	.open		= ramfs_open_inode,
+	.lookup		= ramfs_lookup,
+	.readlink	= ramfs_readlink,
+	.destroy	= ramfs_destroy
 };
 
 static struct vfs_file_operations ramfs_file_op = {
-	.open		= open,
-	.close		= close,
-	.readdir	= readdir,
-	.lseek		= lseek,
-	.read		= read,
-	.write		= write,
+	.open		= ramfs_open,
+	.close		= ramfs_close,
+	.readdir	= ramfs_readdir,
+	.lseek		= ramfs_lseek,
+	.read		= ramfs_read,
+	.write		= ramfs_write,
 };
 
 int ramfs_init_and_register(void)

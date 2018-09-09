@@ -16,6 +16,11 @@ typedef struct refcount {
 void refcount_init(refcount_t* r);
 
 /**
+ * @brief Initializes the reference counter to zero
+ */
+void refcount_init_zero(refcount_t* r);
+
+/**
  * @brief Increments the reference counter by one
  */
 int refcount_inc(refcount_t* r);

@@ -230,7 +230,7 @@ static int create_user_stack(v_addr_t* stack_bottom, size_t stack_size)
 static int load_binary(const char* path, struct process_image* img)
 {
 	vfs_path_t exec_path;
-	struct vfs_file file;
+	struct vfs_file* file;
 	int err;
 
 	err = vfs_path_init(&exec_path, path, strlen(path));
@@ -241,10 +241,10 @@ static int load_binary(const char* path, struct process_image* img)
 	if (err)
 		goto fail_open;
 
-	err = elf_load_binary(&file, img);
+	err = elf_load_binary(file, img);
 
-	vfs_close(&file);
-	vfs_file_reset(&file);
+	vfs_close(file);
+	vfs_file_destroy(file);
 fail_open:
 	vfs_path_reset(&exec_path);
 

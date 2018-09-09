@@ -34,6 +34,8 @@ struct vfs_file
 	mutex_t lock;
 
 	struct vfs_file_operations* op;
+
+	void* private_data;
 };
 
 /**
@@ -41,7 +43,7 @@ struct vfs_file
  */
 struct vfs_file_operations
 {
-	int (*open)(struct vfs_inode* inode, int flags, struct vfs_file* file);
+	int (*open)(struct vfs_file* this, int flags);
 	int (*close)(struct vfs_file* this);
 
 	int (*readdir)(struct vfs_file* this,
@@ -57,26 +59,13 @@ struct vfs_file_operations
 /**
  * @brief Creates a vfs_file object
  */
-int vfs_file_create(struct vfs_file_operations* fops,
-					struct vfs_cache_node* cnode,
-					int flags, struct vfs_file** result);
-
-/**
- * @brief Initializes a vfs_file object
- */
-int vfs_file_init(struct vfs_file* file, struct vfs_file_operations* fops,
-				  struct vfs_cache_node* cnode,
-				  int flags);
+int vfs_file_create(struct vfs_cache_node* cnode, int flags,
+					struct vfs_file** result);
 
 /**
  * @brief Destroys a vfs_file object
  */
 void vfs_file_destroy(struct vfs_file* file);
-
-/**
- * @brief Resets a vfs_file object
- */
-void vfs_file_reset(struct vfs_file* file);
 
 int vfs_file_dup(struct vfs_file* file, struct vfs_file** dup);
 
@@ -86,5 +75,19 @@ struct vfs_inode* vfs_file_get_inode(const struct vfs_file* file);
 
 void vfs_file_add_readdir_entry(struct vfs_file* file,
 								struct vfs_cache_node* entry);
+
+bool vfs_file_flags_read(int flags);
+
+bool vfs_file_flags_write(int flags);
+
+static inline bool vfs_file_perm_read(const struct vfs_file* file)
+{
+	return vfs_file_flags_read(file->flags);
+}
+
+static inline bool vfs_file_perm_write(const struct vfs_file* file)
+{
+	return vfs_file_flags_write(file->flags);
+}
 
 #endif

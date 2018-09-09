@@ -17,7 +17,7 @@ int vfs_cache_init(void)
 	vfs_path_t root_path;
 	int err;
 
-	vfs_inode_init(&cnode_root_inode, DIRECTORY, NULL, NULL, NULL);
+	vfs_inode_init(&cnode_root_inode, DIRECTORY, NULL, NULL);
 
 	err = vfs_path_init(&root_path, "/", 1);
 	if (!err) {
@@ -241,27 +241,38 @@ int vfs_cache_node_get_ref(const struct vfs_cache_node* node)
 }
 
 int vfs_cache_node_open(struct vfs_cache_node* cnode, int flags,
-						struct vfs_file* file)
+						struct vfs_file** result)
 {
-	struct vfs_file_operations* fops;
+	struct vfs_inode* inode = cnode->inode;
+	struct vfs_file* file;
 	int err;
 
-	err = vfs_inode_open_fops(cnode->inode, &fops);
+	err = vfs_file_create(cnode, flags, &file);
 	if (err)
 		return err;
 
-	err = vfs_file_init(file, fops, cnode, flags);
+	err = inode->op->open(inode, file);
+	kassert(file->op);
 	if (err)
-		goto fail;
+		goto fail_inode_open;
 
-	err = file->op->open(cnode->inode, flags, file);
+	err = vfs_inode_open_fops(cnode->inode, &file->op);
 	if (err)
-		goto fail;
+		goto fail_open_fops;
+
+	err = file->op->open(file, flags);
+	if (err)
+		goto fail_open;
+
+	*result = file;
 
 	return 0;
 
-fail:
-	vfs_file_reset(file);
+fail_open:
+	file->op->close(file);
+fail_inode_open:
+fail_open_fops:
+	vfs_file_destroy(file);
 
 	return err;
 }
