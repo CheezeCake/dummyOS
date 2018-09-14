@@ -52,13 +52,13 @@ pid_t sys_wait(int* __user status)
 {
 	struct process* p = sched_get_current_process();
 
-	do {
+	while (!list_empty(&p->children)) {
 		pid_t child_pid = _wait(status, p, 0);
 		if (child_pid > 0)
 			return child_pid;
 
 		wait_wait(&p->wait_wq); // wait
-	} while (!list_empty(&p->children));
+	}
 
 	return -ECHILD;
 }

@@ -6,7 +6,7 @@ DEFINE_KEYMAP = {
 	[0x04] = { [KBD_REGULAR] = '"',		[KBD_SHIFT] = '3',		[KBD_CTRL] = 0 },
 	[0x05] = { [KBD_REGULAR] = '\'',	[KBD_SHIFT] = '4',		[KBD_CTRL] = 0 },
 	[0x06] = { [KBD_REGULAR] = '(',		[KBD_SHIFT] = '5',		[KBD_CTRL] = 0 },
-	[0x07] = { [KBD_REGULAR] = '-',		[KBD_SHIFT] = '6',		[KBD_CTRL] = 0 },
+	[0x07] = { [KBD_REGULAR] = '-',		[KBD_SHIFT] = '6',		[KBD_CTRL] = '|' },
 	[0x08] = { [KBD_REGULAR] = 0xc3a8,	[KBD_SHIFT] = '7',		[KBD_CTRL] = 0 },
 	[0x09] = { [KBD_REGULAR] = '_',		[KBD_SHIFT] = '8',		[KBD_CTRL] = 0 },
 	[0x0a] = { [KBD_REGULAR] = 0xc3a7,	[KBD_SHIFT] = '9',		[KBD_CTRL] = 0 },

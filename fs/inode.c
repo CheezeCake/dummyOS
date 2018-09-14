@@ -55,8 +55,7 @@ void vfs_inode_ref(struct vfs_inode* inode)
 
 void vfs_inode_unref(struct vfs_inode* inode)
 {
-	vfs_inode_release(inode);
-	if (refcount_get(&inode->refcnt) == 0)
+	if (refcount_dec(&inode->refcnt) == 0)
 		inode->op->destroy(inode);
 }
 

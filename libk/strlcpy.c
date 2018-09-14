@@ -3,12 +3,12 @@
 size_t strlcpy(char* dest, const char* src, size_t size)
 {
 	const char* src0 = src;
-	size_t s = size;
+	const size_t s = size;
 
-	for ( ; size > 1 && *src; ++dest, ++src, --size)
-		*dest = *src;
+	while (--size > 0 && (*dest++ = *src++))
+		;
 
-	if (size == 0 || size == 1) {
+	if (size == 0) {
 		if (s != 0)
 			*dest = '\0';
 

@@ -6,6 +6,7 @@
 #include <fs/inode.h>
 #include <kernel/locking/mutex.h>
 #include <kernel/types.h>
+#include <libk/refcount.h>
 
 struct vfs_cache_node;
 struct vfs_inode;
@@ -36,6 +37,8 @@ struct vfs_file
 	struct vfs_file_operations* op;
 
 	void* private_data;
+
+	refcount_t refcnt;
 };
 
 /**
@@ -63,9 +66,25 @@ int vfs_file_create(struct vfs_cache_node* cnode, int flags,
 					struct vfs_file** result);
 
 /**
- * @brief Destroys a vfs_file object
+ * @brief Increments the reference counter by one.
  */
-void vfs_file_destroy(struct vfs_file* file);
+void vfs_file_ref(struct vfs_file* file);
+
+/**
+ * @brief Decrements the reference counter by one.
+ */
+void vfs_file_unref(struct vfs_file* file);
+
+/**
+ * @brief Decrements the reference counter by one, without destroying the object
+ * if the count drops to zero.
+ */
+void vfs_file_release(struct vfs_file* file);
+
+/**
+ * @brief Returns the reference counter of the object
+ */
+int vfs_file_get_ref(const struct vfs_file* file);
 
 int vfs_file_copy_create(struct vfs_file* file, struct vfs_file** copy);
 

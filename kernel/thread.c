@@ -209,14 +209,12 @@ int thread_intr_sleep(struct thread* thr)
 	list_erase(&thr->wqe);
 	sched_add_thread(thr);
 
-	thr->cpu_context = thr->syscall_ctx;
-
 	return 0;
 }
 
 bool thread_sleep_was_intr(const struct thread* thr)
 {
-	return (thr->cpu_context == thr->syscall_ctx);
+	return !cpu_context_is_usermode(thr->cpu_context);
 }
 
 void thread_set_cpu_context(struct thread* thr, struct cpu_context* ctx)

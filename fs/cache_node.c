@@ -272,7 +272,7 @@ fail_open:
 	file->op->close(file);
 fail_inode_open:
 fail_open_fops:
-	vfs_file_destroy(file);
+	vfs_file_unref(file);
 
 	return err;
 }

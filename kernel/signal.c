@@ -371,7 +371,7 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 	int sig = sinfo->si_signo;
 	struct signal_manager* sigm = thr->process->signals;
 	const struct sigaction* act = &sigm->actions[sig - 1];
-	struct cpu_context* sh_ctx = cpu_context_get_next_user(thr->cpu_context);
+	struct cpu_context* sh_ctx = NULL;
 	sigset_t saved_mask = sigm->mask;
 	int err;
 
@@ -385,6 +385,8 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 	sigm->mask |= act->sa_mask;
 
 	if (thread_sleep_was_intr(thr)) {
+		thr->cpu_context = thr->syscall_ctx;
+
 		if (act->sa_flags & SA_RESTART) {
 			struct cpu_context* sc_restart =
 				cpu_context_get_next_kernel(thr->cpu_context);
@@ -395,8 +397,12 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 			cpu_context_copy_syscall_regs(sc_restart, thr->cpu_context);
 		}
 		else {
+			sh_ctx = cpu_context_get_next_user(thr->cpu_context);
 			cpu_context_set_syscall_return_value(thr->cpu_context, -EINTR);
 		}
+	}
+	else {
+		sh_ctx = cpu_context_get_next_user(thr->cpu_context);
 	}
 
 	v_addr_t usr_sp = cpu_context_get_user_sp(thr->cpu_context);

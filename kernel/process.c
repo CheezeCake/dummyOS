@@ -351,9 +351,21 @@ static void exit_threads(struct process* proc)
 	threads_foreach(proc, exit_thread);
 }
 
+static void close_fds(struct process* proc)
+{
+	for (int i = 0; i < PROCESS_MAX_FD; ++i) {
+		if (proc->fds[i]) {
+			if (vfs_file_get_ref(proc->fds[i]) == 1)
+				vfs_close(proc->fds[i]);
+			vfs_file_unref(proc->fds[i]);
+		}
+	}
+}
+
 int process_exit_quiet(struct process* proc)
 {
 	exit_threads(proc);
+	close_fds(proc);
 	return 0;
 }
 
@@ -392,16 +404,6 @@ static inline void remove_from_parent_list(struct process* proc)
 		list_erase(&proc->p_child);
 }
 
-static void close_fds(struct process* proc)
-{
-	for (int i = 0; i < PROCESS_MAX_FD; ++i) {
-		if (proc->fds[i]) {
-			vfs_close(proc->fds[i]);
-			vfs_file_destroy(proc->fds[i]);
-		}
-	}
-}
-
 static void process_reset(struct process* proc)
 {
 	vmm_unref(proc->vmm);
@@ -409,7 +411,6 @@ static void process_reset(struct process* proc)
 	wait_reset(&proc->wait_wq);
 	destroy_threads(proc);
 	unregister_process(proc);
-	close_fds(proc);
 	if (proc->root)
 		vfs_cache_node_unref(proc->root);
 	if (proc->cwd)
@@ -446,6 +447,7 @@ int process_add_file(struct process* proc, struct vfs_file* file)
 
 		if (!proc->fds[i]) {
 			proc->fds[i] = file;
+			vfs_file_ref(file);
 			ret = i;
 		}
 
@@ -458,20 +460,50 @@ int process_add_file(struct process* proc, struct vfs_file* file)
 	return -EMFILE;
 }
 
-struct vfs_file* process_remove_file(struct process* proc, int fd)
+int process_add_file_at(struct process* proc, struct vfs_file* file, int fd)
 {
-	struct vfs_file* file = NULL;
+	int err = 0;
+
+	irq_disable();
+
+	if (fd < 0 || fd >= PROCESS_MAX_FD || proc->fds[fd]) {
+		err = -EBADF;
+	}
+	else {
+		proc->fds[fd] = file;
+		vfs_file_ref(file);
+	}
+
+	irq_enable();
+
+
+	return err;
+}
+
+int process_remove_file(struct process* proc, int fd,
+						struct vfs_file** removed)
+{
+	int err = 0;
 
 	if (fd < PROCESS_MAX_FD) {
 		irq_disable();
 
-		file = proc->fds[fd];
-		proc->fds[fd] = NULL;
+		if (proc->fds[fd]) {
+			if (removed) {
+				*removed = proc->fds[fd];
+				vfs_file_release(proc->fds[fd]);
+			}
+
+			proc->fds[fd] = NULL;
+		}
+		else {
+			err = -EBADF;
+		}
 
 		irq_enable();
 	}
 
-	return file;
+	return err;
 }
 
 struct vfs_file* process_get_file(struct process* proc, int fd)

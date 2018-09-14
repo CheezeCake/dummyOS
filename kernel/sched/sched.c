@@ -79,6 +79,8 @@ static struct thread* next_thread(void)
 	kassert(p < SCHED_PRIORITY_LEVELS); // every queue is empty
 	sched_queue_t* ready_queue = &ready_queues[p];
 
+	kassert(!list_empty(ready_queue));
+
 	struct thread* next = get_thread_list_entry(list_front(ready_queue));
 	list_pop_front(ready_queue);
 
@@ -115,7 +117,6 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 {
 	struct thread* prev = current_thread;
 	struct thread* next = NULL;
-	int err = 0;
 
 	if (prev)
 		prev->cpu_context = cpu_ctx; // update cpu_context
@@ -124,11 +125,9 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 	do {
 		next = next_thread();
 		set_current_thread(next);
-
-		// deliver pending signal
-		if (process_signal_pending(next->process))
-			err = signal_handle(next);
-	} while (err);
+	} while (next->type == UTHREAD &&
+			 process_signal_pending(next->process) &&
+			signal_handle(next) != 0); // deliver pending signal
 
 	log_sched_switch(prev, next);
 

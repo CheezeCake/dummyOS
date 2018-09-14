@@ -139,11 +139,19 @@ void process_exec(struct process* proc);
 int process_add_file(struct process* proc, struct vfs_file* file);
 
 /**
+ * Adds file to the file descriptor array at index fd
+ *
+ * @return 0 on success
+ */
+int process_add_file_at(struct process* proc, struct vfs_file* file, int fd);
+
+/**
  * Remove file identified by fd from the file descriptor table
  *
- * @return the removed file
+ * @parm removed optional: the removed file
  */
-struct vfs_file* process_remove_file(struct process* proc, int fd);
+int process_remove_file(struct process* proc, int fd,
+						struct vfs_file** removed);
 
 /**
  * @brief Returns the vfs_file identified by the file descriptor

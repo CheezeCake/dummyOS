@@ -244,7 +244,7 @@ static int load_binary(const char* path, struct process_image* img)
 	err = elf_load_binary(file, img);
 
 	vfs_close(file);
-	vfs_file_destroy(file);
+	vfs_file_unref(file);
 fail_open:
 	vfs_path_reset(&exec_path);
 

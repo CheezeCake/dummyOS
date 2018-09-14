@@ -40,6 +40,7 @@ int sys_open(const char* __user path, int flags)
 		goto fail_add;
 	}
 
+	vfs_file_unref(file);
 	vfs_path_reset(&vfspath);
 	kfree(kpath);
 
@@ -47,7 +48,7 @@ int sys_open(const char* __user path, int flags)
 
 fail_add:
 	vfs_close(file);
-	vfs_file_destroy(file);
+	vfs_file_unref(file);
 fail_open:
 	vfs_path_reset(&vfspath);
 fail_path:
@@ -61,12 +62,14 @@ int sys_close(int fd)
 	struct vfs_file* file;
 	int err;
 
-	file = process_remove_file(sched_get_current_process(), fd);
-	if (!file)
-		return -EBADF;
+	err = process_remove_file(sched_get_current_process(), fd, &file);
+	if (err)
+		return err;
+	vfs_file_ref(file); // ref released file
 
-	err = vfs_close(file);
-	vfs_file_destroy(file);
+	if (vfs_file_get_ref(file) == 1)
+		err = vfs_close(file);
+	vfs_file_unref(file);
 
 	return err;
 }

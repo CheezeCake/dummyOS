@@ -30,8 +30,10 @@
 #define SYS_getdents	24
 #define SYS_sigprocmask	25
 #define SYS_pipe		26
+#define SYS_dup			27
+#define SYS_dup2		28
 
-#define _SYSCALL_NR_TOP		26 /**< last syscall number */
+#define _SYSCALL_NR_TOP		28 /**< last syscall number */
 #define _SYSCALL_NR_COUNT	(_SYSCALL_NR_TOP + 1) /**< number of syscalls */
 
 #endif

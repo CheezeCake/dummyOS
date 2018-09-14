@@ -237,6 +237,12 @@ static ssize_t __pipe_read(struct pipe* p, void* buf, size_t count)
 		return -EIO;
 
 	mutex_lock(&p->lock);
+
+	if (circ_buf_empty(&p->buffer) && refcount_get(&p->writers) == 0) {
+		mutex_unlock(&p->lock);
+		return 0;
+	}
+
 	while (circ_buf_empty(&p->buffer)) {
 		mutex_unlock(&p->lock);
 
@@ -252,6 +258,7 @@ static ssize_t __pipe_read(struct pipe* p, void* buf, size_t count)
 	} while (!err && n < count && !circ_buf_empty(&p->buffer));
 
 	mutex_unlock(&p->lock);
+	wait_wake_all(&p->wq);
 
 	return n;
 }
@@ -281,6 +288,13 @@ static ssize_t __pipe_write(struct pipe* p, const void* buf, size_t count)
 	}
 
 	mutex_lock(&p->lock);
+	while (circ_buf_full(&p->buffer)) {
+		mutex_unlock(&p->lock);
+
+		wait_wait(&p->wq);
+
+		mutex_lock(&p->lock);
+	}
 
 	while (!err && n < count && !circ_buf_full(&p->buffer)) {
 		err = circ_buf_push(&p->buffer, buffer[n]);
@@ -289,6 +303,7 @@ static ssize_t __pipe_write(struct pipe* p, const void* buf, size_t count)
 	}
 
 	mutex_unlock(&p->lock);
+	wait_wake_all(&p->wq);
 
 	return n;
 }
@@ -399,16 +414,19 @@ int sys_pipe(int __user fds[2])
 	if (err)
 		goto fail_fd_copy;
 
+	vfs_file_unref(r);
+	vfs_file_unref(w);
+
 	return 0;
 
 fail_fd_copy:
-	process_remove_file(proc, kfds[1]);
+	process_remove_file(proc, kfds[1], NULL);
 fail_add_writer:
-	process_remove_file(proc, kfds[0]);
+	process_remove_file(proc, kfds[0], NULL);
 fail_add_reader:
-	vfs_file_destroy(w);
+	vfs_file_unref(w);
 fail_writer:
-	vfs_file_destroy(r);
+	vfs_file_unref(r);
 fail_reader:
 	pipe_destroy(p);
 
