@@ -21,7 +21,4 @@ struct device
 	enum device_minor minor;
 };
 
-typedef int16_t dev_t;
-typedef uint32_t mode_t;
-
 #endif

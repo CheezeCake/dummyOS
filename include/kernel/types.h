@@ -6,13 +6,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <arch/types.h>
+#include <dummyos/types.h>
 
 typedef uintptr_t p_addr_t; // physical address
 typedef uintptr_t v_addr_t; // virtual address
-
-typedef long off_t;
-
-typedef int pid_t;
 
 #endif

@@ -664,8 +664,6 @@ ssize_t ramfs_read(struct vfs_file* this, void* buf, size_t count)
 
 	if (count > left)
 		count = left;
-	if (count > SSIZE_MAX)
-		count = SSIZE_MAX;
 
 	memcpy(buf, (int8_t*)ramfs_inode->data + this->cur, count);
 
