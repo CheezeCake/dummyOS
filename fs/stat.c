@@ -9,6 +9,26 @@
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>
 
+static inline mode_t vfs_node_type2stat_mode(enum vfs_node_type type)
+{
+	switch (type) {
+		case REGULAR:
+			return  S_IFREG;
+		case DIRECTORY:
+			 return S_IFDIR;
+		case SYMLINK:
+			 return S_IFLNK;
+		case CHARDEV:
+			 return S_IFCHR;
+		case BLOCKDEV:
+			 return S_IFBLK;
+		case FIFO:
+			 return S_IFIFO;
+		default:
+			 return S_IFMT;
+	}
+}
+
 static int stat(const struct vfs_file* file, struct stat* sb)
 {
 	struct vfs_inode* inode = vfs_file_get_inode(file);
@@ -19,6 +39,7 @@ static int stat(const struct vfs_file* file, struct stat* sb)
 
 	sb->st_dev = device_makedev(&inode->dev);
 	sb->st_ino = (ino_t)inode;
+	sb->st_mode = vfs_node_type2stat_mode(inode->type);
 	sb->st_nlink = inode->linkcnt;
 	sb->st_blksize = 512;
 	sb->st_blocks = inode->size / 512;
