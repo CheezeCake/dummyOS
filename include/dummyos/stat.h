@@ -42,4 +42,16 @@ struct stat
 #define		S_IWOTH	0000002	/* write permission, other */
 #define		S_IXOTH 0000001/* execute/search permission, other */
 
+
+#define	S_IFMT		0170000	/* type of file */
+#define	S_IFDIR		0040000	/* directory */
+#define	S_IFCHR		0020000	/* character special */
+#define	S_IFBLK		0060000	/* block special */
+#define	S_IFREG		0100000	/* regular */
+#define	S_IFLNK		0120000	/* symbolic link */
+#define	S_IFSOCK	0140000	/* socket */
+#define	S_IFIFO		0010000	/* fifo */
+
+#define	S_BLKSIZE  1024 /* size of a block */
+
 #endif

@@ -1,6 +1,7 @@
 #include <kernel/process.h>
 #include <dummyos/syscall.h>
 #include <kernel/types.h>
+#include <dummyos/stat.h>
 
 /* static int nosys(void); */
 static int nosys(char* str);
@@ -34,7 +35,8 @@ int sys_sigprocmask(int how, const sigset_t* set, sigset_t* oset);
 int sys_pipe(int __user fds[2]);
 int sys_dup(int oldfd);
 int sys_dup2(int oldfd, int newfd);
-
+int sys_stat(const char* __user path, struct stat* __user sb);
+int sys_fstat(int fd, struct stat* __user sb);
 
 #define __syscall(s) ((v_addr_t)s)
 
@@ -68,6 +70,8 @@ v_addr_t syscall_table[_SYSCALL_NR_COUNT] = {
 	[SYS_pipe]			= __syscall(sys_pipe),
 	[SYS_dup]			= __syscall(sys_dup),
 	[SYS_dup2]			= __syscall(sys_dup2),
+	[SYS_stat]			= __syscall(sys_stat),
+	[SYS_fstat]			= __syscall(sys_fstat),
 };
 
 #include <kernel/log.h>

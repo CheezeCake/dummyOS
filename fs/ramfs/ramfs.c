@@ -420,6 +420,8 @@ static int ramfs_read_inode(struct vfs_superblock* this,
 		return -EINVAL;
 
 	vfs_inode_init(inode, enum_type, this, &ramfs_inode_op);
+	inode->size = strntol((const char*)ramfs_inode->header->size,
+						  sizeof(ramfs_inode->header->size), NULL, 8);
 
 	if (ustar_header_is_device(ramfs_inode->header))
 		inode_read_dev(ramfs_inode, inode);

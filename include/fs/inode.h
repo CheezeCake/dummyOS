@@ -36,6 +36,7 @@ struct vfs_inode
 	struct device dev;
 
 	unsigned int linkcnt; // hard links
+	size_t size;
 
 	struct vfs_inode_operations* op;
 

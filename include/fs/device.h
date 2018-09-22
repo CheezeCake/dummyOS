@@ -21,4 +21,9 @@ struct device
 	enum device_minor minor;
 };
 
+static inline dev_t device_makedev(const struct device* dev)
+{
+	return  (dev->major << 8 | dev->minor);
+}
+
 #endif
