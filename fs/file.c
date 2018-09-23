@@ -157,7 +157,8 @@ struct vfs_cache_node* vfs_file_get_cache_node(const struct vfs_file* file)
 
 struct vfs_inode* vfs_file_get_inode(const struct vfs_file* file)
 {
-	return vfs_file_get_cache_node(file)->inode;
+	const struct vfs_cache_node* cnode = vfs_file_get_cache_node(file);
+	return (cnode) ? cnode->inode : NULL;
 }
 
 void vfs_file_add_readdir_entry(struct vfs_file* file,
