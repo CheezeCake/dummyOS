@@ -3,8 +3,7 @@
 #include <kernel/types.h>
 #include <dummyos/stat.h>
 
-/* static int nosys(void); */
-static int nosys(char* str);
+static int nosys(void);
 void sys_exit(int);
 pid_t sys_fork(void);
 pid_t sys_getpid(void);
@@ -74,11 +73,7 @@ v_addr_t syscall_table[_SYSCALL_NR_COUNT] = {
 	[SYS_fstat]			= __syscall(sys_fstat),
 };
 
-#include <kernel/log.h>
-#include <kernel/sched/sched.h>
-static int nosys(char* str)
+static int nosys(void)
 {
-	struct process* proc = sched_get_current_process();
-	log_e_printf("pid=%d: %s\n", proc->pid, str);
 	return 0;
 }
