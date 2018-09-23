@@ -3,6 +3,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
+#include <kernel/sched/reaper.h>
 #include <kernel/sched/sched.h>
 #include <kernel/thread.h>
 #include <libk/libk.h>
@@ -32,10 +33,10 @@ static void thread_reset(struct thread* thread)
 		kfree(thread->name);
 	free_kstack(&thread->kstack);
 
-	/* memset(thread, 0, sizeof(struct thread)); */
+	memset(thread, 0, sizeof(struct thread));
 }
 
-static void thread_destroy(struct thread* thread)
+void __thread_destroy(struct thread* thread)
 {
 	log_printf("#### %s(): %s (%p) state=%d\n", __func__, thread->name,
 			   (void*)thread, thread->state);
@@ -161,7 +162,7 @@ void thread_ref(struct thread* thread)
 void thread_unref(struct thread* thread)
 {
 	if (refcount_dec(&thread->refcnt) == 0)
-		thread_destroy(thread);
+		reaper_reap(thread);
 }
 
 int thread_get_ref(const struct thread* thread)

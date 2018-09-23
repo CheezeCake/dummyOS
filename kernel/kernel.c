@@ -11,6 +11,7 @@
 #include <kernel/log.h>
 #include <kernel/process.h>
 #include <kernel/sched/idle.h>
+#include <kernel/sched/reaper.h>
 #include <kernel/sched/sched.h>
 #include <kernel/terminal.h>
 #include <kernel/thread.h>
@@ -58,13 +59,13 @@ void kernel_main(size_t mem_size, void* initrd)
 	kassert(vfs_init() == 0);
 	kassert(mount_initrd(initrd) == 0);
 
-	sched_init();
-
 	kassert(tty_chardev_init() == 0);
 	arch_console_init();
 
+	sched_init();
+	reaper_init();
+	idle_init();
 	kassert(init_process_init("/init") == 0); // create init process first (pid 1)
-	idle_init(); // then create the idle thread (pid 2)
 
 	sched_start();
 
