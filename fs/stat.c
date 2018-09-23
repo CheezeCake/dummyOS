@@ -32,17 +32,19 @@ static inline mode_t vfs_node_type2stat_mode(enum vfs_node_type type)
 static int stat(const struct vfs_file* file, struct stat* sb)
 {
 	struct vfs_inode* inode = vfs_file_get_inode(file);
-	if (!inode)
-		return -EBADF;
 
 	memset(sb, 0, sizeof(struct stat));
-
-	sb->st_dev = device_makedev(&inode->dev);
+	if (inode) {
+		sb->st_dev = device_makedev(&inode->dev);
+		sb->st_mode = vfs_node_type2stat_mode(inode->type);
+		sb->st_nlink = inode->linkcnt;
+		sb->st_blocks = inode->size / 512;
+	}
+	else {
+		sb->st_mode = vfs_node_type2stat_mode(FIFO);
+	}
 	sb->st_ino = (ino_t)inode;
-	sb->st_mode = vfs_node_type2stat_mode(inode->type);
-	sb->st_nlink = inode->linkcnt;
 	sb->st_blksize = 512;
-	sb->st_blocks = inode->size / 512;
 
 	return 0;
 }
