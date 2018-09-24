@@ -2,10 +2,11 @@
 #include <kernel/time/time.h>
 #include <libk/libk.h>
 
-int timer_init(struct timer* timer, unsigned delay_ms, timer_callback_t cb)
+int timer_init(struct timer* timer, const struct timespec* delay,
+			   timer_callback_t cb)
 {
 	time_get_current(&timer->time);
-	time_add_millis(&timer->time, delay_ms);
+	timespec_add(&timer->time, delay);
 	timer->cb = cb;
 
 	return 0;

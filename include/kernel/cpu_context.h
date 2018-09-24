@@ -38,4 +38,8 @@ struct cpu_context* cpu_context_get_next_user(struct cpu_context* ctx);
 
 struct cpu_context* cpu_context_get_next_kernel(struct cpu_context* ctx);
 
+int cpu_context_get_syscall_nr(const struct cpu_context* ctx);
+
+intptr_t cpu_context_get_syscall_arg_2(const struct cpu_context* ctx);
+
 #endif

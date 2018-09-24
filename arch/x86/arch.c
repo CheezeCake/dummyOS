@@ -77,8 +77,9 @@ int arch_init(void)
 	irq_set_handler(IRQ_TIMER, clock_tick);
 	exception_set_handler(EXCEPTION_PAGE_FAULT, handle_page_fault);
 
-	time_init((struct time) { .sec = 0, .milli_sec = TICK_INTERVAL_IN_MS,
-			  .nano_sec = 0 });
+	struct timespec tick;
+	timespec_init(&tick, TICK_INTERVAL_IN_MS);
+	time_init(tick);
 
 	kassert(idt_set_syscall_handler(0x80) == 0);
 

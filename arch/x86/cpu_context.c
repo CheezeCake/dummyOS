@@ -170,3 +170,13 @@ int cpu_context_setup_signal_handler(struct cpu_context* cpu_context,
 
 	return err;
 }
+
+int cpu_context_get_syscall_nr(const struct cpu_context* ctx)
+{
+	return ctx->eax;
+}
+
+intptr_t cpu_context_get_syscall_arg_2(const struct cpu_context* ctx)
+{
+	return ctx->ecx;
+}

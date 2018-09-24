@@ -34,8 +34,9 @@
 #define SYS_dup2		28
 #define SYS_stat		29
 #define SYS_fstat		30
+#define SYS_nanosleep	31
 
-#define _SYSCALL_NR_TOP		30 /**< last syscall number */
+#define _SYSCALL_NR_TOP		31 /**< last syscall number */
 #define _SYSCALL_NR_COUNT	(_SYSCALL_NR_TOP + 1) /**< number of syscalls */
 
 #endif

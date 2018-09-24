@@ -18,7 +18,7 @@ static quantum_ms_t quantums[SCHED_PRIORITY_LEVELS] = { 1000, 1000, 1000, 1000, 
 
 // current thread
 static struct thread* current_thread = NULL;
-static struct time current_thread_start = { .sec = 0, .nano_sec = 0 };
+static struct timespec current_thread_start = { .tv_sec = 0, .tv_nsec = 0 };
 
 static sched_queue_t ready_queues[SCHED_PRIORITY_LEVELS];
 #define get_thread_queue(thread) ready_queues[(thread)->priority]
@@ -63,14 +63,14 @@ static inline bool preemptible(struct cpu_context* cpu_ctx)
 	return cpu_context_is_usermode(cpu_ctx);
 }
 
-static bool quatum_expired(struct thread* thr, const struct time* start)
+static bool quatum_expired(struct thread* thr, const struct timespec* start)
 {
-	struct time current_time;
+	struct timespec current_time;
 	const quantum_ms_t quantum = get_thread_quantum(thr);
 
 	time_get_current(&current_time);
 
-	return (time_diff_ms(&current_time, start) > quantum);
+	return (timespec_diff_ms(&current_time, start) > quantum);
 }
 
 static struct thread* next_thread(void)
@@ -89,7 +89,7 @@ static struct thread* next_thread(void)
 
 static inline void set_current_thread(struct thread* thr)
 {
-	struct time current_time;
+	struct timespec current_time;
 
 	kassert(thr != NULL);
 
@@ -288,13 +288,13 @@ static void __sched_sleep()
 	thread_unref(current_thread);
 }
 
-void sched_sleep_millis(unsigned int millis)
+void sched_nanosleep(const struct timespec* timeout)
 {
 	log_printf("%s(): %s (%p) state=%d\n", __func__, current_thread->name,
 			   (void*)current_thread, current_thread->state);
 
 	struct timer* timer = &current_thread->timer;
-	timer_init(timer, millis, sched_timer_callback);
+	timer_init(timer, timeout, sched_timer_callback);
 	timer_register(timer);
 	thread_ref(current_thread); // transfer ownership to the timer
 

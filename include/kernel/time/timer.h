@@ -10,7 +10,7 @@ typedef void (*timer_callback_t)(struct timer*);
 
 struct timer
 {
-	struct time time;
+	struct timespec time;
 	timer_callback_t cb;
 
 	list_node_t t_list; // time.c::timer_list node
@@ -21,11 +21,12 @@ struct timer
  * @brief Initializes a struct timer
  *
  * @param timer the timer
- * @param delay_ms the delay in ms
+ * @param delay the requested delay
  * @param cb the callback called when the delay has expired
  * @return 0 on success
  */
-int timer_init(struct timer* timer, unsigned delay_ms, timer_callback_t cb);
+int timer_init(struct timer* timer, const struct timespec* delay,
+			   timer_callback_t cb);
 
 /**
  * @brief resets a struct timer

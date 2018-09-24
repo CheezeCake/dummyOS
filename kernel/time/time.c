@@ -1,64 +1,52 @@
+#include <dummyos/compiler.h>
 #include <kernel/interrupt.h>
 #include <kernel/kassert.h>
+#include <kernel/mm/uaccess.h>
 #include <kernel/sched/sched.h>
 #include <kernel/time/time.h>
 #include <kernel/time/timer.h>
+#include <libk/libk.h>
 
 #include <kernel/log.h>
 
-static struct time tick_value;
-static struct time current = { .sec = 0, .milli_sec = 0, .nano_sec = 0 };
+static struct timespec tick_value;
+static struct timespec current = { .tv_sec = 0, .tv_nsec = 0 };
 
-static list_t timer_list;
+static LIST_DEFINE(timer_list);
 
 static void time_update_timer_list(void);
 
-void time_init(struct time tick_val)
+void time_init(struct timespec tick_val)
 {
-	kassert(tick_val.milli_sec < TIME_SEC_IN_MS	&& tick_val.nano_sec < TIME_SEC_IN_NANOSEC);
-
-	tick_value.sec = tick_val.sec;
-	tick_value.milli_sec = tick_val.milli_sec;
-	tick_value.nano_sec = tick_val.nano_sec;
-
-	list_init(&timer_list);
+	kassert(tick_val.tv_nsec < TIME_SEC_IN_NS);
+	memcpy(&tick_value, &tick_val, sizeof(struct timespec));
 }
 
 void time_tick(void)
 {
 #ifndef NDEBUG
-	unsigned long old_sec = current.sec;
+	time_t old_sec = current.tv_sec;
 #endif
 
-	time_add_time(&current, &tick_value);
+	timespec_add(&current, &tick_value);
+	time_update_timer_list();
 
 #ifndef NDEBUG
 	// should be printed every second
-	if (current.sec != old_sec)
-		log_printf("sec = %llu, msec = %d, nsec = %u\n", current.sec,
-				current.milli_sec, current.nano_sec);
+	if (current.tv_sec != old_sec)
+		log_printf("sec = %llu, nsec = %lu\n", current.tv_sec, current.tv_nsec);
 #endif
-
-	time_update_timer_list();
 }
 
-void time_get_current(struct time* time)
+void time_get_current(struct timespec* time)
 {
-	time->sec = current.sec;
-	time->milli_sec = current.milli_sec;
-	time->nano_sec = current.nano_sec;
+	memcpy(time, &current, sizeof(struct timespec));
 }
 
-int time_cmp(const struct time* t1, const struct time* t2)
+int64_t time_cmp(const struct timespec* t1, const struct timespec* t2)
 {
-	const int sec_cmp = t1->sec - t2->sec;
-	if (sec_cmp == 0) {
-		const int milli_sec_cmp = t1->milli_sec - t2->milli_sec;
-		return (milli_sec_cmp == 0) ? (t1->nano_sec - t2->nano_sec) : milli_sec_cmp;
-	}
-	else {
-		return sec_cmp;
-	}
+	const int64_t sec_cmp = t1->tv_sec - t2->tv_sec;
+	return (sec_cmp == 0) ? (t1->tv_nsec - t2->tv_nsec) : sec_cmp;
 }
 
 static void release_timer(list_node_t* n)
@@ -95,4 +83,37 @@ void time_add_timer(struct timer* timer)
 		list_push_back(&timer_list, &timer->t_list);
 		irq_enable();
 	}
+}
+
+void time_nanosleep_intr(struct thread* thr)
+{
+	struct timespec* timeout = &thr->timer.time;
+	struct timespec* __user remainder =
+		(struct timespec*)cpu_context_get_syscall_arg_2(thr->syscall_ctx);
+
+	if (remainder) {
+		timespec_diff(timeout, &current);
+		copy_to_user(remainder, timeout, sizeof(struct timespec));
+	}
+}
+
+int sys_nanosleep(const struct timespec* __user timeout,
+				  struct timespec* __user remainder)
+{
+	struct timespec ktimeout;
+	int err;
+
+	err = copy_from_user(&ktimeout, timeout, sizeof(struct timespec));
+	if (err)
+		return err;
+
+	if (remainder) {
+		err = memset_user(remainder, 0, sizeof(struct timespec));
+		if (err)
+			return err;
+	}
+
+	sched_nanosleep(&ktimeout);
+
+	return 0;
 }

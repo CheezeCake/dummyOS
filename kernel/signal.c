@@ -1,4 +1,5 @@
 #include <dummyos/errno.h>
+#include <dummyos/syscall.h>
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
 #include <kernel/signal.h>
@@ -366,6 +367,15 @@ static int handle_dfl(int sig, const struct thread* thr)
 	return -EAGAIN;
 }
 
+static void handle_intr_syscall(struct thread* thr)
+{
+	switch (cpu_context_get_syscall_nr(thr->syscall_ctx)) {
+		case SYS_nanosleep:
+			time_nanosleep_intr(thr);
+			break;
+	}
+}
+
 int handle(siginfo_t* sinfo, struct thread* thr)
 {
 	int sig = sinfo->si_signo;
@@ -398,6 +408,7 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 		}
 		else {
 			sh_ctx = cpu_context_get_next_user(thr->cpu_context);
+			handle_intr_syscall(thr);
 			cpu_context_set_syscall_return_value(thr->cpu_context, -EINTR);
 		}
 	}

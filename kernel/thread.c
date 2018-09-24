@@ -195,6 +195,16 @@ void thread_switch_setup(struct cpu_context* cpu_ctx)
 		vmm_switch_to(sched_get_current_thread()->process->vmm);
 }
 
+static void __thread_intr_sleep(struct thread* thr)
+{
+	if (list_node_chained(&thr->wqe))
+		list_erase(&thr->wqe);
+	else if (list_node_chained(&thr->timer.t_list))
+		list_erase(&thr->timer.t_list);
+	else
+		PANIC("thread not in any wait list");
+}
+
 int thread_intr_sleep(struct thread* thr)
 {
 	if (thr->type == KTHREAD ||
@@ -205,9 +215,8 @@ int thread_intr_sleep(struct thread* thr)
 	kassert((v_addr_t)thr->syscall_ctx > thr->kstack.sp &&
 			(v_addr_t)thr->syscall_ctx <= thread_get_kstack_top(thr));
 	kassert(cpu_context_is_usermode(thr->syscall_ctx));
-	kassert(list_node_chained(&thr->wqe));
 
-	list_erase(&thr->wqe);
+	__thread_intr_sleep(thr);
 	sched_add_thread(thr);
 
 	return 0;

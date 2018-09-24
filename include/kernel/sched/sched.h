@@ -31,13 +31,8 @@ void sched_exit(void);
 
 void sched_yield(void);
 
-#if 0
-#define sched_sleep(...) _Generic((__VA_ARGS__+0), \
-								  unsigned int: sched_sleep_millis, \
-								  default: sched_sleep_event)(__VA_ARGS__)
-#endif
 void sched_sleep_event(void);
 
-void sched_sleep_millis(unsigned int millis);
+void sched_nanosleep(const struct timespec* timeout);
 
 #endif

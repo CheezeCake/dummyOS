@@ -36,6 +36,8 @@ int sys_dup(int oldfd);
 int sys_dup2(int oldfd, int newfd);
 int sys_stat(const char* __user path, struct stat* __user sb);
 int sys_fstat(int fd, struct stat* __user sb);
+int sys_nanosleep(const struct timespec* __user timeout,
+				  struct timespec* __user remainder);
 
 #define __syscall(s) ((v_addr_t)s)
 
@@ -71,6 +73,7 @@ v_addr_t syscall_table[_SYSCALL_NR_COUNT] = {
 	[SYS_dup2]			= __syscall(sys_dup2),
 	[SYS_stat]			= __syscall(sys_stat),
 	[SYS_fstat]			= __syscall(sys_fstat),
+	[SYS_nanosleep]		= __syscall(sys_nanosleep),
 };
 
 static int nosys(void)
