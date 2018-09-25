@@ -363,7 +363,7 @@ static int handle_dfl(int sig, const struct thread* thr)
 	}
 	// TODO: stop/cont
 
-	process_exit(thr->process, -1);
+	process_exit(thr->process, sig);
 	return -EAGAIN;
 }
 

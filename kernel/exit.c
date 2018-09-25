@@ -17,7 +17,7 @@ void sys_exit(int status)
 
 	log_e_printf("\nSYSCALL: _exit(%d), pid=%d\n", status, p->pid);
 
-	process_exit(p, status);
+	process_exit(p, status << 8);
 	sched_exit();
 }
 

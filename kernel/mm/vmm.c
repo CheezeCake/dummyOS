@@ -3,8 +3,9 @@
 #include <kernel/kmalloc.h>
 #include <kernel/log.h>
 #include <kernel/mm/memory.h>
-#include <kernel/sched/sched.h>
 #include <kernel/mm/vmm.h>
+#include <kernel/sched/sched.h>
+#include <kernel/sched/sched.h>
 #include <libk/libk.h>
 
 
@@ -480,34 +481,27 @@ v_addr_t vmm_handle_page_fault(v_addr_t fault_addr, int flags)
 
 	mapping_t* mapping = find_mapping(&current_vmm->mappings, fault_addr);
 
-	if (!mapping) {
-		if (!(flags & VMM_FAULT_USER) && __fixup_addr) {
+	if (flags & VMM_FAULT_USER) {
+		if (mapping && flags & VMM_FAULT_WRITE &&
+			mapping->region->prot & VMM_PROT_WRITE)
+		{
+			handle_cow_fault(mapping, flags);
+		}
+		else {
+			process_kill(sched_get_current_process()->pid, SIGSEGV);
+			sched_yield();
+			return fault_addr;
+		}
+	}
+	else {
+		if (!mapping && __fixup_addr) {
 			v_addr_t ret = __fixup_addr;
 			__fixup_addr = 0;
 			return ret;
 		}
-		// sigsegv
-		PANIC("page fault");
+
+		PANIC("kernel page fault");
 	}
 
-	if (flags & VMM_FAULT_NOT_PRESENT) {
-		if (mapping)
-			PANIC("fault not present for present mapping");
-
-		//sigsegv
-		PANIC("page fault1");
-	}
-
-	if (flags & VMM_FAULT_WRITE) {
-		if (mapping->region->prot & VMM_PROT_WRITE) {
-			handle_cow_fault(mapping, flags);
-		}
-		else {
-			// sigsegv
-			PANIC("page fault2");
-		}
-	}
-
-	/* PANIC("default"); */
 	return 0;
 }
