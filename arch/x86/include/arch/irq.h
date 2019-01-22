@@ -9,14 +9,14 @@
 typedef uint32_t irq_state_t;
 
 #define irq_save_state(state)	\
-	__asm__ ("pushfl\n"			\
-			 "popl %0\n"		\
-			 : "=r" (state))
+	__asm__ ("pushfl\n"	\
+		 "popl %0\n"	\
+		 : "=r" (state))
 
 #define irq_restore_state(state)	\
-	__asm__ ("pushl %0\n"			\
-			 "popfl\n"				\
-			 :						\
-			 : "r" (state))
+	__asm__ ("pushl %0\n"		\
+		 "popfl\n"		\
+		 :			\
+		 : "r" (state))
 
 #endif

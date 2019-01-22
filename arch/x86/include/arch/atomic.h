@@ -34,9 +34,9 @@ static inline int xadd(volatile atomic_int_t* v, int x)
 	int ret = x;
 
 	__asm__ volatile ("lock xaddl %0, (%1)"
-					  : "+r" (ret)
-					  : "r" (v)
-					  : "memory", "cc");
+			  : "+r" (ret)
+			  : "r" (v)
+			  : "memory", "cc");
 
 	return ret;
 }

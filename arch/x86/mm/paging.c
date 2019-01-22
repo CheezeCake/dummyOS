@@ -74,29 +74,29 @@ void paging_switch_cr3(p_addr_t cr3)
 static inline pde_t* get_page_directory(void)
 {
 	return (pde_t*)(RECURSIVE_ENTRY_START +
-					(index_in_pd(RECURSIVE_ENTRY_START) << PAGE_SIZE_SHIFT));
+			(index_in_pd(RECURSIVE_ENTRY_START) << PAGE_SIZE_SHIFT));
 }
 
 static inline pte_t* get_page_table(unsigned int pde_index)
 {
 	return (pte_t*)((int8_t*)RECURSIVE_ENTRY_START +
-					(pde_index << PAGE_SIZE_SHIFT));
+			(pde_index << PAGE_SIZE_SHIFT));
 }
 
 static inline pde_t* get_temp_page_directory(void)
 {
 	return (pde_t*)(TEMP_RECURSIVE_ENTRY_START +
-					(index_in_pd(RECURSIVE_ENTRY_START) << PAGE_SIZE_SHIFT));
+			(index_in_pd(RECURSIVE_ENTRY_START) << PAGE_SIZE_SHIFT));
 }
 
 static inline pte_t* get_temp_page_table(unsigned int pde_index)
 {
 	return (pte_t*)((int8_t*)TEMP_RECURSIVE_ENTRY_START +
-					(pde_index << PAGE_SIZE_SHIFT));
+			(pde_index << PAGE_SIZE_SHIFT));
 }
 
 static void make_recursive_entry(pde_t* pd, p_addr_t pd_phys,
-								 v_addr_t recursive_entry_addr)
+				 v_addr_t recursive_entry_addr)
 {
 	int index = index_in_pd(recursive_entry_addr);
 	pde_t* recursive_entry = &pd[index];
@@ -159,8 +159,8 @@ static void cleanup_boot_pt(void)
 
 	// 0 to X86_MEMORY_HARDWARE_MAP_BEGIN
 	for (v_addr_t low_mem = KERNEL_SPACE_START;
-		 low_mem < KERNEL_SPACE_START + X86_MEMORY_HARDWARE_MAP_START;
-		 low_mem += PAGE_SIZE)
+	     low_mem < KERNEL_SPACE_START + X86_MEMORY_HARDWARE_MAP_START;
+	     low_mem += PAGE_SIZE)
 	{
 		const int pt_index = index_in_pt(low_mem);
 		memset(&page_table[pt_index], 0, sizeof(pte_t));
@@ -188,7 +188,7 @@ void paging_init(void)
 
 	remap_kernel();
 	setup_recursive_entry(&boot_page_directory,
-						  (p_addr_t)&boot_page_directory_phys);
+			      (p_addr_t)&boot_page_directory_phys);
 }
 
 int paging_map(p_addr_t paddr, v_addr_t vaddr, int prot)
@@ -306,8 +306,8 @@ int paging_init_pd(p_addr_t cr3)
 		return err;
 
 	err = init_kernel_space(cr3, KERNEL_SPACE_START,
-							(TEMP_RECURSIVE_ENTRY_START -
-							 KERNEL_SPACE_START) / PAGE_SIZE);
+				(TEMP_RECURSIVE_ENTRY_START -
+				 KERNEL_SPACE_START) / PAGE_SIZE);
 
 	return err;
 }
@@ -418,10 +418,10 @@ void paging_dump(void)
 			for (size_t j = 0; j < PAGE_TABLE_ENTRY_COUNT; ++j) {
 				if (pt[j].present) {
 					log_printf("[u=%d,w=%d]virt:%p -> phys:%p\n",
-							   pt[j].user,
-							   pt[j].read_write,
-							   (void*)(v_addr_t)pd_pt_index2v_addr(i, j),
-							   (void*)(v_addr_t)pt_addr2p_addr(pt[j].address));
+						   pt[j].user,
+						   pt[j].read_write,
+						   (void*)(v_addr_t)pd_pt_index2v_addr(i, j),
+						   (void*)(v_addr_t)pt_addr2p_addr(pt[j].address));
 				}
 			}
 		}

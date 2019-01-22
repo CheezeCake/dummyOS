@@ -8,8 +8,8 @@ enum
 
 static mem_area_t mem_layout[] = {
 	[IOMAP] = MEMORY_AREA(X86_MEMORY_HARDWARE_MAP_START,
-						  X86_MEMORY_HARDWARE_MAP_END,
-						  "mapped I/O"),
+			      X86_MEMORY_HARDWARE_MAP_END,
+			      "mapped I/O"),
 };
 
 void x86_memory_init(void)

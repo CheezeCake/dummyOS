@@ -52,8 +52,8 @@ void terminal_putchar(char c)
 
 		// copy lines
 		memcpy((uint16_t*)terminal,
-				(uint16_t*)terminal + TERMINAL_COLUMNS,
-				sizeof(uint16_t) * (TERMINAL_LINES - 1) * TERMINAL_COLUMNS);
+		       (uint16_t*)terminal + TERMINAL_COLUMNS,
+		       sizeof(uint16_t) * (TERMINAL_LINES - 1) * TERMINAL_COLUMNS);
 
 		// reset last line
 		for (int i = 0; i < TERMINAL_COLUMNS; i++) {

@@ -66,11 +66,11 @@ static void keyboard_intr(int nr, struct cpu_context* interrupted_ctx)
 		else {
 			char make = breakcode2makecode(sc);
 			if ((make == LEFT_SHIFT || make == RIGHT_SHIFT) &&
-				state == KBD_SHIFT) {
+			    state == KBD_SHIFT) {
 				state = KBD_REGULAR;
 			}
 			else if (make == LEFT_CTRL &&
-					 state == KBD_CTRL) {
+				 state == KBD_CTRL) {
 				state = KBD_REGULAR;
 			}
 		}
