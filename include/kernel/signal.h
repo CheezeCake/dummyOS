@@ -49,7 +49,7 @@ void signal_destroy(struct signal_manager* sigm);
 bool signal_pending(const struct signal_manager* sigm);
 
 int signal_send(struct signal_manager* sigm, int sig, void* addr,
-				const struct process* sender);
+		const struct process* sender);
 
 siginfo_t* signal_pop(struct signal_manager* sigm);
 

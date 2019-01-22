@@ -48,7 +48,7 @@ typedef struct vfs_path_component
 /**
  * Helper function to get the vfs_path_t representation of a component.
  */
-static const inline vfs_path_t*
+	static const inline vfs_path_t*
 vfs_path_component_as_path(const vfs_path_component_t* component)
 {
 	return &component->as_path;
@@ -65,7 +65,7 @@ vfs_path_component_as_path(const vfs_path_component_t* component)
  * @return 0 on success
  */
 int vfs_path_create(const char* path, vfs_path_size_t size,
-					vfs_path_t** result);
+		    vfs_path_t** result);
 
 /**
  * @brief Initializes a vfs_path_t object
@@ -91,9 +91,9 @@ int vfs_path_init(vfs_path_t* path, const char* path_str, vfs_path_size_t size);
  * @return 0 on success
  */
 int vfs_path_create_from(const vfs_path_t* path,
-						 vfs_path_offset_t relative_offset,
-						 vfs_path_size_t size,
-						 vfs_path_t** result);
+			 vfs_path_offset_t relative_offset,
+			 vfs_path_size_t size,
+			 vfs_path_t** result);
 
 /**
  * @brief Creates a copy of a vfs_path_t object
@@ -163,13 +163,13 @@ const char* vfs_path_get_str(const vfs_path_t* path);
  * @brief Initializes a vfs_path_component_t object
  */
 int vfs_path_component_init(vfs_path_component_t* component,
-							const vfs_path_t* path);
+			    const vfs_path_t* path);
 
 /**
  * @brief Compares two vfs_component_path
  */
 bool vfs_path_component_equals(const vfs_path_component_t* c1,
-							   const vfs_path_component_t* c2);
+			       const vfs_path_component_t* c2);
 
 /**
  * @brief Resets a vfs_path_component_t object destroying all its content
@@ -185,7 +185,7 @@ void vfs_path_component_reset(vfs_path_component_t* component);
  * @note the component must be reset() by the caller
  */
 int vfs_path_first_component(const vfs_path_t* path,
-						   vfs_path_component_t* component);
+			     vfs_path_component_t* component);
 
 /**
  * @brief Point to the next component
@@ -200,7 +200,7 @@ int vfs_path_component_next(vfs_path_component_t* path);
  * @return true if c1 == c2
  */
 bool vfs_path_component_equals(const vfs_path_component_t* c1,
-							   const vfs_path_component_t* c2);
+			       const vfs_path_component_t* c2);
 
 /*
  * @brief Gets the basename of a path
@@ -233,7 +233,7 @@ bool vfs_path_same(const vfs_path_t* p1, const vfs_path_t* p2);
  * @return true if p and s represent the same path
  */
 bool vfs_path_str_same(const vfs_path_t* p, const char* s,
-					   vfs_path_size_t size);
+		       vfs_path_size_t size);
 
 void print_path(const vfs_path_t* path);
 #endif

@@ -34,13 +34,13 @@ static inline v_addr_t mapping_get_end(const mapping_t* mapping)
 }
 
 int __mapping_init(mapping_t* mapping, region_t* region, v_addr_t start,
-				   size_t size, int flags);
+		   size_t size, int flags);
 
 int mapping_create_from_range(v_addr_t mstart, p_addr_t pstart, size_t size,
-							  int prot, int flags, mapping_t** result);
+			      int prot, int flags, mapping_t** result);
 
 int mapping_create(v_addr_t start, size_t size, int prot, int flags,
-				   mapping_t** result);
+		   mapping_t** result);
 
 int mapping_copy_create(const mapping_t* src, mapping_t** result);
 

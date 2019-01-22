@@ -75,7 +75,7 @@ struct thread
 int __kthread_create(char* name, v_addr_t start, struct thread** result);
 int thread_create(v_addr_t start, v_addr_t user_stack, struct thread** result);
 int thread_clone(const struct thread* thread, char* name,
-				 struct thread** result);
+		 struct thread** result);
 void __thread_destroy(struct thread* thread);
 
 void thread_ref(struct thread* thread);

@@ -62,13 +62,13 @@ struct vfs_inode_operations
 	 * @node Only applies to type == DIRECTORY
 	 */
 	int (*lookup)(struct vfs_inode* this, const vfs_path_t* name,
-				  struct vfs_inode** result);
+		      struct vfs_inode** result);
 
 	/**
 	 * @node Only applies to type == DIRECTORY
 	 */
 	int (*link)(struct vfs_inode* this, const vfs_path_t* name,
-				struct vfs_inode*);
+		    struct vfs_inode*);
 
 	/**
 	 * @node Only applies to type == DIRECTORY
@@ -92,16 +92,16 @@ struct vfs_inode_operations
  * @brief Initialiazes a vfs_inode object
  */
 void vfs_inode_init(struct vfs_inode* inode, enum vfs_node_type type,
-					struct vfs_superblock* sb, struct vfs_inode_operations* op);
+		    struct vfs_superblock* sb, struct vfs_inode_operations* op);
 
 /**
  * @brief Initialiazes the "device" field in a vfs_inode object
  */
 void vfs_inode_init_dev(struct vfs_inode* inode, enum device_major major,
-						enum device_minor minor);
+			enum device_minor minor);
 
 int vfs_inode_open_fops(struct vfs_inode* inode,
-						struct vfs_file_operations** result);
+			struct vfs_file_operations** result);
 
 /**
  * @brief Increments the reference counter by one.
@@ -122,6 +122,6 @@ void vfs_inode_release(struct vfs_inode* inode);
 void vfs_inode_add_cnode(struct vfs_inode* inode, struct vfs_cache_node* cnode);
 
 void vfs_inode_remove_cnode(struct vfs_inode* inode,
-							struct vfs_cache_node* cnode);
+			    struct vfs_cache_node* cnode);
 
 #endif

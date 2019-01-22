@@ -80,7 +80,7 @@ int process_add_thread(struct process* proc, struct thread* thr);
 void process_remove_thread(struct process* proc, struct thread* thr);
 
 int process_fork(struct process* proc, const struct thread* fork_thread,
-				 struct process** child, struct thread** child_thread);
+		 struct process** child, struct thread** child_thread);
 
 /**
  * @brief Resets and free() a process object
@@ -96,7 +96,7 @@ void process_set_vmm(struct process* proc, struct vmm* vmm);
 void process_set_name(struct process* proc, const char* name);
 
 void process_set_process_image(struct process* proc,
-							   const struct process_image* img);
+			       const struct process_image* img);
 
 /**
  * @brief Checks if the process has any pending signals
@@ -151,7 +151,7 @@ int process_add_file_at(struct process* proc, struct vfs_file* file, int fd);
  * @parm removed optional: the removed file
  */
 int process_remove_file(struct process* proc, int fd,
-						struct vfs_file** removed);
+			struct vfs_file** removed);
 
 /**
  * @brief Returns the vfs_file identified by the file descriptor

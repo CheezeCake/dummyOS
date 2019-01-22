@@ -11,8 +11,8 @@ struct vfs_file_operations;
  * Register a character device with its major number
  */
 int chardev_register(enum device_major major,
-					 struct vfs_file_operations* fops,
-					 void* (*get_device)(enum device_minor));
+		     struct vfs_file_operations* fops,
+		     void* (*get_device)(enum device_minor));
 
 /**
  * Unregister a character device

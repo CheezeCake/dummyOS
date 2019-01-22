@@ -9,8 +9,8 @@
 #define SYS_getpid		3
 #define SYS_getppid		4
 #define SYS_signal		5
-#define SYS_sigaction	6
-#define SYS_sigreturn	7
+#define SYS_sigaction		6
+#define SYS_sigreturn		7
 #define SYS_kill		8
 #define SYS_wait		9
 #define SYS_waitpid		10
@@ -27,14 +27,14 @@
 #define SYS_getpgrp		21
 #define SYS_ioctl		22
 #define SYS_sbrk		23
-#define SYS_getdents	24
-#define SYS_sigprocmask	25
+#define SYS_getdents		24
+#define SYS_sigprocmask		25
 #define SYS_pipe		26
 #define SYS_dup			27
 #define SYS_dup2		28
 #define SYS_stat		29
 #define SYS_fstat		30
-#define SYS_nanosleep	31
+#define SYS_nanosleep		31
 
 #define _SYSCALL_NR_TOP		31 /**< last syscall number */
 #define _SYSCALL_NR_COUNT	(_SYSCALL_NR_TOP + 1) /**< number of syscalls */

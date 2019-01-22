@@ -63,7 +63,7 @@ p_addr_t memory_page_frame_alloc(void);
 int memory_page_frame_free(p_addr_t addr);
 
 void memory_statistics(unsigned int* nb_used_page_frames,
-					   unsigned int* nb_free_page_frames);
+		       unsigned int* nb_free_page_frames);
 
 void memory_layout_init(mem_area_t* layout, size_t n);
 

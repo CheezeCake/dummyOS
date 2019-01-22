@@ -6,10 +6,10 @@
 #include <kernel/debug.h>
 #include <kernel/log.h>
 
-#define PANIC(message) { \
+#define PANIC(message) {								\
 	log_e_printf("\nPANIC : "message" (%s:%s:%d)\n", __func__, __FILE__, __LINE__); \
-	debug_dump(); \
-	HALT(); \
+	debug_dump();									\
+	HALT();										\
 }
 
 #endif

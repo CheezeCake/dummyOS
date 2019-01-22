@@ -50,7 +50,7 @@ struct vfs_file_operations
 	int (*close)(struct vfs_file* this);
 
 	int (*readdir)(struct vfs_file* this,
-				   void (*add_entry)(struct vfs_file*, struct vfs_cache_node*));
+		       void (*add_entry)(struct vfs_file*, struct vfs_cache_node*));
 
 	off_t (*lseek)(struct vfs_file* this, off_t offset, int whence);
 	ssize_t (*read)(struct vfs_file* this, void* buf, size_t count);
@@ -63,7 +63,7 @@ struct vfs_file_operations
  * @brief Creates a vfs_file object
  */
 int vfs_file_create(struct vfs_cache_node* cnode, int flags,
-					struct vfs_file** result);
+		    struct vfs_file** result);
 
 /**
  * @brief Increments the reference counter by one.
@@ -93,7 +93,7 @@ struct vfs_cache_node* vfs_file_get_cache_node(const struct vfs_file* file);
 struct vfs_inode* vfs_file_get_inode(const struct vfs_file* file);
 
 void vfs_file_add_readdir_entry(struct vfs_file* file,
-								struct vfs_cache_node* entry);
+				struct vfs_cache_node* entry);
 
 bool vfs_file_flags_read(int flags);
 

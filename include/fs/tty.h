@@ -10,7 +10,7 @@ struct tty;
 int tty_chardev_init(void);
 
 int tty_create(enum device_minor minor, void (*putchar)(char),
-			   struct tty** result);
+	       struct tty** result);
 
 void tty_set_lflag(struct tty* tty, int flag);
 

@@ -95,7 +95,7 @@ int vmm_create_kernel_mapping(v_addr_t start, size_t size, int prot);
  * @return 0 on success
  */
 int vmm_map_to_kernel_space(p_addr_t start, size_t size, int prot,
-							v_addr_t mapping_addr);
+			    v_addr_t mapping_addr);
 
 int vmm_destroy_kernel_mapping(v_addr_t start);
 

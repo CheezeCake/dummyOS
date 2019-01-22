@@ -42,7 +42,7 @@ typedef struct siginfo
 	int si_code; /* Signal code */
 
 	int si_errno; /* If non-zero, an errno value associated with
-						  this signal, as defined in <errno.h> */
+			 this signal, as defined in <errno.h> */
 
 	pid_t si_pid; /* Sending process ID */
 	/* uid_t si_uid; */ /* Real user ID of sending process */
@@ -84,15 +84,15 @@ struct sigaction
  * struct sigaction::s_flags flags
  */
 #define SA_NODEFER		(1 << 0) /* Causes signal not to be automatically
-									blocked on entry to signal handler */
+					    blocked on entry to signal handler */
 #define SA_ONSTACK		(1 << 1) /* Causes signal delivery to occur on an
-									alternate stack */
+					    alternate stack */
 #define SA_RESETHAND	(1 << 2) /* Causes signal dispositions to be set to
-									SIG_DFL on entry to signal handlers */
+				    SIG_DFL on entry to signal handlers */
 #define SA_SIGINFO		(1 << 3) /* Causes extra information to be passed to
-									signal handlers at the time of receipt of a
-									signal */
+					    signal handlers at the time of receipt of a
+					    signal */
 #define SA_RESTART		(1 << 4) /* Causes certain functions to become
-									restartable */
+					    restartable */
 
 #endif

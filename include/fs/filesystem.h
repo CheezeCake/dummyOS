@@ -18,12 +18,12 @@ struct vfs_filesystem
 	char name[VFS_FILESYSTEM_NAME_MAX_LENGTH];
 
 	int (*superblock_create)(struct vfs_filesystem* this,
-							 struct vfs_cache_node* device,
-							 int flags, void* data,
-							 struct vfs_superblock** result);
+				 struct vfs_cache_node* device,
+				 int flags, void* data,
+				 struct vfs_superblock** result);
 
 	int (*superblock_destroy)(struct vfs_filesystem* this,
-							  struct vfs_superblock* sb);
+				  struct vfs_superblock* sb);
 
 	/** Chained in filesystem::@ref ::filesystem_list */
 	list_node_t fs_list;

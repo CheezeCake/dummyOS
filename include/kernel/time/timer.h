@@ -26,7 +26,7 @@ struct timer
  * @return 0 on success
  */
 int timer_init(struct timer* timer, const struct timespec* delay,
-			   timer_callback_t cb);
+	       timer_callback_t cb);
 
 /**
  * @brief resets a struct timer

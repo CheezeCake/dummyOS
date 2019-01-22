@@ -52,7 +52,7 @@ int vfs_cache_init(void);
  * @return 0 on success
  */
 int vfs_cache_node_create(struct vfs_inode* inode, const vfs_path_t* name,
-						  struct vfs_cache_node** result);
+			  struct vfs_cache_node** result);
 
 /**
  * @brief Initialiazes a vfs_cache_node object
@@ -62,15 +62,15 @@ int vfs_cache_node_create(struct vfs_inode* inode, const vfs_path_t* name,
  * @return 0 on success
  */
 int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
-						const vfs_path_t* name);
+			const vfs_path_t* name);
 
 /**
  * @brief Add child node
  */
 int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
-								struct vfs_inode* child_inode,
-								const vfs_path_t* name,
-								struct vfs_cache_node** inserted_child);
+				struct vfs_inode* child_inode,
+				const vfs_path_t* name,
+				struct vfs_cache_node** inserted_child);
 
 /*
  * @brief Returns the child node that matches a name if it exists
@@ -79,7 +79,7 @@ int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
  */
 struct vfs_cache_node*
 vfs_cache_node_lookup_child(struct vfs_cache_node* parent,
-							const vfs_path_t* name);
+			    const vfs_path_t* name);
 
 /*
  * @brief Returns the root node of the vfs_cache subsystem
@@ -117,7 +117,7 @@ void vfs_cache_node_unref(struct vfs_cache_node* node);
 int vfs_cache_node_get_ref(const struct vfs_cache_node* node);
 
 int vfs_cache_node_open(struct vfs_cache_node* cnode, int flags,
-						struct vfs_file** result);
+			struct vfs_file** result);
 
 void dump_cache_tree(void);
 #endif

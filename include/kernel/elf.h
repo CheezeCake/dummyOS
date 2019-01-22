@@ -19,7 +19,7 @@
 #define EI_DATA			5
 #define EI_VERSION		6
 #define EI_OSABI		7
-#define EI_ABIVERSION	8
+#define EI_ABIVERSION		8
 
 // elf_header::e_indent[EI_CLASS]
 #define ELFCLASS32		1

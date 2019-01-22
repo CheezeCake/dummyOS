@@ -57,7 +57,7 @@ static inline void timespec_diff(struct timespec* a, const struct timespec* b)
 }
 
 static inline int64_t timespec_diff_ms(const struct timespec* t1,
-									   const struct timespec* t2)
+				       const struct timespec* t2)
 {
 	const int64_t sec_in_ms = ((int64_t)t1->tv_sec - t2->tv_sec) * TIME_SEC_IN_MS;
 	const int64_t ns_in_ms = ((int64_t)t1->tv_nsec - t2->tv_nsec) / TIME_MS_IN_NS;

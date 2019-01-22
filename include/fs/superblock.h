@@ -57,11 +57,11 @@ struct vfs_superblock_operations
  * @brief Initialiazes a vfs_superblock object
  */
 int vfs_superblock_init(struct vfs_superblock* sb,
-						struct vfs_cache_node* device,
-						struct vfs_filesystem* fs,
-						struct vfs_cache_node* root,
-						void* data,
-						struct vfs_superblock_operations* op);
+			struct vfs_cache_node* device,
+			struct vfs_filesystem* fs,
+			struct vfs_cache_node* root,
+			void* data,
+			struct vfs_superblock_operations* op);
 
 /**
  * @brief Creates a vfs_superblock object
@@ -69,11 +69,11 @@ int vfs_superblock_init(struct vfs_superblock* sb,
  * Allocates the memory for the result.
  */
 int vfs_superblock_create(struct vfs_cache_node* device,
-						  struct vfs_filesystem* fs,
-						  struct vfs_cache_node* root,
-						  void* data,
-						  struct vfs_superblock_operations* op,
-						  struct vfs_superblock** result);
+			  struct vfs_filesystem* fs,
+			  struct vfs_cache_node* root,
+			  void* data,
+			  struct vfs_superblock_operations* op,
+			  struct vfs_superblock** result);
 
 /**
  * @brief Resets a vfs_superblock object

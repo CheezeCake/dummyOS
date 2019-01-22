@@ -7,7 +7,7 @@
 #include <libk/libk.h>
 
 static inline int kthread_create(const char* name, void (*start)(void* data),
-								 void* data, struct thread** result)
+				 void* data, struct thread** result)
 {
 	char* name_dup;
 	int err;
