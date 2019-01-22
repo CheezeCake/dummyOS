@@ -12,14 +12,14 @@
 static void vfs_file_destroy(struct vfs_file* file);
 
 static inline void vfs_file_init_data_fields(struct vfs_file* file, off_t cur,
-											 struct vfs_file_operations* op)
+					     struct vfs_file_operations* op)
 {
 	file->cur = cur;
 	file->op = op;
 }
 
 static int vfs_file_init(struct vfs_file* file, struct vfs_cache_node* cnode,
-						 int flags)
+			 int flags)
 {
 	memset(file, 0, sizeof(struct vfs_file));
 
@@ -40,7 +40,7 @@ static int vfs_file_init(struct vfs_file* file, struct vfs_cache_node* cnode,
 }
 
 int vfs_file_create(struct vfs_cache_node* cnode, int flags,
-					struct vfs_file** result)
+		    struct vfs_file** result)
 {
 	struct vfs_file* file;
 	int err;
@@ -162,7 +162,7 @@ struct vfs_inode* vfs_file_get_inode(const struct vfs_file* file)
 }
 
 void vfs_file_add_readdir_entry(struct vfs_file* file,
-								struct vfs_cache_node* entry)
+				struct vfs_cache_node* entry)
 {
 	mutex_lock(&file->lock);
 

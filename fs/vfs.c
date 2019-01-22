@@ -20,10 +20,10 @@
 static list_t mounted_list;
 
 static int get_superblock(struct vfs_cache_node* device, const char* filesystem,
-						  void* data, struct vfs_superblock** sb);
+			  void* data, struct vfs_superblock** sb);
 static int lookup_path(const vfs_path_t* path, struct vfs_cache_node* root,
-					   struct vfs_cache_node* cwd, struct vfs_cache_node** result,
-					   unsigned int recursion_level);
+		       struct vfs_cache_node* cwd, struct vfs_cache_node** result,
+		       unsigned int recursion_level);
 
 int vfs_init(void)
 {
@@ -39,7 +39,7 @@ int vfs_init(void)
 }
 
 static int get_superblock(struct vfs_cache_node* device, const char* filesystem,
-						  void* data, struct vfs_superblock** sb)
+			  void* data, struct vfs_superblock** sb)
 {
 	if (device && device->inode->type != BLOCKDEV)
 		return -ENOTBLK;
@@ -52,7 +52,7 @@ static int get_superblock(struct vfs_cache_node* device, const char* filesystem,
 }
 
 int vfs_mount(struct vfs_cache_node* device, struct vfs_cache_node* mountpoint,
-			  void* data, const char* filesystem)
+	      void* data, const char* filesystem)
 {
 	int err;
 	struct vfs_superblock* sb;
@@ -86,9 +86,9 @@ int vfs_umount(struct vfs_cache_node* mountpoint)
 }
 
 static int readlink(const struct vfs_cache_node* symlink,
-					struct vfs_cache_node* root,
-					struct vfs_cache_node** target,
-					unsigned int recursion_level)
+		    struct vfs_cache_node* root,
+		    struct vfs_cache_node** target,
+		    unsigned int recursion_level)
 {
 	struct vfs_cache_node* start = root;
 	vfs_path_t* target_path;
@@ -117,9 +117,9 @@ static int readlink(const struct vfs_cache_node* symlink,
 }
 
 int vfs_read_and_cache_inode(struct vfs_cache_node* parent,
-							 struct vfs_inode* inode,
-							 const vfs_path_t* name,
-							 struct vfs_cache_node** cached_result)
+			     struct vfs_inode* inode,
+			     const vfs_path_t* name,
+			     struct vfs_cache_node** cached_result)
 {
 	int err;
 
@@ -136,8 +136,8 @@ int vfs_read_and_cache_inode(struct vfs_cache_node* parent,
  * Lookup, fetch an inode and insert it in the cache
  */
 static int lookup_read_and_cache_inode(struct vfs_cache_node* parent,
-									   const vfs_path_t* lookup_pathname,
-									   struct vfs_cache_node** cached_result)
+				       const vfs_path_t* lookup_pathname,
+				       struct vfs_cache_node** cached_result)
 {
 	struct vfs_inode* parent_inode = parent->inode;
 	struct vfs_inode* inode = NULL;
@@ -148,16 +148,16 @@ static int lookup_read_and_cache_inode(struct vfs_cache_node* parent,
 		return err;
 
 	err = vfs_read_and_cache_inode(parent, inode, lookup_pathname,
-								   cached_result);
+				       cached_result);
 
 	return err;
 }
 
 static int do_lookup(vfs_path_component_t* component,
-					 struct vfs_cache_node* const start_node,
-					 struct vfs_cache_node* root,
-					 struct vfs_cache_node** result,
-					 unsigned int recursion_level)
+		     struct vfs_cache_node* const start_node,
+		     struct vfs_cache_node* root,
+		     struct vfs_cache_node** result,
+		     unsigned int recursion_level)
 {
 	struct vfs_cache_node* current_node = NULL;
 	struct vfs_cache_node* tmp = NULL;
@@ -197,7 +197,7 @@ static int do_lookup(vfs_path_component_t* component,
 		if (!looked_up) {
 			// node is not in the cache, look it up, fetch it and cache it
 			err = lookup_read_and_cache_inode(current_node, path_component,
-											  &looked_up);
+							  &looked_up);
 			if (err)
 				goto out;
 		}
@@ -222,8 +222,8 @@ out:
 }
 
 static int lookup(const vfs_path_t* const path, struct vfs_cache_node* start,
-				  struct vfs_cache_node* root, struct vfs_cache_node** result,
-				  unsigned int recursion_level)
+		  struct vfs_cache_node* root, struct vfs_cache_node** result,
+		  unsigned int recursion_level)
 {
 	vfs_path_component_t component;
 	struct vfs_cache_node* result_node = NULL;
@@ -270,8 +270,8 @@ fail_component:
 }
 
 int lookup_path(const vfs_path_t* const path, struct vfs_cache_node* root,
-				struct vfs_cache_node* cwd, struct vfs_cache_node** result,
-				unsigned int recursion_level)
+		struct vfs_cache_node* cwd, struct vfs_cache_node** result,
+		unsigned int recursion_level)
 {
 	int err;
 	struct vfs_cache_node* start = (vfs_path_absolute(path)) ? root : cwd;
@@ -282,13 +282,13 @@ int lookup_path(const vfs_path_t* const path, struct vfs_cache_node* root,
 }
 
 int vfs_lookup(const vfs_path_t* path, struct vfs_cache_node* root,
-			   struct vfs_cache_node* cwd, struct vfs_cache_node** result)
+	       struct vfs_cache_node* cwd, struct vfs_cache_node** result)
 {
 	return lookup_path(path, root, cwd, result, 0);
 }
 
 int vfs_lookup_in_fs(const vfs_path_t* path, struct vfs_superblock* sb,
-					 struct vfs_cache_node** result)
+		     struct vfs_cache_node** result)
 {
 	return vfs_lookup(path, sb->root, NULL, result);
 }

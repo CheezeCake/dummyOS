@@ -42,8 +42,8 @@ struct gdtr
 
 void gdt_init(void);
 void gdt_init_system_segment(unsigned int segment_index,
-							 uint32_t base, uint32_t limit,
-							 enum privilege_level dpl,
-							 enum system_segment_types type);
+			     uint32_t base, uint32_t limit,
+			     enum privilege_level dpl,
+			     enum system_segment_types type);
 
 #endif

@@ -44,7 +44,7 @@ static struct idt_gate_descriptor idt[IDT_SIZE];
 
 
 static int set_handler_present(uint8_t index, enum gate_type type,
-							   enum privilege_level dpl, v_addr_t handler)
+			       enum privilege_level dpl, v_addr_t handler)
 {
 	if (!handler)
 		return -EINVAL;
@@ -64,21 +64,21 @@ int idt_set_syscall_handler(uint8_t int_number)
 	kassert(int_number > INTERRUPTS_DEFINED);
 
 	return set_handler_present(int_number, TRAPGATE, PRIVILEGE_USER,
-							   (v_addr_t)syscall_handler);
+				   (v_addr_t)syscall_handler);
 }
 
 
 int idt_set_exception_handler_present(uint8_t exception, enum gate_type type)
 {
 	return set_handler_present(EXCEPTION_IDT_INDEX(exception), type,
-							   PRIVILEGE_KERNEL,
-							   asm_exception_handlers[exception]);
+				   PRIVILEGE_KERNEL,
+				   asm_exception_handlers[exception]);
 }
 
 int idt_set_irq_handler_present(uint8_t irq, enum gate_type type)
 {
 	return set_handler_present(IRQ_IDT_INDEX(irq), type, PRIVILEGE_KERNEL,
-							   asm_irq_handlers[irq]);
+				   asm_irq_handlers[irq]);
 }
 
 static void unset_handler_present(uint8_t index)

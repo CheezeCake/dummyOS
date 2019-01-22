@@ -5,7 +5,7 @@
 #include <libk/libk.h>
 
 void vfs_inode_init(struct vfs_inode* inode, enum vfs_node_type type,
-					struct vfs_superblock* sb, struct vfs_inode_operations* op)
+		    struct vfs_superblock* sb, struct vfs_inode_operations* op)
 {
 	memset(inode, 0, sizeof(struct vfs_inode));
 
@@ -18,14 +18,14 @@ void vfs_inode_init(struct vfs_inode* inode, enum vfs_node_type type,
 }
 
 void vfs_inode_init_dev(struct vfs_inode* inode, enum device_major major,
-						enum device_minor minor)
+			enum device_minor minor)
 {
 	inode->dev.major = major;
 	inode->dev.minor = minor;
 }
 
 int vfs_inode_open_fops(struct vfs_inode* inode,
-						struct vfs_file_operations** result)
+			struct vfs_file_operations** result)
 {
 	struct vfs_file_operations* fops = NULL;
 
@@ -70,7 +70,7 @@ void vfs_inode_add_cnode(struct vfs_inode* inode, struct vfs_cache_node* cnode)
 }
 
 void vfs_inode_remove_cnode(struct vfs_inode* inode,
-							struct vfs_cache_node* cnode)
+			    struct vfs_cache_node* cnode)
 {
 	list_erase(&cnode->i_cnodes);
 }

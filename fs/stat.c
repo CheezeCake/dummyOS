@@ -15,17 +15,17 @@ static inline mode_t vfs_node_type2stat_mode(enum vfs_node_type type)
 		case REGULAR:
 			return  S_IFREG;
 		case DIRECTORY:
-			 return S_IFDIR;
+			return S_IFDIR;
 		case SYMLINK:
-			 return S_IFLNK;
+			return S_IFLNK;
 		case CHARDEV:
-			 return S_IFCHR;
+			return S_IFCHR;
 		case BLOCKDEV:
-			 return S_IFBLK;
+			return S_IFBLK;
 		case FIFO:
-			 return S_IFIFO;
+			return S_IFIFO;
 		default:
-			 return S_IFMT;
+			return S_IFMT;
 	}
 }
 

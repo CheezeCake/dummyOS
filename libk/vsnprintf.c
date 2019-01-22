@@ -8,7 +8,7 @@ static inline void putchar(char* str, size_t size, size_t* pos, char c)
 }
 
 static inline void print_unsigned_integer(char* str, size_t size, size_t* pos,
-										  unsigned long long value, int base)
+					  unsigned long long value, int base)
 {
 	static const char charset[] = "0123456789abcdef";
 	char buffer[20];
@@ -24,7 +24,7 @@ static inline void print_unsigned_integer(char* str, size_t size, size_t* pos,
 }
 
 static inline void print_integer(char* str, size_t size, size_t* pos,
-								 long long value)
+				 long long value)
 {
 	if (value < 0) {
 		putchar(str, size, pos, '-');

@@ -22,7 +22,7 @@ int vfs_cache_init(void)
 	err = vfs_path_init(&root_path, "/", 1);
 	if (!err) {
 		err = vfs_cache_node_create(&cnode_root_inode, &root_path,
-									&cache_node_root);
+					    &cache_node_root);
 		vfs_path_reset(&root_path);
 	}
 
@@ -30,7 +30,7 @@ int vfs_cache_init(void)
 }
 
 int vfs_cache_node_create(struct vfs_inode* inode, const vfs_path_t* name,
-						  struct vfs_cache_node** result)
+			  struct vfs_cache_node** result)
 {
 	struct vfs_cache_node* node = kmalloc(sizeof(struct vfs_cache_node));
 	if (!node)
@@ -48,7 +48,7 @@ int vfs_cache_node_create(struct vfs_inode* inode, const vfs_path_t* name,
 }
 
 int vfs_cache_node_init(struct vfs_cache_node* node, struct vfs_inode* inode,
-						const vfs_path_t* name)
+			const vfs_path_t* name)
 {
 	memset(node, 0, sizeof(struct vfs_cache_node));
 
@@ -93,7 +93,7 @@ static void vfs_cache_node_reset(struct vfs_cache_node* node)
 	list_node_t* child;
 	list_foreach(&node->children, child) {
 		vfs_cache_node_unref(list_entry(child, struct vfs_cache_node,
-										cn_children_list));
+						cn_children_list));
 	}
 
 	mutex_destroy(&node->lock);
@@ -111,7 +111,7 @@ static void vfs_cache_node_destroy(struct vfs_cache_node* node)
 }
 
 static void insert_child(struct vfs_cache_node* parent,
-						 struct vfs_cache_node* child)
+			 struct vfs_cache_node* child)
 {
 	mutex_lock(&parent->lock);
 
@@ -124,9 +124,9 @@ static void insert_child(struct vfs_cache_node* parent,
 }
 
 int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
-								struct vfs_inode* child_inode,
-								const vfs_path_t* name,
-								struct vfs_cache_node** inserted_child)
+				struct vfs_inode* child_inode,
+				const vfs_path_t* name,
+				struct vfs_cache_node** inserted_child)
 {
 	struct vfs_cache_node* child;
 	int err;
@@ -154,9 +154,9 @@ int vfs_cache_node_insert_child(struct vfs_cache_node* parent,
 	return 0;
 }
 
-struct vfs_cache_node*
+	struct vfs_cache_node*
 vfs_cache_node_lookup_child(struct vfs_cache_node* parent,
-							const vfs_path_t* name)
+			    const vfs_path_t* name)
 {
 	const char dot[] = "..";
 	// "."
@@ -177,8 +177,8 @@ vfs_cache_node_lookup_child(struct vfs_cache_node* parent,
 	list_node_t* it;
 	list_foreach(&parent->children, it) {
 		struct vfs_cache_node* node_it = list_entry(it,
-													struct vfs_cache_node,
-													cn_children_list);
+							    struct vfs_cache_node,
+							    cn_children_list);
 		if (vfs_path_same(name, &node_it->name)) {
 			vfs_cache_node_ref(node_it);
 			mutex_unlock(&parent->lock);
@@ -196,14 +196,14 @@ struct vfs_cache_node* vfs_cache_node_get_root(void)
 	return cache_node_root;
 }
 
-struct vfs_cache_node*
+	struct vfs_cache_node*
 vfs_cache_node_get_parent(const struct vfs_cache_node* node)
 {
 	vfs_cache_node_ref(node->parent);
 	return node->parent;
 }
 
-struct vfs_cache_node*
+	struct vfs_cache_node*
 vfs_cache_node_resolve_mounted_fs(struct vfs_cache_node* mountpoint)
 {
 	struct vfs_cache_node* mounted = mountpoint;
@@ -241,7 +241,7 @@ int vfs_cache_node_get_ref(const struct vfs_cache_node* node)
 }
 
 int vfs_cache_node_open(struct vfs_cache_node* cnode, int flags,
-						struct vfs_file** result)
+			struct vfs_file** result)
 {
 	struct vfs_inode* inode = cnode->inode;
 	struct vfs_file* file;
@@ -297,7 +297,7 @@ static void dump(const struct vfs_cache_node* node, size_t n)
 		list_node_t* it;
 		list_foreach(&node->children, it) {
 			dump(list_entry(it, struct vfs_cache_node, cn_children_list),
-				 n + 1);
+			     n + 1);
 		}
 	}
 }

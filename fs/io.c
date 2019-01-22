@@ -159,17 +159,17 @@ int sys_ioctl(int fd, int request, intptr_t arg)
 }
 
 static ssize_t _dirent_init(struct dirent* __user dirp, long d_ino,
-							int d_type, size_t d_namlen, const char d_name[])
+			    int d_type, size_t d_namlen, const char d_name[])
 {
 #define copy_to_user_member(member)									\
 	do {															\
 		err = copy_to_user(&dirp->member, &member, sizeof(member)); \
 		if (err)													\
-			return err;												\
+		return err;												\
 	} while (0)
 
 	const int16_t d_reclen = align_up(sizeof(struct dirent) + d_namlen + 1,
-									  _Alignof(struct dirent));
+					  _Alignof(struct dirent));
 	ssize_t n;
 	int err;
 
@@ -186,23 +186,23 @@ static ssize_t _dirent_init(struct dirent* __user dirp, long d_ino,
 }
 
 static ssize_t getdents(struct vfs_file* file, struct dirent* __user dirp,
-						size_t nbytes)
+			size_t nbytes)
 {
 	list_node_t* it = list_get(&file->readdir_cache, file->cur);
 	size_t offset = 0;
 	int err = 0;
 
 	for (; !err && it != list_end(&file->readdir_cache);
-		 it = list_it_next(it), ++file->cur)
+	     it = list_it_next(it), ++file->cur)
 	{
 		struct vfs_cache_node* cnode =
 			list_entry(it, struct vfs_cache_node, f_readdir);
 		struct vfs_inode* inode = cnode->inode;
 		ssize_t n = _dirent_init((struct dirent*)((int8_t*)dirp + offset),
-								 (long)inode,
-								 inode->type,
-								 vfs_path_get_size(&cnode->name),
-								 vfs_path_get_str(&cnode->name));
+					 (long)inode,
+					 inode->type,
+					 vfs_path_get_size(&cnode->name),
+					 vfs_path_get_str(&cnode->name));
 		if (n < 0)
 			err = n;
 		else

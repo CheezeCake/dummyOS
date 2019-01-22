@@ -15,7 +15,7 @@ int vm_context_init(struct vm_context* vm_context)
 	vm_context->init = true;
 
 	memset(vm_context->page_tables_page_frame_refs, 0,
-		   USER_ADDR_SPACE_PAGE_DIRECTORY_ENTRIES);
+	       USER_ADDR_SPACE_PAGE_DIRECTORY_ENTRIES);
 
 	return 0;
 }

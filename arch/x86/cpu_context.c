@@ -11,7 +11,7 @@
 #define CPU_CONTEXT_KERNEL_SIZE offsetof(struct cpu_context, user)
 
 static void cpu_context_init(struct cpu_context* cpu_context, v_addr_t pc,
-							 uint16_t code_segment, uint16_t data_segment)
+			     uint16_t code_segment, uint16_t data_segment)
 {
 	cpu_context->eip = pc;
 
@@ -29,21 +29,21 @@ void cpu_context_kernel_init(struct cpu_context* cpu_context, v_addr_t pc)
 {
 	memset(cpu_context, 0, CPU_CONTEXT_KERNEL_SIZE);
 	cpu_context_init(cpu_context,
-					 pc,
-					 make_segment_selector(PRIVILEGE_KERNEL, KCODE),
-					 make_segment_selector(PRIVILEGE_KERNEL, KDATA));
+			 pc,
+			 make_segment_selector(PRIVILEGE_KERNEL, KCODE),
+			 make_segment_selector(PRIVILEGE_KERNEL, KDATA));
 }
 
 void cpu_context_user_init(struct cpu_context* cpu_context, v_addr_t user_pc,
-						   v_addr_t user_stack)
+			   v_addr_t user_stack)
 {
 	uint16_t user_data_seg = make_segment_selector(PRIVILEGE_USER, UDATA);
 
 	memset(cpu_context, 0, sizeof(struct cpu_context));
 	cpu_context_init(cpu_context,
-					 user_pc,
-					 make_segment_selector(PRIVILEGE_USER, UCODE),
-					 user_data_seg);
+			 user_pc,
+			 make_segment_selector(PRIVILEGE_USER, UCODE),
+			 user_data_seg);
 
 	// keep ss a kernel segment, it will be set to the user value with user.ss
 	cpu_context->ss = make_segment_selector(PRIVILEGE_KERNEL, KDATA);
@@ -52,16 +52,16 @@ void cpu_context_user_init(struct cpu_context* cpu_context, v_addr_t user_pc,
 	cpu_context->user.ss = user_data_seg;
 }
 
-static inline
+	static inline
 void cpu_context_kernel_copy(const struct cpu_context* ctx,
-							 struct cpu_context* copy)
+			     struct cpu_context* copy)
 {
 	memcpy(copy, ctx, CPU_CONTEXT_KERNEL_SIZE);
 }
 
-static inline
+	static inline
 void cpu_context_user_copy(const struct cpu_context* ctx,
-						   struct cpu_context* copy)
+			   struct cpu_context* copy)
 {
 	memcpy(copy, ctx, sizeof(struct cpu_context));
 }
@@ -107,13 +107,13 @@ void cpu_context_update_tss(struct cpu_context* cpu_context)
 
 
 void cpu_context_set_syscall_return_value(struct cpu_context* cpu_context,
-										  int ret)
+					  int ret)
 {
 	cpu_context->eax = ret;
 }
 
 void cpu_context_copy_syscall_regs(struct cpu_context* ctx,
-								   const struct cpu_context* src)
+				   const struct cpu_context* src)
 {
 	ctx->eax = src->eax;
 
@@ -140,10 +140,10 @@ v_addr_t cpu_context_get_user_sp(struct cpu_context* cpu_context)
 }
 
 static int cpu_context_pass_user_args(struct cpu_context* cpu_context,
-									  const v_addr_t* args, size_t n)
+				      const v_addr_t* args, size_t n)
 {
 	v_addr_t* sp = (v_addr_t*)align_down(cpu_context->user.esp,
-										 sizeof(v_addr_t));
+					     sizeof(v_addr_t));
 	int err;
 
 	sp -= n;
@@ -156,8 +156,8 @@ static int cpu_context_pass_user_args(struct cpu_context* cpu_context,
 }
 
 int cpu_context_setup_signal_handler(struct cpu_context* cpu_context,
-									 v_addr_t handler, v_addr_t sig_trampoline,
-									 const v_addr_t* args, size_t n)
+				     v_addr_t handler, v_addr_t sig_trampoline,
+				     const v_addr_t* args, size_t n)
 {
 	int err;
 

@@ -98,7 +98,7 @@ int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 			_end = end;
 
 		if (!vmm_is_userspace_address(vaddr) ||
-			!vmm_is_userspace_address(vaddr + memsz)) {
+		    !vmm_is_userspace_address(vaddr + memsz)) {
 			err = -ENOEXEC;
 			goto end;
 		}

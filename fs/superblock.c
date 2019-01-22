@@ -4,11 +4,11 @@
 #include <libk/libk.h>
 
 int vfs_superblock_init(struct vfs_superblock* sb,
-						struct vfs_cache_node* device,
-						struct vfs_filesystem* fs,
-						struct vfs_cache_node* root,
-						void* data,
-						struct vfs_superblock_operations* op)
+			struct vfs_cache_node* device,
+			struct vfs_filesystem* fs,
+			struct vfs_cache_node* root,
+			void* data,
+			struct vfs_superblock_operations* op)
 {
 	memset(sb, 0, sizeof(struct vfs_superblock));
 
@@ -29,11 +29,11 @@ int vfs_superblock_init(struct vfs_superblock* sb,
 }
 
 int vfs_superblock_create(struct vfs_cache_node* device,
-						  struct vfs_filesystem* fs,
-						  struct vfs_cache_node* root,
-						  void* data,
-						  struct vfs_superblock_operations* op,
-						  struct vfs_superblock** result)
+			  struct vfs_filesystem* fs,
+			  struct vfs_cache_node* root,
+			  void* data,
+			  struct vfs_superblock_operations* op,
+			  struct vfs_superblock** result)
 {
 	struct vfs_superblock* sb;
 	int err;

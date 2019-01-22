@@ -10,7 +10,7 @@
  * utils
  */
 static inline vfs_path_offset_t first_x(const char* str, vfs_path_size_t size,
-										bool (*const predicate)(char))
+					bool (*const predicate)(char))
 {
 	vfs_path_offset_t offset = 0;
 	while (offset < size && !predicate(str[offset]))
@@ -50,7 +50,7 @@ static char* copy_path_str(const char* path, vfs_path_size_t size)
 }
 
 static int vfs_path_string_create(const char* path, vfs_path_size_t size,
-								   string_t** result)
+				  string_t** result)
 {
 	string_t* str;
 	char* path_cpy;
@@ -122,9 +122,9 @@ int vfs_path_create(const char* path, vfs_path_size_t size, vfs_path_t** result)
 }
 
 int vfs_path_create_from(const vfs_path_t* path,
-						 vfs_path_offset_t relative_offset,
-						 vfs_path_size_t size,
-						 vfs_path_t** result)
+			 vfs_path_offset_t relative_offset,
+			 vfs_path_size_t size,
+			 vfs_path_t** result)
 {
 	vfs_path_t* new_path;
 	int err;
@@ -200,7 +200,7 @@ bool vfs_path_empty(const vfs_path_t* path)
  * vfs_path_component_t
  */
 int vfs_path_component_init(vfs_path_component_t* component,
-							const vfs_path_t* path)
+			    const vfs_path_t* path)
 {
 	int err;
 	vfs_path_t* component_path = &component->as_path;
@@ -230,7 +230,7 @@ static int build_component_path(vfs_path_t* path)
 	const vfs_path_offset_t start = first_non_slash(str, path->size);
 	// end = first slash since start
 	const vfs_path_offset_t end  = start + first_slash(str + start,
-													   path->size - start);
+							   path->size - start);
 
 	path->offset += start;
 	path->size = end - start;
@@ -239,7 +239,7 @@ static int build_component_path(vfs_path_t* path)
 }
 
 int vfs_path_first_component(const vfs_path_t* path,
-						   vfs_path_component_t* component)
+			     vfs_path_component_t* component)
 {
 	int err;
 
@@ -344,16 +344,16 @@ static bool path_string_equals(const vfs_path_t* p1, const vfs_path_t* p2)
 
 	// same underlying string, offset and size
 	if (p1->base_str == p2->base_str &&
-		p1->offset == p2->offset &&
-		p1->size == p2->size)
+	    p1->offset == p2->offset &&
+	    p1->size == p2->size)
 		return true;
 
 	return (p1->size == p2->size &&
-			strncmp(vfs_path_get_str(p1), vfs_path_get_str(p2), p1->size) == 0);
+		strncmp(vfs_path_get_str(p1), vfs_path_get_str(p2), p1->size) == 0);
 }
 
 bool vfs_path_component_equals(const vfs_path_component_t* c1,
-							   const vfs_path_component_t* c2)
+			       const vfs_path_component_t* c2)
 {
 	// same object or strict comparison on paths
 	return (c1 == c2 || path_string_equals(&c1->as_path, &c2->as_path));
@@ -394,7 +394,7 @@ static bool path_same(const vfs_path_t* p1, const vfs_path_t* p2)
 		goto fail_c2;
 
 	while (!vfs_path_component_empty(&c1) && !vfs_path_component_empty(&c2) &&
-		   vfs_path_component_equals(&c1, &c2))
+	       vfs_path_component_equals(&c1, &c2))
 	{
 		vfs_path_component_next(&c1);
 		vfs_path_component_next(&c2);
@@ -417,7 +417,7 @@ bool vfs_path_same(const vfs_path_t* p1, const vfs_path_t* p2)
 }
 
 bool vfs_path_str_same(const vfs_path_t* p, const char* s,
-					   vfs_path_size_t size)
+		       vfs_path_size_t size)
 {
 	vfs_path_t sp;
 	bool ret;

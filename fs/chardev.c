@@ -20,9 +20,9 @@ static inline struct chardev* find_chardev(enum device_major major)
 }
 
 static int chardev_create(enum device_major major,
-						  struct vfs_file_operations* fops,
-						  void* (*get_device)(enum device_minor),
-						  struct chardev** result)
+			  struct vfs_file_operations* fops,
+			  void* (*get_device)(enum device_minor),
+			  struct chardev** result)
 {
 	struct chardev* cd = kmalloc(sizeof(struct chardev));
 
@@ -44,8 +44,8 @@ static inline void chardev_destroy(struct chardev* cd)
 }
 
 int chardev_register(enum device_major major,
-					 struct vfs_file_operations* fops,
-					 void* (*get_device)(enum device_minor))
+		     struct vfs_file_operations* fops,
+		     void* (*get_device)(enum device_minor))
 {
 	struct chardev* cd = NULL;
 	int err;

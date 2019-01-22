@@ -25,7 +25,7 @@ static void debug_stacktrace(int frame, uint32_t* ebp)
 
 		if (ebp) {
 			log_e_printf("(0x%x, 0x%x, 0x%x)\n", (unsigned int)args[0],
-						 (unsigned int)args[1], (unsigned int)args[2]);
+				     (unsigned int)args[1], (unsigned int)args[2]);
 		}
 		else {
 			log_e_putchar('\n');
@@ -94,14 +94,14 @@ void debug_dump()
 	__asm__ ("movl %%"#reg", %0" : "=r" (output)); \
 	print_register(#reg, (unsigned int)output); \
 }
-	REGISTERS(reg)
+REGISTERS(reg)
 #undef X
 
 
 	__asm__ (
-			"pushfl\n"
-			"popl %0\n"
-			: "=r" (reg));
+		 "pushfl\n"
+		 "popl %0\n"
+		 : "=r" (reg));
 	debug_print_eflags(reg);
 
 	uint32_t* ebp;
@@ -109,4 +109,4 @@ void debug_dump()
 
 	log_e_puts("\n=== STACKTRACE ===\n");
 	debug_stacktrace(DEBUG_MAX_FRAMES, ebp);
-}
+	}

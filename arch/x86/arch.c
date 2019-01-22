@@ -38,7 +38,7 @@ static v_addr_t setup_initrd(const multiboot_module_t* mod)
 	v_addr_t initrd_end = mod->mod_end;
 	size_t initrd_size = initrd_end - initrd_start;
 	log_printf("initrd: %p -> %p (%ld)\n", (void*)initrd_start,
-			   (void*)initrd_end, initrd_size);
+		   (void*)initrd_end, initrd_size);
 
 	kassert(is_aligned(initrd_start, PAGE_SIZE));
 

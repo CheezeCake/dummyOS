@@ -87,7 +87,7 @@ static void* tty_get_device(enum device_minor minor)
 }
 
 static int tty_init(struct tty* tty, enum device_minor minor,
-					void (*putchar)(char))
+		    void (*putchar)(char))
 {
 	tty->minor = minor;
 	termios_init(&tty->termios);
@@ -108,7 +108,7 @@ static int tty_init(struct tty* tty, enum device_minor minor,
 }
 
 int tty_create(enum device_minor minor, void (*putchar)(char),
-			   struct tty** result)
+	       struct tty** result)
 {
 	struct tty* tty = kmalloc(sizeof(struct tty));
 	if (!tty)
@@ -243,7 +243,7 @@ static ssize_t tty_read(struct vfs_file* this, void* buf, size_t count)
 			if (c == '\n')
 				--tty->lines;
 			if (n == count ||
-				(l_canon(tty) && (c == '\n' || is_eof(tty, c))))
+			    (l_canon(tty) && (c == '\n' || is_eof(tty, c))))
 				done = true;
 		}
 	}

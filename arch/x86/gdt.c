@@ -5,8 +5,8 @@
 static struct gdt_segment_descriptor gdt[GDT_SIZE] = { {0} };
 
 static inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr,
-									uint32_t base, uint32_t limit,
-									enum privilege_level dpl)
+				    uint32_t base, uint32_t limit,
+				    enum privilege_level dpl)
 {
 	segment_descr->limit_15_0 = limit & 0xffff;
 
@@ -26,8 +26,8 @@ static inline void gdt_init_segment(struct gdt_segment_descriptor* segment_descr
 }
 
 static inline void gdt_init_code_data_segment(struct gdt_segment_descriptor* segment_descr,
-											  enum privilege_level dpl,
-											  enum code_data_segment_types type)
+					      enum privilege_level dpl,
+					      enum code_data_segment_types type)
 {
 	gdt_init_segment(segment_descr, 0, 0xffffffff, dpl);
 
@@ -36,9 +36,9 @@ static inline void gdt_init_code_data_segment(struct gdt_segment_descriptor* seg
 }
 
 void gdt_init_system_segment(unsigned int segment_index,
-							 uint32_t base, uint32_t limit,
-							 enum privilege_level dpl,
-							 enum system_segment_types type)
+			     uint32_t base, uint32_t limit,
+			     enum privilege_level dpl,
+			     enum system_segment_types type)
 {
 	struct gdt_segment_descriptor* const segment_descr = &gdt[segment_index];
 
@@ -63,17 +63,17 @@ void gdt_init(void)
 
 	// load the gdtr register and update the segment registers
 	__asm__ volatile ("lgdt %0\n"
-					  "movw %1, %%ax\n"
-					  "movw %%ax, %%ss\n"
-					  "movw %%ax, %%ds\n"
-					  "movw %%ax, %%es\n"
-					  "movw %%ax, %%fs\n"
-					  "movw %%ax, %%gs\n"
-					  "ljmp %2, $next\n"
-					  "next:"
-					  :
-					  : "m" (gdt_register),
-						"i" (make_segment_selector(PRIVILEGE_KERNEL, KDATA)),
-						"i" (make_segment_selector(PRIVILEGE_KERNEL, KCODE))
-					  : "eax", "memory");
+			  "movw %1, %%ax\n"
+			  "movw %%ax, %%ss\n"
+			  "movw %%ax, %%ds\n"
+			  "movw %%ax, %%es\n"
+			  "movw %%ax, %%fs\n"
+			  "movw %%ax, %%gs\n"
+			  "ljmp %2, $next\n"
+			  "next:"
+			  :
+			  : "m" (gdt_register),
+			  "i" (make_segment_selector(PRIVILEGE_KERNEL, KDATA)),
+			  "i" (make_segment_selector(PRIVILEGE_KERNEL, KCODE))
+			  : "eax", "memory");
 }

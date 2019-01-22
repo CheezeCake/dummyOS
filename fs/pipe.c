@@ -82,7 +82,7 @@ static inline void pipe_add_writer(struct pipe* p)
  * @return 0 if the pipe was destroyed
  */
 static inline int pipe_remove(struct pipe* p, refcount_t* type,
-							   const refcount_t* other_type)
+			      const refcount_t* other_type)
 {
 	int type_rc = refcount_dec(type);
 
@@ -359,7 +359,7 @@ struct vfs_file_operations* fifo_get_fops(void)
 }
 
 static inline int create_pipe_file(struct pipe* p, int flags,
-								   struct vfs_file** result)
+				   struct vfs_file** result)
 {
 	struct vfs_file* file;
 	int err;

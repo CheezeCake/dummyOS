@@ -21,11 +21,11 @@ void tss_init(void)
 	tss.ss0 = make_segment_selector(PRIVILEGE_KERNEL, KDATA);
 
 	gdt_init_system_segment(TSS, (uint32_t)&tss, sizeof(tss), PRIVILEGE_USER,
-							TSS_32BIT);
+				TSS_32BIT);
 
 	// load TSS
 	__asm__ volatile ("ltr %w0"
-					  :
-					  : "r" (make_segment_selector(PRIVILEGE_USER, TSS))
-					  : "memory");
+			  :
+			  : "r" (make_segment_selector(PRIVILEGE_USER, TSS))
+			  : "memory");
 }

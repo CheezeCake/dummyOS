@@ -5,11 +5,11 @@
 #include <kernel/types.h>
 #include "segment.h"
 
-#define EXCEPTION_BASE	0 // base index in IDT
-#define EXCEPTION_IDT_INDEX(exception) (EXCEPTION_BASE + exception)
+#define EXCEPTION_BASE			0 // base index in IDT
+#define EXCEPTION_IDT_INDEX(exception)	(EXCEPTION_BASE + exception)
 
-#define IRQ_BASE	32 // base index in IDT
-#define IRQ_IDT_INDEX(irq) (IRQ_BASE + irq)
+#define IRQ_BASE		32 // base index in IDT
+#define IRQ_IDT_INDEX(irq)	(IRQ_BASE + irq)
 
 #define INTERRUPT_MAX		256
 #define INTERRUPTS_DEFINED	IRQ_IDT_INDEX(IRQ_MAX)
