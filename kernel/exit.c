@@ -32,7 +32,7 @@ static pid_t _wait(int* __user status, const struct process* p, pid_t pid)
 		pid_t child_pid = child->pid;
 
 		if (child->state == PROC_ZOMBIE &&
-			(!pid || pid == child_pid))
+		    (!pid || pid == child_pid))
 		{
 			if (status) {
 				err = copy_to_user(status, &child->exit_status, sizeof(*status));

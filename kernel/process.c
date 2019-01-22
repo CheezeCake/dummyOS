@@ -123,7 +123,7 @@ static int copy_fds(const struct process* proc, struct process* child)
 }
 
 int process_fork(struct process* proc, const struct thread* fork_thread,
-				 struct process** child, struct thread** child_thread)
+		 struct process** child, struct thread** child_thread)
 {
 	struct process* new;
 	int err;
@@ -256,7 +256,7 @@ void process_set_name(struct process* proc, const char* name)
 }
 
 void process_set_process_image(struct process* proc,
-							   const struct process_image* img)
+			       const struct process_image* img)
 {
 	memcpy(&proc->img, img, sizeof(struct process_image));
 }
@@ -331,7 +331,7 @@ int process_pgrp_kill(int pgrp, uint32_t sig)
 }
 
 static inline void threads_foreach(struct process* proc,
-								   void (*f)(struct thread*))
+				   void (*f)(struct thread*))
 {
 	list_node_t* it;
 	list_node_t* next;
@@ -481,7 +481,7 @@ int process_add_file_at(struct process* proc, struct vfs_file* file, int fd)
 }
 
 int process_remove_file(struct process* proc, int fd,
-						struct vfs_file** removed)
+			struct vfs_file** removed)
 {
 	int err = 0;
 

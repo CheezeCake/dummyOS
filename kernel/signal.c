@@ -68,7 +68,7 @@ int sys_sigprocmask(int how, const sigset_t* set, sigset_t* oset)
 }
 
 int sigaction(int sig, const struct sigaction* restrict __kernel act,
-			  struct sigaction* restrict __kernel oact)
+	      struct sigaction* restrict __kernel oact)
 {
 	struct process* current_proc = sched_get_current_process();
 	struct signal_manager* sigm = current_proc->signals;
@@ -82,7 +82,7 @@ int sigaction(int sig, const struct sigaction* restrict __kernel act,
 }
 
 int sys_sigaction(int sig, const struct sigaction* restrict __user act,
-				  struct sigaction* restrict __user oact)
+		  struct sigaction* restrict __user oact)
 {
 	struct sigaction new;
 	struct sigaction old;
@@ -135,7 +135,7 @@ void sys_sigreturn(void)
 	}
 
 	queued_siginfo_t* qsinfo = list_entry(list_back(&sigm->handled_stack),
-										  queued_siginfo_t, s_queue);
+					      queued_siginfo_t, s_queue);
 	list_pop_back(&sigm->handled_stack);
 	sigm->mask = qsinfo->saved_mask;
 	queued_siginfo_destroy(qsinfo);
@@ -151,7 +151,7 @@ static inline bool sigaction_is(const struct sigaction* act, sighandler_t hdlr)
 }
 
 static void siginfo_init(siginfo_t* sinfo, int sig,
-						 void* addr, const struct process* sender)
+			 void* addr, const struct process* sender)
 {
 	memset(sinfo, 0, sizeof(siginfo_t));
 
@@ -165,7 +165,7 @@ static void siginfo_init(siginfo_t* sinfo, int sig,
 }
 
 static void queued_siginfo_init(queued_siginfo_t* qsinfo, int sig,
-								void* addr, const struct process* sender)
+				void* addr, const struct process* sender)
 {
 	siginfo_init(&qsinfo->sinfo, sig, addr, sender);
 	qsinfo->saved_mask = 0;
@@ -173,8 +173,8 @@ static void queued_siginfo_init(queued_siginfo_t* qsinfo, int sig,
 }
 
 static int queued_siginfo_create(int sig, void* addr,
-								 const struct process* sender,
-								 queued_siginfo_t** result)
+				 const struct process* sender,
+				 queued_siginfo_t** result)
 {
 	queued_siginfo_t* qsinfo = kmalloc(sizeof(queued_siginfo_t));
 	if (!qsinfo)
@@ -271,7 +271,7 @@ bool signal_pending(const struct signal_manager* sigm)
 }
 
 static inline bool signal_is(int sig, const struct signal_manager* sigm,
-							 sighandler_t hdlr)
+			     sighandler_t hdlr)
 {
 	const struct sigaction* act = &sigm->actions[sig - 1];
 	return sigaction_is(act, hdlr);
@@ -288,7 +288,7 @@ bool signal_is_ign(int sig, const struct signal_manager* sigm)
 }
 
 int signal_send(struct signal_manager* sigm, int sig, void* addr,
-				const struct process* sender)
+		const struct process* sender)
 {
 	queued_siginfo_t* qsinfo;
 	int err;
@@ -314,8 +314,8 @@ siginfo_t* signal_pop(struct signal_manager* sigm)
 		return NULL;
 
 	queued_siginfo_t* ret = list_entry(list_front(&sigm->sig_queue),
-									   queued_siginfo_t,
-									   s_queue);
+					   queued_siginfo_t,
+					   s_queue);
 	list_pop_front(&sigm->sig_queue);
 
 	return &ret->sinfo;
@@ -327,7 +327,7 @@ static inline queued_siginfo_t* siginfo_get_queued_siginfo(siginfo_t* sinfo)
 }
 
 static int copy_to_user_stack(struct cpu_context* cpu_ctx, const void* data,
-							   size_t size, size_t alignment)
+			      size_t size, size_t alignment)
 {
 	v_addr_t usr_stack = cpu_context_get_user_sp(cpu_ctx);
 	int err;
@@ -350,7 +350,7 @@ static v_addr_t setup_signal_trampoline(struct cpu_context* cpu_ctx)
 	int err;
 
 	err = copy_to_user_stack(cpu_ctx, &__sig_tramp_start, sig_tramp_size,
-							 sizeof(void*));
+				 sizeof(void*));
 
 	return (err) ? 0 : cpu_context_get_user_sp(cpu_ctx);
 }
@@ -432,7 +432,7 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 
 	if (act->sa_flags & SA_SIGINFO) {
 		err = copy_to_user_stack(sh_ctx, sinfo, sizeof(siginfo_t),
-								 _Alignof(siginfo_t));
+					 _Alignof(siginfo_t));
 		if (err)
 			goto fail;
 		handler_args[1] = cpu_context_get_user_sp(sh_ctx);
@@ -445,7 +445,7 @@ int handle(siginfo_t* sinfo, struct thread* thr)
 	}
 
 	err = cpu_context_setup_signal_handler(sh_ctx, handler, sig_tramp,
-										   handler_args, handler_args_n);
+					       handler_args, handler_args_n);
 	if (err)
 		goto fail;
 

@@ -55,7 +55,7 @@ int user_args_set_arg(user_args_t* user_args, size_t i, char* str)
 }
 
 static inline const char* user_args_get_arg(const user_args_t* user_args,
-											size_t i)
+					    size_t i)
 {
 	return (i < user_args->size) ? user_args->args[i].str : NULL;
 }
@@ -96,7 +96,7 @@ static inline size_t user_args_array_size(const user_args_t* user_args)
 }
 
 static int user_args_copy_from_user(char* const __user args[],
-									user_args_t* user_args)
+				    user_args_t* user_args)
 {
 	ssize_t size = 0;
 	char* str_copy;
@@ -126,8 +126,8 @@ static int user_args_copy_from_user(char* const __user args[],
 }
 
 static int user_args_copy_to_user(const user_args_t* user_args,
-								  v_addr_t __user stack_top, size_t stack_size,
-								  v_addr_t* args)
+				  v_addr_t __user stack_top, size_t stack_size,
+				  v_addr_t* args)
 {
 	v_addr_t data = stack_top - user_args_data_size(user_args);
 	v_addr_t array = data - user_args_array_size(user_args);
@@ -153,7 +153,7 @@ static int user_args_copy_to_user(const user_args_t* user_args,
 
 	// last element (NULL)
 	err = copy_to_user(&((char**)array)[user_args->size], &(char*){NULL},
-					   sizeof(char*));
+			   sizeof(char*));
 
 	*args = array;
 
@@ -161,8 +161,8 @@ static int user_args_copy_to_user(const user_args_t* user_args,
 }
 
 static int main_args_copy_to_user(v_addr_t argc, v_addr_t __user argv,
-								  v_addr_t __user envp, v_addr_t stack_top,
-								  size_t stack_size, v_addr_t* main_args)
+				  v_addr_t __user envp, v_addr_t stack_top,
+				  size_t stack_size, v_addr_t* main_args)
 {
 	v_addr_t* __user args = (v_addr_t*)argv - 3;
 	int err;
@@ -187,8 +187,8 @@ static int main_args_copy_to_user(v_addr_t argc, v_addr_t __user argv,
 }
 
 static int setup_user_args(v_addr_t stack_bottom, size_t stack_size,
-						   const user_args_t* argv, const user_args_t* envp,
-						   v_addr_t* args)
+			   const user_args_t* argv, const user_args_t* envp,
+			   v_addr_t* args)
 {
 	const v_addr_t stack_top = stack_bottom + stack_size - 1;
 	v_addr_t argc_val = argv->size;
@@ -205,7 +205,7 @@ static int setup_user_args(v_addr_t stack_bottom, size_t stack_size,
 		return err;
 
 	err = main_args_copy_to_user(argc_val, argv_val, envp_val, stack_top,
-								 stack_size, args);
+				     stack_size, args);
 	if (err)
 		return err;
 
@@ -221,8 +221,8 @@ static int create_user_stack(v_addr_t* stack_bottom, size_t stack_size)
 	*stack_bottom = stack_top - stack_size;
 
 	err = vmm_create_user_mapping(*stack_bottom, stack_size,
-								  VMM_PROT_USER | VMM_PROT_WRITE,
-								  VMM_MAP_GROWSDOW);
+				      VMM_PROT_USER | VMM_PROT_WRITE,
+				      VMM_MAP_GROWSDOW);
 
 	return err;
 }
@@ -252,7 +252,7 @@ fail_open:
 }
 
 static inline const char* get_new_process_name(const char* path,
-											   const user_args_t* argv)
+					       const user_args_t* argv)
 {
 	return (argv && argv->size > 0) ? user_args_get_arg(argv, 0) : path;
 }
@@ -316,7 +316,7 @@ fail:
 }
 
 int sys_execve(const char* __user path, char* const __user argv[],
-			   char* const __user envp[])
+	       char* const __user envp[])
 {
 	char* kpath;
 	user_args_t kargv;

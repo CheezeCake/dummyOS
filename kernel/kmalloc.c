@@ -31,7 +31,7 @@ typedef struct memory_block_header
 } memory_block_header_t;
 
 static_assert(sizeof(memory_block_header_t) % ALIGNMENT == 0,
-			  "sizeof(memory_block_header_t) is not a multiple of ALIGNMENT");
+	      "sizeof(memory_block_header_t) is not a multiple of ALIGNMENT");
 
 static bool kmalloc_init_done = false;
 
@@ -41,20 +41,20 @@ static void dump(void)
 	memory_block_header_t* block;
 
 	for (block = (memory_block_header_t*)kheap_get_start();
-		 block;
-		 block = block->next)
+	     block;
+	     block = block->next)
 	{
 		log_i_printf("[%p: 0x%x bytes %s] ", block, block->size,
-					 (block->used) ? "used" : "free");
+			     (block->used) ? "used" : "free");
 	}
 	log_i_putchar('\n');
 }
 #endif
 
 static inline void make_memory_block(memory_block_header_t* ptr,
-									 memory_block_header_t* next,
-									 size_t size,
-									 bool used)
+				     memory_block_header_t* next,
+				     size_t size,
+				     bool used)
 {
 	ptr->magic = MAGIC;
 	ptr->next = next;
@@ -154,8 +154,8 @@ void kfree(void* ptr)
 
 	if (!is_aligned((v_addr_t)ptr, ALIGNMENT)) {
 		log_i_printf("Trying to free invalid address! "
-					 "%p is not %d-byte aligned.\n",
-					 ptr, ALIGNMENT);
+			     "%p is not %d-byte aligned.\n",
+			     ptr, ALIGNMENT);
 		return;
 	}
 
@@ -165,7 +165,7 @@ void kfree(void* ptr)
 
 	if (block->magic != MAGIC) {
 		log_i_printf("Trying to free an invalid block! "
-					 "Invalid magic number (%p)\n", (void*)block);
+			     "Invalid magic number (%p)\n", (void*)block);
 		goto end;
 	}
 	if (!block->used) {
@@ -194,7 +194,7 @@ v_addr_t kmalloc_early(size_t size)
 {
 	if (kmalloc_init_done)
 		PANIC("kmalloc_early was called after the initialization of the "
-			  "kmalloc subsytem!");
+		      "kmalloc subsytem!");
 
 	const v_addr_t kernel_end = kernel_image_get_virt_end();
 	kernel_image_shift_kernel_end(align_up(size, ALIGNMENT));

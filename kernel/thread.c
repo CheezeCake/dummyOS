@@ -39,13 +39,13 @@ static void thread_reset(struct thread* thread)
 void __thread_destroy(struct thread* thread)
 {
 	log_printf("#### %s(): %s (%p) state=%d\n", __func__, thread->name,
-			   (void*)thread, thread->state);
+		   (void*)thread, thread->state);
 	thread_reset(thread);
 	kfree(thread);
 }
 
 static int init(struct thread* thread, char* name, size_t kstack_size,
-				enum thread_type type, thread_priority_t priority)
+		enum thread_type type, thread_priority_t priority)
 {
 	int err;
 
@@ -70,7 +70,7 @@ static int init(struct thread* thread, char* name, size_t kstack_size,
 }
 
 static int __thread_create(char* name, size_t kstack_size,
-						   enum thread_type type, struct thread** result)
+			   enum thread_type type, struct thread** result)
 {
 	int err;
 
@@ -120,7 +120,7 @@ static void clone_kstack(const struct thread* thread, struct thread* new)
 
 	// copies cpu_context
 	memcpy((void*)new->kstack.sp, (void*)thread->kstack.sp,
-		   thread->kstack.size);
+	       thread->kstack.size);
 }
 
 static int clone(const struct thread* thread, char* name, struct thread* new)
@@ -135,7 +135,7 @@ static int clone(const struct thread* thread, char* name, struct thread* new)
 }
 
 int thread_clone(const struct thread* thread, char* name,
-				 struct thread** result)
+		 struct thread** result)
 {
 	int err;
 
@@ -208,12 +208,12 @@ static void __thread_intr_sleep(struct thread* thr)
 int thread_intr_sleep(struct thread* thr)
 {
 	if (thr->type == KTHREAD ||
-		thread_get_state(thr) != THREAD_SLEEPING)
+	    thread_get_state(thr) != THREAD_SLEEPING)
 		return -EINVAL;
 
 	kassert(!cpu_context_is_usermode(thr->cpu_context));
 	kassert((v_addr_t)thr->syscall_ctx > thr->kstack.sp &&
-			(v_addr_t)thr->syscall_ctx <= thread_get_kstack_top(thr));
+		(v_addr_t)thr->syscall_ctx <= thread_get_kstack_top(thr));
 	kassert(cpu_context_is_usermode(thr->syscall_ctx));
 
 	__thread_intr_sleep(thr);

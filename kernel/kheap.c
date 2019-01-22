@@ -13,15 +13,15 @@ static v_addr_t kheap_end;
 static void dump(void)
 {
 	log_i_printf("start = %p, end = %p, size = %p, initial_size = 0x%x"
-				 " | KHEAP_LIMIT = 0x%x\n",
-				 (void*)kheap_start, (void*)kheap_end,
-				 (void*)(kheap_end - kheap_start),
-				 KHEAP_INITIAL_SIZE, KHEAP_LIMIT);
+		     " | KHEAP_LIMIT = 0x%x\n",
+		     (void*)kheap_start, (void*)kheap_end,
+		     (void*)(kheap_end - kheap_start),
+		     KHEAP_INITIAL_SIZE, KHEAP_LIMIT);
 }
 
 static mapping_t initial_kheap_mapping;
 static p_addr_t
-	initial_region_frames[align_up(KHEAP_INITIAL_SIZE, PAGE_SIZE) / PAGE_SIZE];
+initial_region_frames[align_up(KHEAP_INITIAL_SIZE, PAGE_SIZE) / PAGE_SIZE];
 static region_t initial_kheap_region;
 
 static int init_kheap_mappping(v_addr_t start)
@@ -30,10 +30,10 @@ static int init_kheap_mappping(v_addr_t start)
 	size_t nr_frames = page_align_up(KHEAP_INITIAL_SIZE) / PAGE_SIZE;
 
 	err =  __region_init(&initial_kheap_region, initial_region_frames,
-						 nr_frames, VMM_PROT_WRITE);
+			     nr_frames, VMM_PROT_WRITE);
 	if (!err)
 		err = __mapping_init(&initial_kheap_mapping, &initial_kheap_region,
-							 start, KHEAP_INITIAL_SIZE, 0);
+				     start, KHEAP_INITIAL_SIZE, 0);
 
 	return err;
 }
