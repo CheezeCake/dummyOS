@@ -1,6 +1,8 @@
 #ifndef _I8259_H_
 #define _I8259_H_
 
+#include <kernel/types.h>
+
 #define PIC_MASTER 0x20
 #define PIC_SLAVE 0xa0
 #define PIC_MASTER_DATA (PIC_MASTER + 1)
