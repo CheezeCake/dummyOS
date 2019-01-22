@@ -42,7 +42,7 @@ void vmm_switch_to(struct vmm* vmm)
 {
 	if (vmm != current_vmm) {
 		log_printf("%s(): switching from %p to %p\n", __func__,
-				   (void*)current_vmm, (void*)vmm);
+			   (void*)current_vmm, (void*)vmm);
 
 		if (current_vmm)
 			vmm_unref(current_vmm);
@@ -156,7 +156,7 @@ int vmm_sync_kernel_space(void* data)
 			int err = vmm_impl->sync_kernel_space(vmm, data);
 			if (err) {
 				log_e_printf("%s: failed to sync kernel mapping (data=%p),"
-							 "vmm %p\n", __func__, (void*)data, (void*)vmm);
+					     "vmm %p\n", __func__, (void*)data, (void*)vmm);
 				PANIC("sync kernel space");
 			}
 		}
@@ -166,7 +166,7 @@ int vmm_sync_kernel_space(void* data)
 }
 
 static int vmm_create_mapping(v_addr_t start, size_t size, int prot, int flags,
-							  mapping_t** result)
+			      mapping_t** result)
 {
 	mapping_t* mapping;
 	int err;
@@ -246,14 +246,14 @@ int vmm_create_kernel_mapping(v_addr_t start, size_t size, int prot)
 }
 
 static inline bool is_within_physical_memory_bounds(p_addr_t start,
-													p_addr_t end)
+						    p_addr_t end)
 {
 	return (start >= memory_get_memory_base() &&
-			end <= memory_get_memory_top());
+		end <= memory_get_memory_top());
 }
 
 int vmm_map_to_kernel_space(p_addr_t start, size_t size, int prot,
-							v_addr_t mapping_addr)
+			    v_addr_t mapping_addr)
 {
 	mapping_t* mapping;
 	int err;
@@ -269,7 +269,7 @@ int vmm_map_to_kernel_space(p_addr_t start, size_t size, int prot,
 
 
 	err = mapping_create_from_range(mapping_addr, start, size,
-									prot & ~VMM_PROT_USER, 0, &mapping);
+					prot & ~VMM_PROT_USER, 0, &mapping);
 	if (err)
 		return err;
 
@@ -322,13 +322,13 @@ bool vmm_is_userspace_address(v_addr_t addr)
 bool vmm_is_valid_userspace_address(v_addr_t addr)
 {
 	return (vmm_is_userspace_address(addr) &&
-			find_mapping(&current_vmm->mappings, addr));
+		find_mapping(&current_vmm->mappings, addr));
 }
 
 static inline bool range_in_userspace(v_addr_t start, size_t size)
 {
 	return (vmm_is_userspace_address(start) &&
-			vmm_is_userspace_address(start + size - 1));
+		vmm_is_userspace_address(start + size - 1));
 }
 
 int vmm_create_user_mapping(v_addr_t addr, size_t size, int prot, int flags)
@@ -392,7 +392,7 @@ int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 		return -EINVAL;
 
 	err = vmm_create_user_mapping(ext_start, increment, mapping->region->prot,
-								  mapping->flags);
+				      mapping->flags);
 
 	return err;
 }
@@ -409,7 +409,7 @@ void* sys_sbrk(intptr_t increment)
 	mapping = find_mapping(&current_vmm->mappings, brk);
 	if (!mapping) {
 		err = vmm_create_user_mapping(brk, increment,
-									  VMM_PROT_USER | VMM_PROT_WRITE, 0);
+					      VMM_PROT_USER | VMM_PROT_WRITE, 0);
 	}
 	else {
 		err = vmm_extend_user_mapping(brk, increment);
@@ -446,7 +446,7 @@ static int handle_cow_fault(mapping_t* mapping, int flags)
 	}
 
 	err = region_create(mapping_size_in_pages(mapping),
-						mapping->region->prot, &copy);
+			    mapping->region->prot, &copy);
 	if (err)
 		return err;
 
@@ -477,13 +477,13 @@ static int handle_cow_fault(mapping_t* mapping, int flags)
 v_addr_t vmm_handle_page_fault(v_addr_t fault_addr, int flags)
 {
 	log_e_printf("#PF: %p (flags=%p)\n", (void*)fault_addr,
-				 (void*)(v_addr_t)flags);
+		     (void*)(v_addr_t)flags);
 
 	mapping_t* mapping = find_mapping(&current_vmm->mappings, fault_addr);
 
 	if (flags & VMM_FAULT_USER) {
 		if (mapping && flags & VMM_FAULT_WRITE &&
-			mapping->region->prot & VMM_PROT_WRITE)
+		    mapping->region->prot & VMM_PROT_WRITE)
 		{
 			handle_cow_fault(mapping, flags);
 		}

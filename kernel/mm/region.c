@@ -39,7 +39,7 @@ int region_get_ref(const region_t* region)
 }
 
 static void region_init_from_frames(region_t* region, p_addr_t* frames,
-									size_t nr_frames, int prot)
+				    size_t nr_frames, int prot)
 {
 	region->frames = frames;
 	region->nr_frames = nr_frames;
@@ -48,7 +48,7 @@ static void region_init_from_frames(region_t* region, p_addr_t* frames,
 }
 
 static int region_init_from_range(region_t* region, p_addr_t start, size_t size,
-								  int prot)
+				  int prot)
 {
 	p_addr_t* frames;
 	size_t nr_frames = page_align_up(size) / PAGE_SIZE;
@@ -67,7 +67,7 @@ static int region_init_from_range(region_t* region, p_addr_t start, size_t size,
 }
 
 int region_create_from_range(p_addr_t start, size_t size, int prot,
-							 region_t** result)
+			     region_t** result)
 {
 	region_t* region;
 	int err;
@@ -88,7 +88,7 @@ int region_create_from_range(p_addr_t start, size_t size, int prot,
 }
 
 int __region_init(region_t* region, p_addr_t* frames, size_t nr_frames,
-				  int prot)
+		  int prot)
 {
 	bool frames_ok = true;
 

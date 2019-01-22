@@ -42,7 +42,7 @@ int wait_wake(wait_queue_t* wq, unsigned int nb_threads)
 
 	while (!list_empty(&wq->threads) && n < nb_threads) {
 		struct thread* thread = list_entry(list_front(&wq->threads),
-										   struct thread, wqe);
+						   struct thread, wqe);
 		list_pop_front(&wq->threads);
 
 		if (sched_add_thread(thread) == 0)

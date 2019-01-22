@@ -234,7 +234,7 @@ int memory_page_frame_free(p_addr_t addr)
 }
 
 void memory_statistics(unsigned int* nb_used_page_frames,
-					   unsigned int* nb_free_page_frames)
+		       unsigned int* nb_free_page_frames)
 {
 	*nb_used_page_frames = used_page_frames.n;
 	*nb_free_page_frames = free_page_frames.n;

@@ -3,7 +3,7 @@
 #include <libk/libk.h>
 
 int timer_init(struct timer* timer, const struct timespec* delay,
-			   timer_callback_t cb)
+	       timer_callback_t cb)
 {
 	time_get_current(&timer->time);
 	timespec_add(&timer->time, delay);

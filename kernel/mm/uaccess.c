@@ -9,12 +9,12 @@ extern v_addr_t __fixup_addr;
 // this is used to avoid the compiler optimizing away the fixup label
 int __false = 0;
 
-#define uaccess_setup(fixup_label)				\
-	do {										\
+#define uaccess_setup(fixup_label)			\
+	do {						\
 		__fixup_addr = (v_addr_t)&&fixup_label; \
-		vmm_uaccess_setup();					\
-		if (__false)							\
-			goto fixup;							\
+		vmm_uaccess_setup();			\
+		if (__false)				\
+		goto fixup;				\
 	} while (0)
 
 #define uaccess_reset() \

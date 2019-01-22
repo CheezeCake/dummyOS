@@ -43,7 +43,7 @@ static inline thread_priority_t first_non_empty_queue_priority(void)
 {
 	thread_priority_t i = SCHED_PRIORITY_LEVEL_MAX;
 	while (list_empty(&ready_queues[i]) && i > 0)
-			--i;
+		--i;
 	return i;
 }
 
@@ -108,9 +108,9 @@ static inline void set_current_thread(struct thread* thr)
 static void log_sched_switch(const struct thread* from, const struct thread* to)
 {
 	log_printf("switching from %s (%p, pid=%d) ", (from) ? from ->name : NULL,
-			   (void*)from, (from && from->process) ? from->process->pid : 0);
+		   (void*)from, (from && from->process) ? from->process->pid : 0);
 	log_printf("to %s (%p, pid=%d)\n", (to) ? to ->name : NULL,
-			   (void*)to, (to && to->process) ? to->process->pid : 0);
+		   (void*)to, (to && to->process) ? to->process->pid : 0);
 }
 
 struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
@@ -126,8 +126,8 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 		next = next_thread();
 		set_current_thread(next);
 	} while (next->type == UTHREAD &&
-			 process_signal_pending(next->process) &&
-			signal_handle(next) != 0); // deliver pending signal
+		 process_signal_pending(next->process) &&
+		 signal_handle(next) != 0); // deliver pending signal
 
 	log_sched_switch(prev, next);
 
@@ -143,8 +143,8 @@ struct cpu_context* sched_schedule_yield(struct cpu_context* cpu_ctx)
 struct cpu_context* sched_schedule(struct cpu_context* cpu_ctx)
 {
 	if (!current_thread ||
-		(preemptible(cpu_ctx) &&
-		 quatum_expired(current_thread, &current_thread_start)))
+	    (preemptible(cpu_ctx) &&
+	     quatum_expired(current_thread, &current_thread_start)))
 	{
 		return sched_schedule_yield(cpu_ctx);
 	}
@@ -162,7 +162,7 @@ int sched_add_thread(struct thread* thread)
 	kassert(thread != NULL);
 	if (thread->state != THREAD_RUNNING)
 		log_printf("%s(): %s (%p) state=%d\n", __func__, thread->name,
-				   (void*)thread, thread->state);
+			   (void*)thread, thread->state);
 
 	if (thread->state != THREAD_DEAD) {
 		thread_set_state(thread, THREAD_READY);
@@ -284,14 +284,14 @@ static void __sched_sleep()
 	thread_set_state(current_thread, THREAD_SLEEPING);
 
 	kassert(thread_get_ref(current_thread) > 1 &&
-			"putting thread to sleep without taking ownership");
+		"putting thread to sleep without taking ownership");
 	thread_unref(current_thread);
 }
 
 void sched_nanosleep(const struct timespec* timeout)
 {
 	log_printf("%s(): %s (%p) state=%d\n", __func__, current_thread->name,
-			   (void*)current_thread, current_thread->state);
+		   (void*)current_thread, current_thread->state);
 
 	struct timer* timer = &current_thread->timer;
 	timer_init(timer, timeout, sched_timer_callback);
@@ -306,7 +306,7 @@ void sched_nanosleep(const struct timespec* timeout)
 void sched_sleep_event(void)
 {
 	log_printf("%s(): %s (%p) state=%d\n", __func__, current_thread->name,
-			   (void*)current_thread, current_thread->state);
+		   (void*)current_thread, current_thread->state);
 
 	__sched_sleep();
 

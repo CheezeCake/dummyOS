@@ -17,8 +17,8 @@ void mapping_destroy(mapping_t* mapping)
 }
 
 static int mapping_init_from_range(mapping_t* mapping, v_addr_t mstart,
-								   p_addr_t pstart, size_t size, int prot,
-								   int flags)
+				   p_addr_t pstart, size_t size, int prot,
+				   int flags)
 {
 	region_t* region;
 	int err;
@@ -35,7 +35,7 @@ static int mapping_init_from_range(mapping_t* mapping, v_addr_t mstart,
 }
 
 int mapping_create_from_range(v_addr_t mstart, p_addr_t pstart, size_t size,
-							  int prot, int flags, mapping_t** result)
+			      int prot, int flags, mapping_t** result)
 {
 	mapping_t* mapping;
 	int err;
@@ -56,7 +56,7 @@ int mapping_create_from_range(v_addr_t mstart, p_addr_t pstart, size_t size,
 }
 
 int __mapping_init(mapping_t* mapping, region_t* region, v_addr_t start,
-				   size_t size, int flags)
+		   size_t size, int flags)
 {
 	if (start + size < start)
 		return -EOVERFLOW;
@@ -72,7 +72,7 @@ int __mapping_init(mapping_t* mapping, region_t* region, v_addr_t start,
 }
 
 static int mapping_init(mapping_t* mapping, v_addr_t start, size_t size,
-						int prot, int flags)
+			int prot, int flags)
 {
 	region_t* region;
 	v_addr_t end = start + size;
@@ -91,7 +91,7 @@ static int mapping_init(mapping_t* mapping, v_addr_t start, size_t size,
 }
 
 int mapping_create(v_addr_t start, size_t size, int prot, int flags,
-				   mapping_t** result)
+		   mapping_t** result)
 {
 	mapping_t* mapping;
 	int err;

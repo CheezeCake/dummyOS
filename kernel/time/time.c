@@ -98,7 +98,7 @@ void time_nanosleep_intr(struct thread* thr)
 }
 
 int sys_nanosleep(const struct timespec* __user timeout,
-				  struct timespec* __user remainder)
+		  struct timespec* __user remainder)
 {
 	struct timespec ktimeout;
 	int err;
