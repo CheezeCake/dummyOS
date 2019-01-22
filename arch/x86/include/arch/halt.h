@@ -1,9 +1,9 @@
 #ifndef _ARCH_HALT_H_
 #define _ARCH_HALT_H_
 
-#define HALT()			\
-	__asm__ ("cli\n"	\
-		  "hlt");	\
-		  for (;;)
+static inline void __halt(void)
+{
+	__asm__ ("hlt");
+}
 
 #endif
