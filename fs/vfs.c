@@ -102,10 +102,10 @@ static int readlink(const struct vfs_cache_node* symlink,
 	if (err)
 		return err;
 
-	if (vfs_path_absolute(target_path))
+	if (!vfs_path_absolute(target_path))
 		start = vfs_cache_node_get_parent(symlink); // refs start
 
-	err = lookup_path(target_path, start, root, target, recursion_level + 1);
+	err = lookup_path(target_path, root, start, target, recursion_level + 1);
 
 	if (start != root)
 		vfs_cache_node_unref(start); // unref start
