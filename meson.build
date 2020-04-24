@@ -30,8 +30,8 @@ cc = meson.get_compiler('c')
 libgcc = cc.find_library('gcc', required: true)
 
 # build targets
-kernel_bin = 'dummy_os.bin'
-bin = executable(kernel_bin,
+kernel_elf = 'dummy_os.elf'
+elf = executable(kernel_elf,
   src,
   include_directories: inc,
   implicit_include_directories: false,
@@ -44,21 +44,21 @@ bin = executable(kernel_bin,
 kernel_iso = 'dummy_os.iso'
 iso = custom_target('iso',
   output: kernel_iso,
-  command: [files(join_paths('scripts', 'iso.sh')), kernel_bin, '@OUTPUT@', '/home/manu/dummyOS_user/archive'],
-  depends: bin
+  command: [files(join_paths('scripts', 'iso.sh')), kernel_elf, '@OUTPUT@', '/home/manu/dummyOS_user/archive'],
+  depends: elf
   )
 
 # run targets
 qemu = join_paths('scripts', 'qemu.sh')
 run_target('run',
-  command: [qemu, arch, '-kernel', kernel_bin, '-initrd', '/home/manu/dummyOS_user/archive'],
-  depends: bin
+  command: [qemu, arch, '-kernel', kernel_elf, '-initrd', '/home/manu/dummyOS_user/archive'],
+  depends: elf
   )
 run_target('run-iso',
   command: [qemu, arch, '-cdrom', kernel_iso],
   depends: iso
   )
 run_target('debug',
-  command: [qemu, arch, '-kernel', kernel_bin, '-initrd', '/home/manu/dummyOS_user/archive', '-s', '-S'],
-  depends: bin
+  command: [qemu, arch, '-kernel', kernel_elf, '-initrd', '/home/manu/dummyOS_user/archive', '-s', '-S'],
+  depends: elf
   )
