@@ -4,7 +4,7 @@ compile_commands.json
 .gdb_history
 .gdbinit
 peda-session-*.txt
-build/
+build*/
 doc/
 Doxyfile
 run-clang-tidy.py
