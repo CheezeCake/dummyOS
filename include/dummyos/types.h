@@ -28,9 +28,7 @@ typedef unsigned long ino_t;
 
 typedef uint32_t mode_t;
 
-#define unsigned signed
-typedef size_t ssize_t;
-#undef unsigned
+typedef long ssize_t;
 
 typedef int64_t time_t;
 
