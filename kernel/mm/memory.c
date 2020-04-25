@@ -10,55 +10,32 @@
 
 static LIST_DEFINE(mem_layout);
 
-static mem_area_t* memory_layout_find_area(p_addr_t addr)
+static const mem_area_t* memory_layout_find_area(p_addr_t addr,
+						 const mem_area_t* mem_layout,
+						 size_t layout_len,
+						 const mem_area_t* kernel_area)
 {
-	list_node_t* it;
+	static const mem_area_t null = MEMORY_AREA(0, PAGE_SIZE, "null");
+	if (addr < PAGE_SIZE)
+		return &null;
+	if (addr >= kernel_area->start && addr < kernel_area->end)
+		return kernel_area;
 
-	list_foreach(&mem_layout, it) {
-		mem_area_t* m = list_entry(it, mem_area_t, m_layout);
-		if (addr >= m->start && addr <= m->end)
-			return m;
+	ssize_t lo = 0;
+	ssize_t hi = layout_len - 1;
+
+	while (lo <= hi) {
+		ssize_t mid = (lo + hi) / 2;
+		if (addr > mem_layout[mid].end)
+			lo = mid + 1;
+		else if (addr < mem_layout[mid].start)
+			hi = mid - 1;
+		else
+			return &mem_layout[mid];
 	}
 
 	return NULL;
 }
-
-static void memory_layout_insert_area(mem_area_t* area)
-{
-	list_node_t* it;
-
-	list_foreach(&mem_layout, it) {
-		mem_area_t* m = list_entry(it, mem_area_t, m_layout);
-		if (m->start > m->end) {
-			list_insert_before(it, &area->m_layout);
-			return;
-		}
-	}
-
-	list_push_back(&mem_layout, &area->m_layout);
-}
-
-void memory_layout_init(mem_area_t* layout, size_t n)
-{
-	for (size_t i = 0; i < n; ++i)
-		memory_layout_insert_area(&layout[i]);
-}
-
-static void memory_layout_add_kernel(void)
-{
-	static mem_area_t first;
-	mem_area_init(&first, 0, 0x1000, "null");
-	memory_layout_insert_area(&first);
-
-	static mem_area_t kernel;
-
-	const p_addr_t kernel_base = kernel_image_get_base_page_frame();
-	const p_addr_t kernel_top = kernel_image_get_top_page_frame();
-	mem_area_init(&kernel, kernel_base, kernel_top, "kernel");
-
-	memory_layout_insert_area(&kernel);
-}
-
 
 /*
  * describes a physical page
@@ -129,7 +106,7 @@ static void memory_init_constants(size_t ram_size_bytes)
 	memory_top = ram_size_bytes - top_memory_left;
 }
 
-void memory_init(size_t ram_size_bytes)
+void memory_init(size_t ram_size_bytes, const mem_area_t* mem_layout, size_t layout_len)
 {
 	const char free_label[] = "free";
 	const char* label = NULL;
@@ -140,7 +117,9 @@ void memory_init(size_t ram_size_bytes)
 	memory_pf_list_init(&free_page_frames);
 	memory_pf_list_init(&used_page_frames);
 
-	memory_layout_add_kernel();
+	const p_addr_t kernel_base = kernel_image_get_base_page_frame();
+	const p_addr_t kernel_top = kernel_image_get_top_page_frame();
+	const mem_area_t kernel_area = MEMORY_AREA(kernel_base, kernel_top, "kernel");
 
 	struct page_frame* pf_descriptor = page_frame_descriptors;
 	p_addr_t paddr = 0;
@@ -148,7 +127,7 @@ void memory_init(size_t ram_size_bytes)
 	while (paddr < memory_top)
 	{
 		pf_list_t* list;
-		const mem_area_t* m = memory_layout_find_area(paddr);
+		const mem_area_t* m = memory_layout_find_area(paddr, mem_layout, layout_len, &kernel_area);
 		p_addr_t s;
 
 		if (m) {

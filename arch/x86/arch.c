@@ -15,7 +15,6 @@
 #include "i8254.h"
 #include "idt.h"
 #include "irq.h"
-#include "mm/memory.h"
 #include "mm/paging.h"
 #include "mm/vmm.h"
 #include "tss.h"
@@ -86,11 +85,13 @@ int arch_init(void)
 	return i8254_set_tick_interval(TICK_INTERVAL_IN_MS);
 }
 
+static const mem_area_t mem_layout[] = {
+	MEMORY_AREA(0xa0000, 0x100000, "MMIO"),
+};
+
 int arch_mm_init(size_t ram_size_bytes)
 {
-	x86_memory_init();
-
-	memory_init(ram_size_bytes);
+	memory_init(ram_size_bytes, mem_layout, ARRAY_SIZE(mem_layout));
 
 	vmm_register();
 

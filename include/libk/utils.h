@@ -17,6 +17,4 @@
 
 #define member_size(type, member) sizeof(((type *)0)->member)
 
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-
 #endif

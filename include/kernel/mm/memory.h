@@ -13,8 +13,6 @@ typedef struct memory_area
 #ifndef NDEBUG
 	char* label;
 #endif
-
-	list_node_t m_layout;
 } mem_area_t;
 
 #ifdef NDEBUG
@@ -56,7 +54,7 @@ static inline bool page_is_aligned(p_addr_t addr)
 	return is_aligned(addr, PAGE_SIZE);
 }
 
-void memory_init(size_t ram_size_bytes);
+void memory_init(size_t ram_size_bytes, const mem_area_t* mem_layout, size_t layout_len);
 
 p_addr_t memory_page_frame_alloc(void);
 
