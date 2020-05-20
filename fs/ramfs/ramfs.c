@@ -608,12 +608,9 @@ static int ramfs_readdir(struct vfs_file* this,
 					add_entry(this, cnode);
 				vfs_cache_node_unref(cnode);
 			}
+		}
 
-			fh = ustar_header_get_next_header(fh);
-		}
-		else {
-			done = true;
-		}
+		fh = ustar_header_get_next_header(fh);
 
 		vfs_path_reset(&cur_dirname);
 		vfs_path_reset(&cur_basename);
