@@ -18,7 +18,7 @@ struct tty
 	enum device_minor minor;
 	struct termios termios;
 
-	CIRC_BUF_DEFINE1(buffer, TTY_BUFFER_SIZE);
+	DEQUE_DEFINE1(buffer, TTY_BUFFER_SIZE);
 	int lines;
 
 	void (*putchar)(char c);
@@ -92,7 +92,7 @@ static int tty_init(struct tty* tty, enum device_minor minor,
 	tty->minor = minor;
 	termios_init(&tty->termios);
 
-	circ_buf_init(&tty->buffer, tty->circ_buf_buffer(buffer), TTY_BUFFER_SIZE);
+	deque_init(&tty->buffer, tty->deque_buffer(buffer), TTY_BUFFER_SIZE);
 	tty->lines = 0;
 
 	tty->putchar = putchar;
@@ -139,10 +139,10 @@ static int tty_input_c(struct tty* tty, char c)
 
 	if (l_canon(tty)) {
 		if (is_erase(tty, c)) {
-			if (!circ_buf_empty(&tty->buffer)) {
-				err = circ_buf_peek_last(&tty->buffer, &peek);
+			if (!deque_empty(&tty->buffer)) {
+				err = deque_back(&tty->buffer, &peek);
 				if (!err && peek != '\n') {
-					circ_buf_remove_last(&tty->buffer);
+					deque_pop_back(&tty->buffer, NULL);
 					if (l_echo(tty))
 						tty->putchar('\b');
 				}
@@ -151,7 +151,7 @@ static int tty_input_c(struct tty* tty, char c)
 		}
 	}
 
-	err = circ_buf_push(&tty->buffer, c);
+	err = deque_push_back(&tty->buffer, c);
 	if (err)
 		return err;
 
@@ -213,7 +213,7 @@ static int tty_close(struct vfs_file* this)
 	if (!tty)
 		return -EIO;
 
-	circ_buf_flush(&tty->buffer);
+	deque_flush(&tty->buffer);
 
 	return 0;
 }
@@ -234,12 +234,12 @@ static ssize_t tty_read(struct vfs_file* this, void* buf, size_t count)
 	while (!done) {
 		mutex_lock(&tty->lock);
 
-		if (circ_buf_empty(&tty->buffer)) {
+		if (deque_empty(&tty->buffer)) {
 			mutex_unlock(&tty->lock);
 			wait_wait(&tty->wq);
 		}
 		else {
-			err = circ_buf_peek(&tty->buffer, &c);
+			err = deque_front(&tty->buffer, &c);
 
 			if (err)
 				return n;
@@ -255,7 +255,7 @@ static ssize_t tty_read(struct vfs_file* this, void* buf, size_t count)
 				n -= 1;
 			}
 			else {
-				circ_buf_remove(&tty->buffer);
+				deque_pop_front(&tty->buffer, NULL);
 			}
 
 			mutex_unlock(&tty->lock);

@@ -6,7 +6,7 @@
 #include <kernel/panic.h>
 #include <kernel/sched/sched.h>
 #include <kernel/sched/wait.h>
-#include <libk/circ_buf.h>
+#include <libk/deque.h>
 #include <libk/libk.h>
 #include <libk/refcount.h>
 
@@ -17,7 +17,7 @@ static struct vfs_file_operations fifo_fops;
 
 struct pipe
 {
-	CIRC_BUF_DEFINE1(buffer, PIPE_BUFFER_SIZE);
+	DEQUE_DEFINE1(buffer, PIPE_BUFFER_SIZE);
 
 	mutex_t lock;
 	wait_queue_t wq;
@@ -28,7 +28,7 @@ struct pipe
 
 static void pipe_init(struct pipe* p)
 {
-	circ_buf_init(&p->buffer, p->circ_buf_buffer(buffer), PIPE_BUFFER_SIZE);
+	deque_init(&p->buffer, p->deque_buffer(buffer), PIPE_BUFFER_SIZE);
 
 	mutex_init(&p->lock);
 	wait_init(&p->wq);
@@ -238,12 +238,12 @@ static ssize_t __pipe_read(struct pipe* p, void* buf, size_t count)
 
 	mutex_lock(&p->lock);
 
-	if (circ_buf_empty(&p->buffer) && refcount_get(&p->writers) == 0) {
+	if (deque_empty(&p->buffer) && refcount_get(&p->writers) == 0) {
 		mutex_unlock(&p->lock);
 		return 0;
 	}
 
-	while (circ_buf_empty(&p->buffer)) {
+	while (deque_empty(&p->buffer)) {
 		mutex_unlock(&p->lock);
 
 		wait_wait(&p->wq);
@@ -252,10 +252,10 @@ static ssize_t __pipe_read(struct pipe* p, void* buf, size_t count)
 	}
 
 	do {
-		err = circ_buf_pop(&p->buffer, &c);
+		err = deque_pop_front(&p->buffer, &c);
 		if (!err)
 			buffer[n++] = c;
-	} while (!err && n < count && !circ_buf_empty(&p->buffer));
+	} while (!err && n < count && !deque_empty(&p->buffer));
 
 	mutex_unlock(&p->lock);
 	wait_wake_all(&p->wq);
@@ -288,7 +288,7 @@ static ssize_t __pipe_write(struct pipe* p, const void* buf, size_t count)
 	}
 
 	mutex_lock(&p->lock);
-	while (circ_buf_full(&p->buffer)) {
+	while (deque_full(&p->buffer)) {
 		mutex_unlock(&p->lock);
 
 		wait_wait(&p->wq);
@@ -296,8 +296,8 @@ static ssize_t __pipe_write(struct pipe* p, const void* buf, size_t count)
 		mutex_lock(&p->lock);
 	}
 
-	while (!err && n < count && !circ_buf_full(&p->buffer)) {
-		err = circ_buf_push(&p->buffer, buffer[n]);
+	while (!err && n < count && !deque_full(&p->buffer)) {
+		err = deque_push_back(&p->buffer, buffer[n]);
 		if (!err)
 			++n;
 	}

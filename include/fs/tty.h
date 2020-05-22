@@ -3,7 +3,7 @@
 
 #include <fs/device.h>
 #include <kernel/locking/mutex.h>
-#include <libk/circ_buf.h>
+#include <libk/deque.h>
 
 struct tty;
 
