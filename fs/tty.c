@@ -208,6 +208,13 @@ static int tty_open(struct vfs_file* this, int flags)
 
 static int tty_close(struct vfs_file* this)
 {
+	struct tty* tty = vfs_file_get_inode(this)->private_data;
+
+	if (!tty)
+		return -EIO;
+
+	circ_buf_flush(&tty->buffer);
+
 	return 0;
 }
 
@@ -232,8 +239,7 @@ static ssize_t tty_read(struct vfs_file* this, void* buf, size_t count)
 			wait_wait(&tty->wq);
 		}
 		else {
-			err = circ_buf_pop(&tty->buffer, &c);
-			mutex_unlock(&tty->lock);
+			err = circ_buf_peek(&tty->buffer, &c);
 
 			if (err)
 				return n;
@@ -247,9 +253,12 @@ static ssize_t tty_read(struct vfs_file* this, void* buf, size_t count)
 			if (is_eof(tty, c)) {
 				done = true;
 				n -= 1;
-				if (n > 0)
-					tty_input_c(tty, c);
 			}
+			else {
+				circ_buf_remove(&tty->buffer);
+			}
+
+			mutex_unlock(&tty->lock);
 		}
 	}
 
