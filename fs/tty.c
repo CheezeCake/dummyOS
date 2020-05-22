@@ -155,7 +155,7 @@ static int tty_input_c(struct tty* tty, char c)
 	if (err)
 		return err;
 
-	if (!l_canon(tty) || c == '\n') {
+	if (!l_canon(tty) || c == '\n' || is_eof(tty, c)) {
 		++tty->lines;
 		wait_wake_all(&tty->wq);
 	}
@@ -242,9 +242,14 @@ static ssize_t tty_read(struct vfs_file* this, void* buf, size_t count)
 
 			if (c == '\n')
 				--tty->lines;
-			if (n == count ||
-			    (l_canon(tty) && (c == '\n' || is_eof(tty, c))))
+			if (n == count || (l_canon(tty) && c == '\n'))
 				done = true;
+			if (is_eof(tty, c)) {
+				done = true;
+				n -= 1;
+				if (n > 0)
+					tty_input_c(tty, c);
+			}
 		}
 	}
 
