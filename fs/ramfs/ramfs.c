@@ -666,6 +666,8 @@ ssize_t ramfs_read(struct vfs_file* this, void* buf, size_t count)
 
 	memcpy(buf, (int8_t*)ramfs_inode->data + this->cur, count);
 
+	this->cur += count;
+
 	return count;
 }
 
