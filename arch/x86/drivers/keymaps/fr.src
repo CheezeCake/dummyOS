@@ -13,7 +13,7 @@ DEFINE_KEYMAP = {
 	[0x0b] = { [KBD_REGULAR] = 0xc3a0,	[KBD_SHIFT] = '0',		[KBD_CTRL] = 0 },
 	[0x0c] = { [KBD_REGULAR] = ')',		[KBD_SHIFT] = 0xc2b0,	[KBD_CTRL] = 0 },
 	[0x0d] = { [KBD_REGULAR] = '=',		[KBD_SHIFT] = '+',		[KBD_CTRL] = 0 },
-	[0x0e] = { [KBD_REGULAR] = '\b',	[KBD_SHIFT] = '\b',		[KBD_CTRL] = 0 },
+	[0x0e] = { [KBD_REGULAR] = 0x7f,	[KBD_SHIFT] = 0x7f,		[KBD_CTRL] = 0 },
 	[0x0f] = { [KBD_REGULAR] = '\t',	[KBD_SHIFT] = 0,		[KBD_CTRL] = 0 },
 	[0x10] = { [KBD_REGULAR] = 'a',		[KBD_SHIFT] = 'A',		[KBD_CTRL] = CTRL('A') },
 	[0x11] = { [KBD_REGULAR] = 'z',		[KBD_SHIFT] = 'Z',		[KBD_CTRL] = CTRL('Z') },

@@ -1,5 +1,4 @@
 #include <arch/memory.h>
-#include <arch/vm.h>
 #include <dummyos/errno.h>
 #include <kernel/kassert.h>
 #include <kernel/kernel_image.h>
@@ -10,6 +9,7 @@
 #include <libk/libk.h>
 #include "memory.h"
 #include "paging.h"
+#include "vm.h"
 
 #define index_in_pd(addr) (addr >> 22)
 #define index_in_pt(addr) ((addr >> 12) & 0x3ff)

@@ -90,7 +90,7 @@ void* kmalloc(size_t size)
 	while (block->next && (block->size < size || block->used))
 		block = block->next;
 
-	// out of memory
+	// out of memory ; try to sbrk()
 	if (block->size < size || block->used) {
 		size_t increment = kheap_sbrk(size);
 		if (increment == 0) {
@@ -98,12 +98,22 @@ void* kmalloc(size_t size)
 			goto end;
 		}
 
-		memory_block_header_t* new = next_block(block);
-		make_memory_block(new, NULL, increment, false);
+		if (block->used) {
+			memory_block_header_t* new = next_block(block);
+			make_memory_block(new, NULL, increment, false);
 
-		block->next = new;
+			block->next = new;
 
-		block = new;
+			block = new;
+		} else {
+			block->size += increment;
+		}
+	}
+
+	// sbrk() failed/couldn't allocate enough
+	if (block->size < size) {
+		block = NULL;
+		goto end;
 	}
 
 	// is the block large enough to be split?

@@ -7,24 +7,26 @@
 
 typedef struct memory_area
 {
-	v_addr_t start;
-	v_addr_t end;
+	p_addr_t start;
+	size_t size;
 
 #ifndef NDEBUG
 	char* label;
 #endif
+	v_addr_t vaddr;
 } mem_area_t;
 
 #ifdef NDEBUG
-# define MEMORY_AREA(s, e, l) { .start = (s), .end = (e) - 1, }
+# define MEMORY_AREA(s, sz, va, l) { .start = (s), .size = (sz), .vaddr = (va)}
 #else
-# define MEMORY_AREA(s, e, l) { .start = (s), .end = (e) - 1, .label = l }
+# define MEMORY_AREA(s, sz, va, l) { .start = (s), .size = (sz), .vaddr = (va), .label = l }
 #endif
 
-static inline void mem_area_init(mem_area_t* m, v_addr_t start, v_addr_t end, char* label)
+static inline void mem_area_init(mem_area_t* m, p_addr_t start, size_t size,
+				 char* label)
 {
 	m->start = start;
-	m->end = end - 1;
+	m->size = size;
 #ifndef NDEBUG
 	m->label = label;
 #endif
@@ -54,7 +56,10 @@ static inline bool page_is_aligned(p_addr_t addr)
 	return is_aligned(addr, PAGE_SIZE);
 }
 
-void memory_init(size_t ram_size_bytes, const mem_area_t* mem_layout, size_t layout_len);
+void __memory_early_init(void);
+
+void memory_init(size_t ram_size_bytes, const mem_area_t* mem_layout,
+		 size_t layout_len);
 
 p_addr_t memory_page_frame_alloc(void);
 

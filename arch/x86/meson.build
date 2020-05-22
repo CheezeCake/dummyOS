@@ -1,6 +1,6 @@
+# source files
 arch_src = files(
   'arch.c',
-  'console.c',
   'cpu.c',
   'cpu_context.S',
   'cpu_context.c',
@@ -27,3 +27,6 @@ subdir('mm')
 arch_src += arch_mm_src
 
 linker_script = files('kernel.ld')
+
+# QEMU options
+qemu_machine_options = ['-debugcon', 'stdio']

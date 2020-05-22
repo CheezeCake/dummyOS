@@ -1,4 +1,3 @@
-#include <arch/vm.h>
 #include <kernel/debug.h>
 #include <kernel/log.h>
 #include <kernel/mm/vmm.h>
@@ -83,7 +82,7 @@ void debug_dump()
 	X(ebp, output) \
 	X(esi, output) \
 	X(edi, output) \
-	log_e_putchar('\n') \
+	log_e_putchar('\n'); \
 	X(cs, output) \
 	X(ss, output) \
 	log_e_putchar('\n');

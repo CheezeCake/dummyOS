@@ -1,4 +1,3 @@
-#include <arch/vm.h>
 #include <dummyos/const.h>
 #include <dummyos/errno.h>
 #include <dummyos/fcntl.h>
@@ -9,6 +8,7 @@
 #include <kernel/kassert.h>
 #include <kernel/kmalloc.h>
 #include <kernel/mm/uaccess.h>
+#include <kernel/mm/vm.h>
 #include <kernel/mm/vmm.h>
 #include <kernel/sched/sched.h>
 #include <libk/libk.h>

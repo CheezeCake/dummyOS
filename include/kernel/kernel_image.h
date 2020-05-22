@@ -4,6 +4,7 @@
 #include <kernel/types.h>
 
 void kernel_image_shift_kernel_end(size_t bytes);
+size_t kernel_image_get_size(void);
 
 /*
  * physical

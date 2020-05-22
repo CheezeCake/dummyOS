@@ -39,7 +39,7 @@ static void termios_init(struct termios* termios)
 
 	termios->c_cc[VINTR] = CTRL('C');
 	termios->c_cc[VEOF] = CTRL('D');
-	termios->c_cc[VERASE] = '\b';
+	termios->c_cc[VERASE] = 0x7f;
 }
 
 static inline bool is_intr(const struct tty* tty, char c)
@@ -279,6 +279,9 @@ static int tty_ioctl(struct vfs_file* this, int request, intptr_t arg)
 {
 	struct tty* tty = vfs_file_get_inode(this)->private_data;
 	struct process* current;
+
+	if (!tty)
+		return -ENOTTY;
 
 	if (request != TIOCSCTTY)
 		return -EINVAL;

@@ -1,9 +1,9 @@
-#include <arch/vm.h>
 #include <dummyos/errno.h>
 #include <kernel/kmalloc.h>
 #include <kernel/types.h>
 #include <kernel/mm/vmm.h>
 #include "paging.h"
+#include "vm.h"
 
 #include <kernel/log.h>
 
@@ -82,9 +82,7 @@ static int clone_current(struct vmm* clone)
 {
 	const struct x86_vmm* x86clone = get_x86_vmm(clone);
 
-	paging_clone_current_cow(x86clone->cr3);
-
-	return 0;
+	return paging_clone_current_cow(x86clone->cr3);
 }
 
 static int sync_kernel_space(struct vmm* vmm, void* data)
@@ -94,91 +92,23 @@ static int sync_kernel_space(struct vmm* vmm, void* data)
 	return paging_sync_kernel_space(x86vmm->cr3, data);
 }
 
-static bool is_userspace_address(v_addr_t addr)
-{
-	return (addr < KERNEL_SPACE_START);
-}
-
-/*
- * on current vmm
- */
-static int __destroy_mapping(v_addr_t addr, size_t nr_pages)
-{
-	int err = 0;
-
-	for (size_t i = 0; !err && i < nr_pages; ++i, addr += PAGE_SIZE)
-		err = paging_unmap(addr);
-
-	return err;
-}
-
-static int create_mapping(const mapping_t* mapping)
-{
-	v_addr_t addr = mapping->start;
-	size_t nr_pages = mapping_size_in_pages(mapping);
-
-	for (size_t i = 0; i < nr_pages; ++i, addr += PAGE_SIZE) {
-		int err = paging_map(mapping->region->frames[i], addr,
-				     mapping->region->prot);
-		if (err)
-			return __destroy_mapping(mapping->start, i);
-	}
-
-	return 0;
-}
-
-static int destroy_mapping(const mapping_t* mapping)
-{
-	return __destroy_mapping(mapping->start, mapping_size_in_pages(mapping));
-}
-
-static int copy_mapping_pages(const mapping_t* mapping, region_t* copy)
-{
-	v_addr_t addr = mapping->start;
-	size_t nr_pages = mapping_size_in_pages(mapping);
-
-	if (nr_pages < copy->nr_frames)
-		return -EINVAL;
-
-	for (size_t i = 0; i < copy->nr_frames; ++i, addr += PAGE_SIZE) {
-		int err = paging_copy_page(addr, copy->frames[i]);
-		if (err)
-			return __destroy_mapping(mapping->start, i);
-	}
-
-	return 0;
-}
-
-static int update_mapping_prot(const mapping_t* mapping)
-{
-	v_addr_t addr = mapping->start;
-	size_t nr_pages = mapping_size_in_pages(mapping);
-
-	for (size_t i = 0; i < nr_pages; ++i, addr += PAGE_SIZE) {
-		int err = paging_update_prot(addr, mapping->region->prot);
-		if (err)
-			return err;
-	}
-
-	return 0;
-}
-
 static const struct vmm_interface impl = {
-	.create = create,
-	.destroy = destroy,
-	.switch_to = switch_to,
-	.clone_current = clone_current,
-	.sync_kernel_space = sync_kernel_space,
+	.create				= create,
+	.destroy			= destroy,
+	.switch_to			= switch_to,
+	.clone_current			= clone_current,
+	.sync_kernel_space		= sync_kernel_space,
 
-	.is_userspace_address = is_userspace_address,
-
-	.create_mapping = create_mapping,
-	.destroy_mapping = destroy_mapping,
-	.copy_mapping_pages = copy_mapping_pages,
-	.update_mapping_prot = update_mapping_prot,
+	.copy_page			= paging_copy_page,
+	.update_kernel_page_prot	= paging_update_prot,
+	.map_kernel_page		= paging_map,
+	.unmap_kernel_page		= paging_unmap,
+	.update_user_page_prot		= paging_update_prot,
+	.map_user_page			= paging_map,
+	.unmap_user_page		= paging_unmap,
 };
 
-int vmm_register(void)
+int x86_vmm_register(void)
 {
 	return vmm_interface_register(&impl);
 }

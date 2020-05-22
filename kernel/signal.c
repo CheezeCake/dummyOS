@@ -110,7 +110,7 @@ sighandler_t sys_signal(int sig, sighandler_t handler)
 		.sa_flags = 0,
 	};
 
-	log_e_printf("SIGNAL: pid=%d\n", sched_get_current_process()->pid);
+	log_i_printf("SIGNAL: pid=%d\n", sched_get_current_process()->pid);
 
 	if (!sig_is_settable(sig))
 		return SIG_ERR;
@@ -126,11 +126,11 @@ void sys_sigreturn(void)
 
 	cpu_ctx = cpu_context_get_previous(cpu_ctx);
 	if ((v_addr_t)cpu_ctx > thread_get_kstack_top(current_thread)) {
-		log_e_print("sigreturn while not returning from signal\n");
+		log_w_print("sigreturn while not returning from signal\n");
 		return;
 	}
 	if (list_empty(&sigm->handled_stack)) {
-		log_e_print("sigreturn with handled_stack empty\n");
+		log_w_print("sigreturn with handled_stack empty\n");
 		return;
 	}
 
@@ -470,7 +470,7 @@ int signal_handle(struct thread* thr)
 	if (thr->type == KTHREAD)
 		return -EINVAL;
 
-	log_e_printf("%s: pid=%d\n", __func__, thr->process->pid);
+	log_i_printf("%s: pid=%d\n", __func__, thr->process->pid);
 	siginfo_t* sinfo = signal_pop(thr->process->signals);
 	if (!sinfo)
 		return -EINVAL;

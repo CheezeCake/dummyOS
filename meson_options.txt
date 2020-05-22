@@ -1,1 +1,2 @@
-option('arch', type: 'combo', choices: ['x86'], value: 'x86', description: 'Target architecture')
+option('machine', type: 'combo', choices: ['pc', 'rpi1', 'rpi2'], value: 'pc', description: 'Target machine')
+option('ram_size_qemu', type : 'integer', min : 0, value: 0, description: 'RAM size in QEMU (MB)') # for rpi2 in QEMU

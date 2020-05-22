@@ -1,4 +1,5 @@
 #include <kernel/arch.h>
+#include <kernel/console.h>
 #include <kernel/kassert.h>
 #include <kernel/kernel.h>
 #include <kernel/kernel_image.h>
@@ -9,15 +10,18 @@
 #include <kernel/panic.h>
 #include <kernel/time/time.h>
 #include <libk/libk.h>
-#include "console.h"
+#include "drivers/keyboard.h"
 #include "exception.h"
 #include "gdt.h"
 #include "i8254.h"
 #include "idt.h"
 #include "irq.h"
+#include "mm/memory.h"
 #include "mm/paging.h"
 #include "mm/vmm.h"
 #include "tss.h"
+
+#include "drivers/ioport_0xe9.h"
 
 #include <kernel/log.h>
 
@@ -43,19 +47,76 @@ static v_addr_t setup_initrd(const multiboot_module_t* mod)
 
 	v_addr_t initrd = kmalloc_early(align_up(initrd_size, PAGE_SIZE));
 	kassert(is_aligned(initrd, PAGE_SIZE));
+	log_printf("initrd copied to %p\n", (void*)initrd);
 
 	memcpy((void*)initrd, (void*)initrd_start, initrd_size);
 
 	return initrd;
 }
 
+static size_t mem_size_bytes = 0;
+
+size_t arch_get_mem_size(void)
+{
+	return mem_size_bytes;
+}
+
+static const struct log_ops x86_log_ops = {
+	.puts		= ioport_0xe9_puts,
+	.putchar	= ioport_0xe9_putchar,
+};
+
 void __kernel_main(const multiboot_info_t* mbi)
 {
 	kassert(mbi->mods_count > 0);
 	void* initrd = (void*)setup_initrd((const multiboot_module_t*)mbi->mods_addr);
 
-	size_t mem_size = (mbi->mem_upper << 10) + (1 << 20);
-	kernel_main(mem_size, (void*)initrd);
+	log_register(&x86_log_ops);
+
+	mem_size_bytes = (mbi->mem_upper << 10) + (1 << 20);
+	kernel_main((void*)initrd);
+}
+
+static void clock_tick(int nr, struct cpu_context* interrupted_ctx)
+{
+	time_tick();
+}
+
+int arch_console_init(void)
+{
+	int err;
+	struct tty* console_tty;
+
+	err = console_init(terminal_putchar, &console_tty);
+	if (!err)
+		err = keyboard_init(console_tty);
+
+	return err;
+}
+
+static const mem_area_t mem_layout[] = {
+	MEMORY_AREA(X86_MEMORY_HARDWARE_MAP_START,
+		    X86_MEMORY_HARDWARE_MAP_SIZE,
+		    0,
+		    "MMIO"),
+};
+
+static int arch_mm_init()
+{
+	kassert(mem_size_bytes > 0);
+
+	paging_init();
+
+	__memory_early_init();
+
+	x86_vmm_register();
+
+	if (kheap_init(kernel_image_get_top_page()) < KHEAP_INITIAL_SIZE)
+		PANIC("Not enough memory for kernel heap!");
+
+	memory_init(mem_size_bytes, mem_layout, ARRAY_SIZE(mem_layout));
+
+	return 0;
 }
 
 int arch_init(void)
@@ -82,25 +143,7 @@ int arch_init(void)
 
 	kassert(idt_set_syscall_handler(0x80) == 0);
 
-	return i8254_set_tick_interval(TICK_INTERVAL_IN_MS);
-}
+	kassert(i8254_set_tick_interval(TICK_INTERVAL_IN_MS) == 0);
 
-static const mem_area_t mem_layout[] = {
-	MEMORY_AREA(0xa0000, 0x100000, "MMIO"),
-};
-
-int arch_mm_init(size_t ram_size_bytes)
-{
-	memory_init(ram_size_bytes, mem_layout, ARRAY_SIZE(mem_layout));
-
-	vmm_register();
-
-	paging_init();
-
-	return 0;
-}
-
-int arch_console_init(void)
-{
-	return console_init();
+	return arch_mm_init();
 }

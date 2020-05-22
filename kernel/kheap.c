@@ -1,11 +1,17 @@
+#include <dummyos/compiler.h>
+#include <dummyos/errno.h>
 #include <kernel/kassert.h>
 #include <kernel/kheap.h>
 #include <kernel/kmalloc.h>
 #include <kernel/log.h>
 #include <kernel/mm/memory.h>
+#include <kernel/mm/vm.h>
 #include <kernel/mm/vmm.h>
 
-#define KHEAP_LIMIT KERNEL_SPACE_LIMIT
+#define KHEAP_MAX_SIZE (256 * 1024 * 1024) // 256MB
+
+static_assert(KHEAP_INITIAL_SIZE < KHEAP_MAX_SIZE,
+	      "KHEAP_INITIAL_SIZE >= KHEAP_MAX_SIZE");
 
 static v_addr_t kheap_start;
 static v_addr_t kheap_end;
@@ -13,46 +19,19 @@ static v_addr_t kheap_end;
 static void dump(void)
 {
 	log_i_printf("start = %p, end = %p, size = %p, initial_size = 0x%x"
-		     " | KHEAP_LIMIT = 0x%x\n",
+		     " | KHEAP_LIMIT = %p\n",
 		     (void*)kheap_start, (void*)kheap_end,
 		     (void*)(kheap_end - kheap_start),
-		     KHEAP_INITIAL_SIZE, KHEAP_LIMIT);
-}
-
-static mapping_t initial_kheap_mapping;
-static p_addr_t
-initial_region_frames[align_up(KHEAP_INITIAL_SIZE, PAGE_SIZE) / PAGE_SIZE];
-static region_t initial_kheap_region;
-
-static int init_kheap_mappping(v_addr_t start)
-{
-	int err;
-	size_t nr_frames = page_align_up(KHEAP_INITIAL_SIZE) / PAGE_SIZE;
-
-	err =  __region_init(&initial_kheap_region, initial_region_frames,
-			     nr_frames, VMM_PROT_WRITE);
-	if (!err)
-		err = __mapping_init(&initial_kheap_mapping, &initial_kheap_region,
-				     start, KHEAP_INITIAL_SIZE, 0);
-
-	return err;
+		     KHEAP_INITIAL_SIZE, (void*)(kheap_start + KHEAP_MAX_SIZE));
 }
 
 size_t kheap_init(v_addr_t start)
 {
-	int err;
-
 	kheap_start = start;
-	kheap_end = start + KHEAP_INITIAL_SIZE;
+	kheap_end = start;
 
-	kassert(kheap_end < KHEAP_LIMIT);
-
-	err = init_kheap_mappping(start);
-	if (err)
-		return err;
-	err = vmm_setup_kernel_mapping(&initial_kheap_mapping);
-	if (err)
-		return err;
+	if (kheap_sbrk(KHEAP_INITIAL_SIZE) < KHEAP_INITIAL_SIZE)
+		return -ENOMEM;
 
 	// initialiaze the kmalloc subsystem
 	kmalloc_init(kheap_start, kheap_end - kheap_start);
@@ -66,17 +45,27 @@ size_t kheap_init(v_addr_t start)
 
 size_t kheap_sbrk(size_t increment)
 {
-	int err;
+	size_t pages = page_align_up(increment) / PAGE_SIZE;
+	size_t i;
+	int err = 0;
 
-	increment = page_align_up(increment);
+	for (i = 0; i < pages && !err; ++i) {
+		p_addr_t frame = memory_page_frame_alloc();
+		if (!frame) {
+			err = -ENOMEM;
+		}
+		else {
+			err = vmm_map_kernel_page(frame, kheap_end,
+						  VMM_PROT_WRITE);
+			if (!err)
+				kheap_end += PAGE_SIZE;
+		}
+	}
 
-	err = vmm_create_kernel_mapping(kheap_end, increment, VMM_PROT_WRITE);
-	if (err)
-		return 0;
+	if (i != pages)
+		log_i_puts("could not fully satisfy sbrk request\n");
 
-	kheap_end += increment;
-
-	return increment;
+	return (i * PAGE_SIZE);
 }
 
 v_addr_t kheap_get_start(void)

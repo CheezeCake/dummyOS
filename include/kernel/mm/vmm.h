@@ -4,27 +4,31 @@
 #include <kernel/mm/mapping.h>
 #include <kernel/mm/memory.h>
 #include <kernel/mm/region.h>
+#include <kernel/mm/vm.h>
+#include <libk/bits.h>
 #include <libk/list.h>
 #include <libk/refcount.h>
 
 /*
  * region protection flags
  */
-#define VMM_PROT_WRITE		(1 << 0)
-#define VMM_PROT_EXEC		(1 << 1)
-#define VMM_PROT_USER		(1 << 2)
+#define VMM_PROT_WRITE		BIT(0)
+#define VMM_PROT_EXEC		BIT(1)
+#define VMM_PROT_USER		BIT(2)
+#define VMM_PROT_NOCACHE	BIT(3)
 
 /*
  * mapping flags
  */
-#define VMM_MAP_GROWSDOW	(1 << 1)
+#define VMM_MAP_GROWSDOW	BIT(1)
 
 /*
  * fault flags
  */
-#define VMM_FAULT_USER			(1 << 0)
-#define VMM_FAULT_WRITE			(1 << 1)
-#define VMM_FAULT_NOT_PRESENT	(1 << 2)
+#define VMM_FAULT_USER		BIT(0)
+#define VMM_FAULT_WRITE		BIT(1)
+#define VMM_FAULT_NOT_PRESENT	BIT(2)
+#define VMM_FAULT_ALIGNMENT	BIT(3)
 
 /**
  * @brief Virtual Memory Manager
@@ -46,12 +50,14 @@ struct vmm_interface
 	int (*clone_current)(struct vmm* clone);
 	int (*sync_kernel_space)(struct vmm* vmm, void* data);
 
-	bool (*is_userspace_address)(v_addr_t addr);
 
-	int (*create_mapping)(const mapping_t* mapping);
-	int (*destroy_mapping)(const mapping_t* mapping);
-	int (*copy_mapping_pages)(const mapping_t* mapping, region_t* copy);
-	int (*update_mapping_prot)(const mapping_t* mapping);
+	int (*copy_page)(v_addr_t src, p_addr_t dst);
+	int (*update_kernel_page_prot)(v_addr_t addr, int prot);
+	int (*map_kernel_page)(p_addr_t phys, v_addr_t virt, int prot);
+	int (*unmap_kernel_page)(v_addr_t virt);
+	int (*update_user_page_prot)(v_addr_t addr, int prot);
+	int (*map_user_page)(p_addr_t phys, v_addr_t virt, int prot);
+	int (*unmap_user_page)(v_addr_t virt);
 };
 
 int vmm_interface_register(const struct vmm_interface* vmm_interface);
@@ -78,26 +84,9 @@ bool vmm_is_userspace_address(v_addr_t addr);
 
 bool vmm_is_valid_userspace_address(v_addr_t addr);
 
-int vmm_setup_kernel_mapping(mapping_t* mapping);
+int vmm_map_kernel_page(p_addr_t phys, v_addr_t virt, int prot);
 
-/**
- * addr must be PAGE_SIZE aligned
- */
-int vmm_create_kernel_mapping(v_addr_t start, size_t size, int prot);
-
-/**
- * Map physical range [start;start + size[ in kernelspace.
- *
- * @param start start of physical range to map, must be PAGE_SIZE aligned.
- * @param size size of physical range to map
- * @param prot resulting mapping protection flags
- * @param mapping_addr requested mapping start
- * @return 0 on success
- */
-int vmm_map_to_kernel_space(p_addr_t start, size_t size, int prot,
-			    v_addr_t mapping_addr);
-
-int vmm_destroy_kernel_mapping(v_addr_t start);
+int vmm_map_kernel_range(p_addr_t phys, v_addr_t virt, size_t size, int prot);
 
 int vmm_sync_kernel_space(void* data);
 
@@ -108,7 +97,7 @@ int vmm_create_user_mapping(v_addr_t start, size_t size, int prot, int flags);
 
 int vmm_destroy_user_mapping(v_addr_t addr);
 
-int vmm_extend_user_mapping(v_addr_t addr, size_t increment);
+int vmm_update_user_mapping_prot(v_addr_t addr, int prot);
 
 bool vmm_range_is_free(v_addr_t start, v_addr_t end);
 

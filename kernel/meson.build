@@ -1,4 +1,5 @@
 kernel_src = files(
+  'console.c',
   'exec.c',
   'exit.c',
   'fork.c',
@@ -7,6 +8,7 @@ kernel_src = files(
   'kernel_image.c',
   'kheap.c',
   'kmalloc.c',
+  'log.c',
   'process.c',
   'signal.c',
   'sys.c',

@@ -5,8 +5,8 @@
 
 int arch_init(void);
 
-int arch_mm_init(size_t ram_size_bytes);
-
 int arch_console_init(void);
+
+size_t arch_get_mem_size(void);
 
 #endif

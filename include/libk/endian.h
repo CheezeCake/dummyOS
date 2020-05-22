@@ -1,6 +1,8 @@
 #ifndef _LIBK_ENDIAN_H_
 #define _LIBK_ENDIAN_H_
 
+#include <config.h>
+
 /**
  * @brief Little-endian to host 32 bits
  */

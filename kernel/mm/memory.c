@@ -15,20 +15,23 @@ static const mem_area_t* memory_layout_find_area(p_addr_t addr,
 						 size_t layout_len,
 						 const mem_area_t* kernel_area)
 {
-	static const mem_area_t null = MEMORY_AREA(0, PAGE_SIZE, "null");
+	static const mem_area_t null = MEMORY_AREA(0, PAGE_SIZE, 0, "null");
 	if (addr < PAGE_SIZE)
 		return &null;
-	if (addr >= kernel_area->start && addr < kernel_area->end)
+	if (addr >= kernel_area->start &&
+	    addr < kernel_area->start + kernel_area->size)
 		return kernel_area;
 
 	ssize_t lo = 0;
 	ssize_t hi = layout_len - 1;
 
 	while (lo <= hi) {
-		ssize_t mid = (lo + hi) / 2;
-		if (addr > mem_layout[mid].end)
+		const ssize_t mid = (lo + hi) / 2;
+		const p_addr_t start = mem_layout[mid].start;
+
+		if (addr > start + mem_layout[mid].size)
 			lo = mid + 1;
-		else if (addr < mem_layout[mid].start)
+		else if (addr < start)
 			hi = mid - 1;
 		else
 			return &mem_layout[mid];
@@ -46,8 +49,6 @@ struct page_frame
 
 	list_node_t pf_list;
 };
-
-static struct page_frame* page_frame_descriptors = NULL;
 
 typedef struct pf_list_t
 {
@@ -73,6 +74,27 @@ static void memory_pf_list_insert(pf_list_t* list, struct page_frame* pf)
 static p_addr_t memory_base;
 static p_addr_t memory_top;
 
+#define MEMORY_EARLY_FRAMES_MB 4
+#define MEMORY_EARLY_FRAMES ((MEMORY_EARLY_FRAMES_MB * 1024 * 1024) / PAGE_SIZE)
+static struct page_frame early_free_frames[MEMORY_EARLY_FRAMES];
+static size_t early_free_frames_size = 0;
+
+void __memory_early_init(void)
+{
+	p_addr_t paddr = kernel_image_get_top_page_frame();
+	size_t i;
+
+	memory_pf_list_init(&free_page_frames);
+	memory_pf_list_init(&used_page_frames);
+
+	for (i = 0; i < ARRAY_SIZE(early_free_frames); ++i, paddr += PAGE_SIZE) {
+		early_free_frames[i].addr = paddr;
+		memory_pf_list_insert(&free_page_frames, &early_free_frames[i]);
+	}
+
+	early_free_frames_size = i;
+}
+
 p_addr_t memory_get_memory_base(void)
 {
 	return memory_base;
@@ -83,102 +105,86 @@ p_addr_t memory_get_memory_top(void)
 	return memory_top;
 }
 
-static void memory_alloc_page_frame_descriptors(size_t ram_size_bytes)
+static size_t init_frames(p_addr_t base, p_addr_t top,
+			  struct page_frame* descriptors,
+			  const mem_area_t* mem_layout,
+			  size_t layout_len,
+			  const mem_area_t* kernel_area)
 {
-	const size_t page_frame_descriptors_size =
-		(ram_size_bytes >> PAGE_SIZE_SHIFT) * sizeof(struct page_frame);
+	p_addr_t paddr = base;
+	size_t i = 0;
 
-	// allocate page_frame_descriptors with kmalloc_early
-	// (allocated after kernel image)
-	page_frame_descriptors =
-		(struct page_frame*)kmalloc_early(page_frame_descriptors_size);
-	kassert(page_frame_descriptors != NULL);
-}
-
-static void memory_init_constants(size_t ram_size_bytes)
-{
-	// top_memory_left = ram_size_bytes % PAGE_SIZE;
-	const p_addr_t top_memory_left =
-		(ram_size_bytes & ((1 << PAGE_SIZE_SHIFT) - 1));
-
-	// start of memory at PAGE_SIZE B
-	memory_base = PAGE_SIZE;
-	memory_top = ram_size_bytes - top_memory_left;
-}
-
-void memory_init(size_t ram_size_bytes, const mem_area_t* mem_layout, size_t layout_len)
-{
-	const char free_label[] = "free";
-	const char* label = NULL;
-	const char* old_label = NULL;
-
-	memory_alloc_page_frame_descriptors(ram_size_bytes);
-	memory_init_constants(ram_size_bytes);
-	memory_pf_list_init(&free_page_frames);
-	memory_pf_list_init(&used_page_frames);
-
-	const p_addr_t kernel_base = kernel_image_get_base_page_frame();
-	const p_addr_t kernel_top = kernel_image_get_top_page_frame();
-	const mem_area_t kernel_area = MEMORY_AREA(kernel_base, kernel_top, "kernel");
-
-	struct page_frame* pf_descriptor = page_frame_descriptors;
-	p_addr_t paddr = 0;
-
-	while (paddr < memory_top)
-	{
-		pf_list_t* list;
-		const mem_area_t* m = memory_layout_find_area(paddr, mem_layout, layout_len, &kernel_area);
-		p_addr_t s;
-
+	while (paddr < top) {
+		const mem_area_t* m = memory_layout_find_area(paddr,
+							      mem_layout,
+							      layout_len,
+							      kernel_area);
 		if (m) {
-			kassert(page_is_aligned(m->start));
-			kassert(page_is_aligned(m->end + 1));
-			kassert(m->start < m->end);
-
-			s = paddr;
-
-			while (paddr < m->end + 1 && paddr < memory_top) {
-				pf_descriptor->addr = paddr;
-				memory_pf_list_insert(&used_page_frames, pf_descriptor++);
-
+			while (paddr < m->start + m->size && paddr < top) {
+				descriptors[i].addr = paddr;
+				memory_pf_list_insert(&used_page_frames,
+						      &descriptors[i++]);
 				paddr += PAGE_SIZE;
 			}
-
-			label = m->label;
 		}
 		else {
-			s = paddr;
-
-			pf_descriptor->addr = paddr;
-			list = &free_page_frames;
-
-			label = free_label;
-
+			descriptors[i].addr = paddr;
+			memory_pf_list_insert(&free_page_frames, &descriptors[i++]);
 			paddr += PAGE_SIZE;
-
-			memory_pf_list_insert(list, pf_descriptor);
-			++pf_descriptor;
 		}
 
-#ifndef NDEBUG
-		if (label != old_label) {
-			log_printf("[%p]\n %s\n", (void*)s, label);
-			old_label = label;
-		}
-#endif
 	}
+
+	return i;
+}
+
+static struct page_frame* page_frame_descriptors = NULL;
+
+void memory_init(size_t ram_size_bytes, const mem_area_t* mem_layout,
+		 size_t layout_len)
+{
+	kassert(MEMORY_EARLY_FRAMES_MB * 1024 * 1024 <= ram_size_bytes);
+	const mem_area_t kernel_area = MEMORY_AREA(kernel_image_get_base_page_frame(),
+						   kernel_image_get_size(),
+						   0,
+						   "kernel");
+
+	memory_base = PAGE_SIZE;
+	memory_top = page_align_down(ram_size_bytes);
+
+	page_frame_descriptors = kcalloc(ram_size_bytes / PAGE_SIZE,
+					 sizeof(struct page_frame));
+	kassert(page_frame_descriptors != NULL);
+
+	struct page_frame* descriptor = page_frame_descriptors;
+
+	descriptor += init_frames(0, kernel_image_get_top_page_frame(),
+				  descriptor,
+				  mem_layout, layout_len, &kernel_area);
+
+	for (size_t i = 0; i < early_free_frames_size; ++i)
+		descriptor[i].addr = -1;
+	descriptor += early_free_frames_size;
+
+	init_frames(early_free_frames[early_free_frames_size - 1].addr + PAGE_SIZE,
+		    memory_top,
+		    descriptor,
+		    mem_layout, layout_len, &kernel_area);
 }
 
 static inline struct page_frame* get_page_frame_at(p_addr_t addr)
 {
-	// check if addr is PAGE_SIZE aligned
-	// if it isn't, it's not a page frame address
-	if (is_aligned(addr, PAGE_SIZE)) {
-		if (addr >= memory_base && addr < memory_top)
-			return (page_frame_descriptors + (addr >> PAGE_SIZE_SHIFT));
+	if (!is_aligned(addr, PAGE_SIZE) || addr < memory_base || addr >= memory_top)
+		return NULL;
+
+	struct page_frame* pf = &page_frame_descriptors[addr / PAGE_SIZE];
+
+	if (pf->addr == -1) {
+		p_addr_t start = early_free_frames[0].addr;
+		return &early_free_frames[(addr - start) / PAGE_SIZE];
 	}
 
-	return NULL;
+	return pf;
 }
 
 p_addr_t memory_page_frame_alloc()
@@ -203,6 +209,8 @@ int memory_page_frame_free(p_addr_t addr)
 	struct page_frame* pf = get_page_frame_at(addr);
 	if (!pf)
 		return -EINVAL;
+
+	kassert(pf->addr == addr);
 
 	list_erase(&pf->pf_list);
 	--used_page_frames.n;

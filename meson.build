@@ -1,30 +1,38 @@
 project('dummyOS', 'c', default_options: ['c_std=c11'])
 
-supported_archs = ['x86']
-arch = get_option('arch')
+# CFLAGS
+c_flags = ['-ffreestanding', '-Wall', '-Wpedantic', '-pipe', '-D__KERNEL__']
+
+# config.h
+conf_data = configuration_data()
+
+# QEMU options
+qemu_machine_options = []
 
 subdir('arch')
 subdir('fs')
 subdir('kernel')
 subdir('libk')
 
+# generate config.h
+configure_file(output : 'config.h',
+  configuration : conf_data,
+  )
+
 # source files and headers
 src = arch_src + fs_src + kernel_src + libk_src
-inc = include_directories('include', join_paths('arch', arch, 'include'))
-
-# flags
-c_flags = ['-ffreestanding', '-Wall', '-Wpedantic', '-pipe'] # -ggdb
-if host_machine.endian() == 'little'
-  c_flags += '-DARCH_ENDIAN_LITTLE'
-else
-  c_flags += '-DARCH_ENDIAN_BIG'
+inc = include_directories('include', join_paths('arch', arch, 'include'), '.')
+obj = []
+if arch == 'arm'
+  obj += '/home/manu/dummyOS_user/archive.o'
 endif
-c_flags += '-D__KERNEL__'
+
+# link
 ld_flags = [
+  '-n',
   '-T@0@/@1@'.format(meson.current_source_dir(), linker_script[0]),
   '-nostdlib'
   ]
-
 # libgcc
 cc = meson.get_compiler('c')
 libgcc = cc.find_library('gcc', required: true)
@@ -38,7 +46,18 @@ elf = executable(kernel_elf,
   c_args: c_flags,
   link_args: ld_flags,
   link_depends: linker_script,
-  dependencies: libgcc
+  dependencies: libgcc,
+  objects: obj,
+  )
+
+kernel_img = 'kernel.img'
+if get_option('machine') == 'rpi2'
+  kernel_img = 'kernel7.img'
+endif
+img = custom_target('kernel.img',
+  output: kernel_img,
+  command: [find_program('objcopy'), kernel_elf, '-O', 'binary', kernel_img],
+  depends: elf
   )
 
 kernel_iso = 'dummy_os.iso'
@@ -49,16 +68,17 @@ iso = custom_target('iso',
   )
 
 # run targets
-qemu = join_paths('scripts', 'qemu.sh')
+qemu_script = join_paths('scripts', 'qemu.sh')
+qemu = [qemu_script, arch] + qemu_machine_options
 run_target('run',
-  command: [qemu, arch, '-kernel', kernel_elf, '-initrd', '/home/manu/dummyOS_user/archive'],
+  command: qemu + ['-kernel', kernel_elf, '-initrd', '/home/manu/dummyOS_user/archive'],
   depends: elf
   )
 run_target('run-iso',
-  command: [qemu, arch, '-cdrom', kernel_iso],
+  command: qemu + ['-cdrom', kernel_iso],
   depends: iso
   )
 run_target('debug',
-  command: [qemu, arch, '-kernel', kernel_elf, '-initrd', '/home/manu/dummyOS_user/archive', '-s', '-S'],
+  command: qemu + ['-kernel', kernel_elf, '-initrd', '/home/manu/dummyOS_user/archive', '-s', '-S'],
   depends: elf
   )

@@ -1,0 +1,25 @@
+#ifndef _ARCH_BROADCOM_BCM2835_PERIPHERALS_H_
+#define _ARCH_BROADCOM_BCM2835_PERIPHERALS_H_
+
+#include <config.h>
+
+#define PERIPHERALS_BASE 	0xf2000000
+
+
+// https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2835/BCM2835-ARM-Peripherals.pdf
+
+#if RPI_MODEL == 1
+#define PERIPHERALS_BASE_PHYS	0x20000000
+#else
+#define PERIPHERALS_BASE_PHYS	0x3f000000
+#endif
+
+#define ARM_INT_BASE		(PERIPHERALS_BASE + 0x0000b000)
+#define GPIO_BASE		(PERIPHERALS_BASE + 0x00200000)
+#define UART0_BASE		(PERIPHERALS_BASE + 0x00201000)
+#define AUX_BASE		(PERIPHERALS_BASE + 0x00215000)
+
+
+#define PERIPHERALS_SIZE	0x01000000
+
+#endif

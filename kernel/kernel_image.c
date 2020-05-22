@@ -16,6 +16,11 @@ void kernel_image_shift_kernel_end(size_t bytes)
 	kassert(kernel_end_shift >= bytes);
 }
 
+size_t kernel_image_get_size(void)
+{
+	return (kernel_image_get_top_page() - kernel_image_get_base_page());
+}
+
 /*
  * physical
  */

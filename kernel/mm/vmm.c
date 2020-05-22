@@ -9,9 +9,6 @@
 #include <libk/libk.h>
 
 
-/** kernel mappings list */
-static LIST_DEFINE(kernel_mappings);
-
 /** arch specific implementation of the vmm interface */
 static const struct vmm_interface* vmm_impl = NULL;
 
@@ -120,7 +117,7 @@ static void vmm_destroy_mappings(list_t* mappings)
 
 static void vmm_destroy(struct vmm* vmm)
 {
-	log_e_printf("VMM_DESTROY: %p\n", (void*)vmm);
+	log_i_printf("VMM_DESTROY: %p\n", (void*)vmm);
 	vmm_destroy_mappings(&vmm->mappings);
 	list_erase(&vmm->vmm_list_node);
 	vmm_impl->destroy(vmm);
@@ -165,39 +162,52 @@ int vmm_sync_kernel_space(void* data)
 	return 0;
 }
 
-static int vmm_create_mapping(v_addr_t start, size_t size, int prot, int flags,
-			      mapping_t** result)
+static int __unmap_mapping(v_addr_t addr, size_t nr_pages)
 {
-	mapping_t* mapping;
-	int err;
+	int err = 0;
 
-	if (!is_aligned(start, PAGE_SIZE))
-		return -EINVAL;
-
-	err = mapping_create(start, size, prot, flags, &mapping);
-	if (err)
-		return err;
-
-	err = vmm_impl->create_mapping(mapping);
-	if (err) {
-		mapping_destroy(mapping);
-		mapping = NULL;
+	for (size_t i = 0; !err && i < nr_pages; ++i, addr += PAGE_SIZE) {
+		if (vmm_is_userspace_address(addr))
+			err = vmm_impl->unmap_user_page(addr);
+		else
+			err = vmm_impl->unmap_kernel_page(addr);
 	}
 
-	*result = mapping;
-
 	return err;
+}
+
+static int unmap_mapping(const mapping_t* mapping)
+{
+	return __unmap_mapping(mapping->start, mapping_size_in_pages(mapping));
 }
 
 static int vmm_destroy_mapping(mapping_t* mapping)
 {
 	int err;
 
-	err = vmm_impl->destroy_mapping(mapping);
-	if (!err)
+	err = unmap_mapping(mapping);
+	if (!err) // FIXME: allways?
 		mapping_destroy(mapping);
 
 	return err;
+}
+
+static int map_mapping(const mapping_t* mapping,
+		       int (* const map_page)(p_addr_t, v_addr_t, int))
+{
+	v_addr_t addr = mapping->start;
+	size_t nr_pages = mapping_size_in_pages(mapping);
+
+	for (size_t i = 0; i < nr_pages; ++i, addr += PAGE_SIZE) {
+		int err = map_page(mapping->region->frames[i], addr,
+				   mapping->region->prot);
+		if (err) {
+			__unmap_mapping(mapping->start, i);
+			return err;
+		}
+	}
+
+	return 0;
 }
 
 static int vmm_find_and_destroy_mapping(list_t* mappings, v_addr_t addr)
@@ -216,35 +226,6 @@ static int vmm_find_and_destroy_mapping(list_t* mappings, v_addr_t addr)
 	return err;
 }
 
-int vmm_setup_kernel_mapping(mapping_t* mapping)
-{
-	int err;
-
-	err =  vmm_impl->create_mapping(mapping);
-	if (!err)
-		add_mapping(&kernel_mappings, mapping);
-
-	return err;
-}
-
-int vmm_create_kernel_mapping(v_addr_t start, size_t size, int prot)
-{
-	mapping_t* mapping;
-	int err;
-
-	if (vmm_impl->is_userspace_address(start))
-		return -EINVAL;
-
-	if (start + size < start)
-		return -EOVERFLOW;
-
-	err = vmm_create_mapping(start, size, prot & ~VMM_PROT_USER, 0, &mapping);
-	if (!err)
-		add_mapping(&kernel_mappings, mapping);
-
-	return err;
-}
-
 static inline bool is_within_physical_memory_bounds(p_addr_t start,
 						    p_addr_t end)
 {
@@ -252,40 +233,41 @@ static inline bool is_within_physical_memory_bounds(p_addr_t start,
 		end <= memory_get_memory_top());
 }
 
-int vmm_map_to_kernel_space(p_addr_t start, size_t size, int prot,
-			    v_addr_t mapping_addr)
+int vmm_map_kernel_page(p_addr_t phys, v_addr_t virt, int prot)
 {
-	mapping_t* mapping;
-	int err;
-
-	if (!is_within_physical_memory_bounds(start, start + size))
+	if (!page_is_aligned(phys) || !page_is_aligned(virt) ||
+	    vmm_is_userspace_address(virt))
 		return -EINVAL;
 
-	if (!is_aligned(mapping_addr, PAGE_SIZE))
-		return -EINVAL;
-
-	if (find_mapping(&kernel_mappings, mapping_addr))
-		return -EADDRINUSE;
-
-
-	err = mapping_create_from_range(mapping_addr, start, size,
-					prot & ~VMM_PROT_USER, 0, &mapping);
-	if (err)
-		return err;
-
-	err = vmm_setup_kernel_mapping(mapping);
-	if (!err)
-		return 0;
-
-	return err;
+	return vmm_impl->map_kernel_page(phys, virt, prot);
 }
 
-int vmm_destroy_kernel_mapping(v_addr_t addr)
+int vmm_map_kernel_range(p_addr_t phys, v_addr_t virt, size_t size, int prot)
 {
-	if (vmm_is_userspace_address(addr))
-		return -EINVAL;
+	size_t i = 0;
+	size_t nr_pages = 0;
+	int err = 0;
 
-	return vmm_find_and_destroy_mapping(&kernel_mappings, addr);
+	size = page_align_up(size);
+	nr_pages = size / PAGE_SIZE;
+
+	while (i < nr_pages) {
+		err = vmm_map_kernel_page(phys, virt, prot);
+		if (err)
+			break;
+		i += 1;
+		phys += PAGE_SIZE;
+		virt += PAGE_SIZE;
+	}
+
+	if (err) {
+		while (i--) {
+			virt -= PAGE_SIZE;
+			vmm_impl->unmap_kernel_page(virt); // FIXME: handle error
+		}
+	}
+
+	return err;
 }
 
 int vmm_clone(struct vmm* vmm, struct vmm* clone)
@@ -316,7 +298,7 @@ int vmm_clone(struct vmm* vmm, struct vmm* clone)
 
 bool vmm_is_userspace_address(v_addr_t addr)
 {
-	return (vmm_impl) ? vmm_impl->is_userspace_address(addr) : false;
+	return (addr < KERNEL_SPACE_START);
 }
 
 bool vmm_is_valid_userspace_address(v_addr_t addr)
@@ -339,12 +321,24 @@ int vmm_create_user_mapping(v_addr_t addr, size_t size, int prot, int flags)
 	vmm_uaccess_setup();
 
 	size = page_align_up(size);
-	if (!range_in_userspace(addr, size))
+	if (!range_in_userspace(addr, size) && !is_aligned(addr, PAGE_SIZE))
 		return -EINVAL;
 
-	err = vmm_create_mapping(addr, size, prot | VMM_PROT_USER, flags, &mapping);
-	if (!err)
-		add_mapping(&current_vmm->mappings, mapping);
+	err = mapping_create(addr, size, prot | VMM_PROT_USER, flags, &mapping);
+	if (err)
+		return err;
+
+	err = map_mapping(mapping, vmm_impl->map_user_page);
+	if (err)
+		goto destroy_mapping;
+
+	add_mapping(&current_vmm->mappings, mapping);
+
+	return 0;
+
+destroy_mapping:
+	mapping_destroy(mapping);
+	mapping = NULL;
 
 	return err;
 }
@@ -359,7 +353,7 @@ int vmm_destroy_user_mapping(v_addr_t addr)
 	return vmm_find_and_destroy_mapping(&current_vmm->mappings, addr);
 }
 
-int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
+static int vmm_extend_user_mapping(v_addr_t addr, size_t increment)
 {
 	mapping_t* mapping = NULL;
 	v_addr_t ext_start;
@@ -436,13 +430,62 @@ bool vmm_range_is_free(v_addr_t start, v_addr_t end)
 	return true;
 }
 
+static int update_user_mapping_prot(const mapping_t* mapping, int prot)
+{
+	v_addr_t addr = mapping->start;
+	size_t nr_pages = mapping_size_in_pages(mapping);
+
+	for (size_t i = 0; i < nr_pages; ++i, addr += PAGE_SIZE) {
+		int err = vmm_impl->update_user_page_prot(addr, prot);
+		if (err)
+			return err;
+	}
+
+	mapping->region->prot = prot;
+
+	return 0;
+}
+
+int vmm_update_user_mapping_prot(v_addr_t addr, int prot)
+{
+	const mapping_t* mapping = find_mapping(&current_vmm->mappings, addr);
+	if (!mapping)
+		return -ENOENT;
+
+	return update_user_mapping_prot(mapping, prot);
+}
+
+static int copy_mapping_pages(const mapping_t* mapping, region_t* copy)
+{
+	v_addr_t addr = mapping->start;
+	size_t nr_pages = mapping_size_in_pages(mapping);
+
+	if (nr_pages < copy->nr_frames)
+		return -EINVAL;
+
+	for (size_t i = 0; i < copy->nr_frames; ++i, addr += PAGE_SIZE) {
+		int err = vmm_impl->copy_page(addr, copy->frames[i]);
+		if (err) {
+			__unmap_mapping(mapping->start, i);
+			return err;
+		}
+	}
+
+	return 0;
+}
+
+static int reset_user_mapping_prot(const mapping_t* mapping)
+{
+	return update_user_mapping_prot(mapping, mapping->region->prot);
+}
+
 static int handle_cow_fault(mapping_t* mapping, int flags)
 {
 	region_t* copy;
 	int err;
 
 	if (region_get_ref(mapping->region) == 1) {
-		return vmm_impl->update_mapping_prot(mapping);
+		return reset_user_mapping_prot(mapping);
 	}
 
 	err = region_create(mapping_size_in_pages(mapping),
@@ -450,13 +493,13 @@ static int handle_cow_fault(mapping_t* mapping, int flags)
 	if (err)
 		return err;
 
-	err = vmm_impl->copy_mapping_pages(mapping, copy);
+	err = copy_mapping_pages(mapping, copy);
 	if (err) {
 		region_unref(copy);
 		return err;
 	}
 
-	err = vmm_impl->destroy_mapping(mapping);
+	err = unmap_mapping(mapping);
 	if (err) {
 		region_unref(copy);
 		return err;
@@ -465,7 +508,7 @@ static int handle_cow_fault(mapping_t* mapping, int flags)
 	region_unref(mapping->region);
 	mapping->region = copy;
 
-	err = vmm_impl->create_mapping(mapping);
+	err = map_mapping(mapping, vmm_impl->map_user_page);
 	if (err) {
 		list_erase(&mapping->m_list);
 		mapping_destroy(mapping);
@@ -476,16 +519,18 @@ static int handle_cow_fault(mapping_t* mapping, int flags)
 
 v_addr_t vmm_handle_page_fault(v_addr_t fault_addr, int flags)
 {
-	log_e_printf("#PF: %p (flags=%p)\n", (void*)fault_addr,
+	log_w_printf("#PF: %p (flags=%p)\n", (void*)fault_addr,
 		     (void*)(v_addr_t)flags);
 
-	mapping_t* mapping = find_mapping(&current_vmm->mappings, fault_addr);
-
 	if (flags & VMM_FAULT_USER) {
-		if (mapping && flags & VMM_FAULT_WRITE &&
-		    mapping->region->prot & VMM_PROT_WRITE)
+		mapping_t* mapping = find_mapping(&current_vmm->mappings, fault_addr);
+
+		if (mapping &&
+		    (flags & VMM_FAULT_WRITE) &&
+		    (mapping->region->prot & VMM_PROT_WRITE) &&
+		    !(flags & VMM_FAULT_ALIGNMENT))
 		{
-			handle_cow_fault(mapping, flags);
+			kassert(handle_cow_fault(mapping, flags) == 0);
 		}
 		else {
 			process_kill(sched_get_current_process()->pid, SIGSEGV);
@@ -494,7 +539,7 @@ v_addr_t vmm_handle_page_fault(v_addr_t fault_addr, int flags)
 		}
 	}
 	else {
-		if (!mapping && __fixup_addr) {
+		if (__fixup_addr) {
 			v_addr_t ret = __fixup_addr;
 			__fixup_addr = 0;
 			return ret;

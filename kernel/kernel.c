@@ -19,19 +19,6 @@
 
 #include <fs/ramfs/ramfs.h>
 
-void clock_tick(int nr, struct cpu_context* interrupted_ctx)
-{
-	time_tick();
-}
-
-static void mm_init(size_t mem)
-{
-	kassert(arch_mm_init(mem) == 0);
-
-	if (kheap_init(kernel_image_get_top_page()) < KHEAP_INITIAL_SIZE)
-		PANIC("Not enough memory for kernel heap!");
-}
-
 static void register_filesystems(void)
 {
 	kassert(ramfs_init_and_register() == 0);
@@ -42,18 +29,19 @@ static int mount_initrd(void* initrd)
 	return vfs_mount(NULL, vfs_cache_node_get_root(), initrd, "ramfs");
 }
 
-void kernel_main(size_t mem_size, void* initrd)
+void kernel_main(void* initrd)
 {
-	terminal_init();
+	kassert(arch_init() == 0);
 
 	struct cpu_info* cpu = cpu_info();
+	size_t mem_size = arch_get_mem_size();
+
+	terminal_init();
 
 	terminal_puts("Welcome to dummyOS!\n");
 	terminal_printf("CPU: %s\tRAM: %dMB (%p)\n", cpu->cpu_vendor,
 			(unsigned int)(mem_size >> 20), (void*)mem_size);
 
-	kassert(arch_init() == 0);
-	mm_init(mem_size);
 
 	register_filesystems();
 	kassert(vfs_init() == 0);

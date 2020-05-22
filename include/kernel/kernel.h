@@ -4,8 +4,6 @@
 #include <kernel/interrupt.h>
 #include <kernel/types.h>
 
-void clock_tick(int nr, struct cpu_context* interrupted_ctx);
-
-void kernel_main(size_t mem_size, void* initrd);
+void kernel_main(void* initrd);
 
 #endif

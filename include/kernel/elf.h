@@ -86,6 +86,11 @@ struct elf_section_header
 	uint32_t sh_entsize;
 };
 
+static inline bool elf_check_machine(uint16_t e_machine)
+{
+	return (e_machine == ELF_HEADER_MACHINE);
+}
+
 int elf_load_binary(struct vfs_file* binfile, struct process_image* img);
 
 #endif

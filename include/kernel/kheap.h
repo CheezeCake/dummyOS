@@ -1,7 +1,6 @@
 #ifndef _KERNEL_KHEAP_H_
 #define _KERNEL_KHEAP_H_
 
-#include <arch/vm.h>
 #include <kernel/types.h>
 
 #define KHEAP_INITIAL_SIZE 0x80000 // 512kB

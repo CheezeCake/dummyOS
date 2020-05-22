@@ -107,13 +107,12 @@ int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 				err = -ENOEXEC;
 				goto end;
 			}
-			start = align_down(vaddr, align);
 		}
+		start = align_down(vaddr, PAGE_SIZE);
 
-		uint8_t vmm_flags = VMM_PROT_USER;
+		uint8_t vmm_flags = VMM_PROT_USER | VMM_PROT_WRITE;
 		if (flags & PF_X) vmm_flags |= VMM_PROT_EXEC;
-		if (flags & PF_W) vmm_flags |= VMM_PROT_WRITE;
-		err = vmm_create_user_mapping(start, memsz, vmm_flags, 0);
+		err = vmm_create_user_mapping(start, vaddr - start + memsz, vmm_flags, 0);
 		if (err)
 			goto end;
 
@@ -145,6 +144,12 @@ int elf_load_binary(struct vfs_file* binfile, struct process_image* img)
 			memset_user((int8_t*)vaddr + filesz, 0, memsz - filesz);
 
 		kfree(buffer);
+
+		if (!(flags & PF_W)) {
+			err = vmm_update_user_mapping_prot(start, vmm_flags & ~VMM_PROT_WRITE);
+			if (err)
+				goto end;
+		}
 	}
 
 	img->brk = align_up(_end, PAGE_SIZE);
